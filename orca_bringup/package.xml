@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+
+  <name>orca_bringup</name>
+  <version>0.4.0</version>
+  <description>Launch scripts</description>
+
+  <maintainer email="clyde@mcqueen.net">Clyde McQueen</maintainer>
+  <license>MIT</license>
+
+  <url type="repository">https://github.com/clydemcqueen/orca3.git</url>
+  <url type="bugtracker">https://github.com/clydemcqueen/orca3/issues</url>
+
+  <author>Clyde McQueen</author>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+
+  <test_depend>ament_cmake_copyright</test_depend>
+  <test_depend>ament_cmake_lint_cmake</test_depend>
+  <test_depend>ament_cmake_xmllint</test_depend>
+
+  <!-- sim_launch.py uses ArUco models -->
+  <depend>sim_fiducial</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+
+</package>

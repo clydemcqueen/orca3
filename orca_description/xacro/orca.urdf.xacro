@@ -1,0 +1,481 @@
+<?xml version="1.0"?>
+
+<robot name="orca" xmlns:xacro="http://ros.org/wiki/xacro">
+
+    <!--
+        Orca constants
+
+        Flight dynamics are hugely driven by these 3 constants, all in the body frame:
+            {x, y, THRUSTER_Z}: where forward/back/strafe/yaw thrust forces are applied
+            {0, 0, MASS_Z}: where the linear and angular drag force is applied
+            {0, 0, VOLUME_Z}: where the buoyancy force is applied
+
+        Default simulation is fresh water and slightly positive buoyancy:
+            TOTAL_VOLUME = 0.01
+            FLUID_DENSITY = 997
+            DISPLACED_MASS = TOTAL_VOLUME * FLUID_DENSITY = 9.97
+            TOTAL_MASS = 9.9
+     -->
+    <xacro:property name="TOTAL_MASS" value="9.9"/>
+    <xacro:property name="TOTAL_VOLUME" value="0.01"/>
+    <xacro:property name="LENGTH" value="0.457"/>
+    <xacro:property name="WIDTH" value="0.338"/>
+    <xacro:property name="HEIGHT" value="0.25"/>
+    <xacro:property name="IXX" value="${TOTAL_MASS / 12 * (WIDTH * WIDTH + HEIGHT * HEIGHT)}"/>
+    <xacro:property name="IYY" value="${TOTAL_MASS / 12 * (LENGTH * LENGTH + HEIGHT * HEIGHT)}"/>
+    <xacro:property name="IZZ" value="${TOTAL_MASS / 12 * (LENGTH * LENGTH + WIDTH * WIDTH)}"/>
+    <xacro:property name="FLOAT_X" value="0.12"/>
+    <xacro:property name="FLOAT_Y" value="0.11"/>
+    <xacro:property name="FLOAT_Z" value="0.07"/>
+    <xacro:property name="THRUSTER_X" value="0.15"/>
+    <xacro:property name="THRUSTER_Y" value="0.09"/>
+    <xacro:property name="THRUSTER_Z" value="-0.009"/>
+    <xacro:property name="VERT_THRUSTER_Y" value="0.105"/>
+    <xacro:property name="VERT_THRUSTER_Z" value="0.09"/>
+    <xacro:property name="MASS_Z" value="0.011"/>
+    <xacro:property name="VOLUME_Z" value="0.06"/>
+    <xacro:property name="FORWARD_FORCE" value="50"/>
+    <xacro:property name="REVERSE_FORCE" value="40"/>
+    <xacro:property name="HAS_TETHER" default="false"/>
+    <xacro:property name="SURFACE" default="0"/>
+
+    <!-- Physics properties -->
+    <xacro:property name="FLUID_DENSITY" value="997"/>
+
+    <!-- Sensor properties -->
+    <xacro:property name="BARO_FREQ" value="20.0"/>
+    <xacro:property name="CAMERA_FREQ" value="10.0"/>
+
+    <!-- General constants -->
+    <xacro:property name="PI" value="3.1415926535897931"/>
+
+    <!-- Materials -->
+    <material name="gray">
+        <color rgba="0.5 0.5 0.5 1.0"/>
+    </material>
+    <material name="blue">
+        <color rgba="0.5 0.5 1.0 1.0"/>
+    </material>
+    <material name="red">
+        <color rgba="1.0 0.0 0.0 1.0"/>
+    </material>
+
+    <!-- Thruster origins -->
+    <xacro:property name="front_right_origin">
+        <origin xyz="${THRUSTER_X} ${-THRUSTER_Y} ${THRUSTER_Z}" rpy="0 ${PI/2} ${PI/4}"/>
+    </xacro:property>
+    <xacro:property name="front_left_origin">
+        <origin xyz="${THRUSTER_X} ${THRUSTER_Y} ${THRUSTER_Z}" rpy="0 ${PI/2} ${-PI/4}"/>
+    </xacro:property>
+    <xacro:property name="rear_right_origin">
+        <origin xyz="${-THRUSTER_X} ${-THRUSTER_Y} ${THRUSTER_Z}" rpy="0 ${PI/2} ${PI*3/4}"/>
+    </xacro:property>
+    <xacro:property name="rear_left_origin">
+        <origin xyz="${-THRUSTER_X} ${THRUSTER_Y} ${THRUSTER_Z}" rpy="0 ${PI/2} ${-PI*3/4}"/>
+    </xacro:property>
+    <xacro:property name="vertical_right_origin">
+        <origin xyz="0 ${-VERT_THRUSTER_Y} ${VERT_THRUSTER_Z}" rpy="0 0 0"/>
+    </xacro:property>
+    <xacro:property name="vertical_left_origin">
+        <origin xyz="0 ${VERT_THRUSTER_Y} ${VERT_THRUSTER_Z}" rpy="0 0 0"/>
+    </xacro:property>
+
+    <!-- Thruster macro -->
+    <xacro:macro name="t200" params="name *origin">
+        <link name="t200_link_${name}">
+            <!-- Front cone -->
+            <visual>
+                <origin xyz="0 0 0"/>
+                <geometry>
+                    <sphere radius="0.02"/>
+                </geometry>
+                <material name="gray"/> <!-- All visual elements in this link pick up this material -->
+            </visual>
+            <!-- Rear cone -->
+            <visual>
+                <origin xyz="0 0 -0.07"/>
+                <geometry>
+                    <sphere radius="0.02"/>
+                </geometry>
+            </visual>
+            <!-- Thruster body -->
+            <visual>
+                <origin xyz="0 0 -0.035"/>
+                <geometry>
+                    <cylinder length="0.07" radius="0.02"/>
+                </geometry>
+            </visual>
+            <!-- Propeller guard -->
+            <visual>
+                <origin xyz="0 0 -0.0225"/>
+                <geometry>
+                    <cylinder length="0.045" radius="0.045"/>
+                </geometry>
+            </visual>
+        </link>
+        <joint name="t200_joint_${name}" type="fixed">
+            <xacro:insert_block name="origin"/>
+            <parent link="base_link"/>
+            <child link="t200_link_${name}"/>
+        </joint>
+    </xacro:macro>
+
+    <!-- Base link -->
+    <link name="base_link">
+        <!-- Inertial -->
+        <inertial>
+            <origin xyz="0 0 ${MASS_Z}"/> <!-- Center of mass -->
+            <mass value="${TOTAL_MASS}"/>
+            <inertia ixx="${IXX}" ixy="0.0" ixz="0.0" iyy="${IYY}" iyz="0.0" izz="${IZZ}"/>
+        </inertial>
+        <!-- Float -->
+        <visual>
+            <origin xyz="${FLOAT_X} ${FLOAT_Y} ${FLOAT_Z}"/>
+            <geometry>
+                <box size="0.15 0.09 0.08"/>
+            </geometry>
+            <material name="blue"/>
+        </visual>
+        <!-- Float -->
+        <visual>
+            <origin xyz="${FLOAT_X} ${-FLOAT_Y} ${FLOAT_Z}"/>
+            <geometry>
+                <box size="0.15 0.09 0.08"/>
+            </geometry>
+        </visual>
+        <!-- Float -->
+        <visual>
+            <origin xyz="${-FLOAT_X} ${FLOAT_Y} ${FLOAT_Z}"/>
+            <geometry>
+                <box size="0.15 0.09 0.08"/>
+            </geometry>
+        </visual>
+        <!-- Float -->
+        <visual>
+            <origin xyz="${-FLOAT_X} ${-FLOAT_Y} ${FLOAT_Z}"/>
+            <geometry>
+                <box size="0.15 0.09 0.08"/>
+            </geometry>
+        </visual>
+        <!-- Electronics tube -->
+        <visual>
+            <origin xyz="0 0 0.063" rpy="0 ${PI/2} 0"/>
+            <geometry>
+                <cylinder length="0.32" radius="0.055"/>
+            </geometry>
+        </visual>
+        <!-- Battery tube -->
+        <visual>
+            <origin xyz="0 0 -0.05" rpy="0 ${PI/2} 0"/>
+            <geometry>
+                <cylinder length="0.25" radius="0.045"/>
+            </geometry>
+        </visual>
+        <!-- Left down-facing camera tube -->
+        <visual>
+            <origin xyz="-0.15 0.18 0" rpy="0 0 0"/>
+            <geometry>
+                <cylinder length="0.135" radius="0.0275"/>
+            </geometry>
+        </visual>
+        <!-- Right down-facing camera tube -->
+        <visual>
+            <origin xyz="-0.15 -0.18 0" rpy="0 0 0"/>
+            <geometry>
+                <cylinder length="0.135" radius="0.0275"/>
+            </geometry>
+        </visual>
+        <!-- Collision region -->
+        <collision>
+            <geometry>
+                <box size="${LENGTH} ${WIDTH} ${HEIGHT}"/>
+            </geometry>
+        </collision>
+    </link>
+
+    <!-- Barometer link -->
+    <link name="baro_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 ${PI/2} 0"/>
+            <geometry>
+                <cylinder length="0.01" radius="0.01"/>
+            </geometry>
+            <material name="red"/>
+        </visual>
+    </link>
+
+    <!-- Attach baro_link to base_link -->
+    <joint name="baro_joint" type="fixed">
+        <origin xyz="-0.16 0 0.05" rpy="0 0 0"/>
+        <parent link="base_link"/>
+        <child link="baro_link"/>
+    </joint>
+
+    <!-- Forward camera link -->
+    <link name="forward_camera_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <sphere radius="0.052"/>
+            </geometry>
+            <material name="red"/>
+        </visual>
+    </link>
+
+    <!-- Attach forward_camera_link to base_link -->
+    <joint name="forward_camera_joint" type="fixed">
+        <origin xyz="0.16 0 0.063" rpy="0 0 0"/>
+        <parent link="base_link"/>
+        <child link="forward_camera_link"/>
+    </joint>
+
+    <!-- Forward camera frame -->
+    <link name="forward_camera_frame"/>
+
+    <!-- Attach forward_camera_frame to base_link (parsed by filter_node) -->
+    <joint name="forward_camera_frame_joint" type="fixed">
+        <origin xyz="0.16 0 0.063" rpy="${-PI/2} 0 ${-PI/2}"/>
+        <parent link="base_link"/>
+        <child link="forward_camera_frame"/>
+    </joint>
+
+    <!-- Left and right cameras are positioned to see markers along the seafloor. Both are portrait. -->
+
+    <!-- Left camera link -->
+    <link name="left_camera_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <!-- Make the aspect ratio obvious -->
+                <box size="0.01 0.04 0.03"/>
+            </geometry>
+            <material name="red"/>
+        </visual>
+    </link>
+
+    <!-- Attach left_camera_link to base_link -->
+    <joint name="left_camera_joint" type="fixed">
+        <origin xyz="-0.15 0.18 -0.0675" rpy="${PI/2} ${PI/2} 0"/>
+        <parent link="base_link"/>
+        <child link="left_camera_link"/>
+    </joint>
+
+    <!-- Left camera frame -->
+    <link name="left_camera_frame"/>
+
+    <!-- Attach left_camera_frame to base_link (parsed by filter_node)  -->
+    <joint name="left_camera_frame_joint" type="fixed">
+        <origin xyz="-0.15 0.18 -0.0675" rpy="0 ${PI} 0"/>
+        <parent link="base_link"/>
+        <child link="left_camera_frame"/>
+    </joint>
+
+    <!-- Right camera link -->
+    <link name="right_camera_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <!-- Make the aspect ratio obvious -->
+                <box size="0.01 0.04 0.03"/>
+            </geometry>
+            <material name="red"/>
+        </visual>
+    </link>
+
+    <!-- Attach right_camera_link to base_link -->
+    <joint name="right_camera_joint" type="fixed">
+        <origin xyz="-0.15 -0.18 -0.0675" rpy="${PI/2} ${PI/2} 0"/>
+        <parent link="base_link"/>
+        <child link="right_camera_link"/>
+    </joint>
+
+    <!-- Right camera frame -->
+    <link name="right_camera_frame"/>
+
+    <!-- Attach right_camera_frame to base_link (parsed by filter_node) -->
+    <joint name="right_camera_frame_joint" type="fixed">
+        <origin xyz="-0.15 -0.18 -0.0675" rpy="0 ${PI} 0"/>
+        <parent link="base_link"/>
+        <child link="right_camera_frame"/>
+    </joint>
+
+    <!-- Attach thrusters to the base_link -->
+    <xacro:t200 name="front_right">
+        <xacro:insert_block name="front_right_origin"/>
+    </xacro:t200>
+    <xacro:t200 name="front_left">
+        <xacro:insert_block name="front_left_origin"/>
+    </xacro:t200>
+    <xacro:t200 name="rear_right">
+        <xacro:insert_block name="rear_right_origin"/>
+    </xacro:t200>
+    <xacro:t200 name="rear_left">
+        <xacro:insert_block name="rear_left_origin"/>
+    </xacro:t200>
+    <xacro:t200 name="vertical_right">
+        <xacro:insert_block name="vertical_right_origin"/>
+    </xacro:t200>
+    <xacro:t200 name="vertical_left">
+        <xacro:insert_block name="vertical_left_origin"/>
+    </xacro:t200>
+
+    <!--
+      The OrcaBuoyancyPlugin applies a force that counteracts gravity.
+      Buoyancy force is not applied if the link is above the surface of the water.
+    -->
+    <gazebo>
+        <plugin name="OrcaBuoyancyPlugin" filename="libOrcaBuoyancyPlugin.so">
+            <fluid_density>${FLUID_DENSITY}</fluid_density>
+            <link name="base_link">
+                <center_of_volume>0 0 ${VOLUME_Z}</center_of_volume>
+                <volume>${TOTAL_VOLUME}</volume>
+            </link>
+        </plugin>
+    </gazebo>
+
+    <!--
+    The OrcaDragPlugin applies a drag force proportional to velocity^2.
+    -->
+    <gazebo>
+        <plugin name="OrcaDragPlugin" filename="libOrcaDragPlugin.so">
+            <link name="base_link">
+                <center_of_mass>0 0 ${MASS_Z}</center_of_mass>
+                <center_of_volume>0 0 ${VOLUME_Z}</center_of_volume>
+                <angular_drag>4 4 4</angular_drag>
+            </link>
+        </plugin>
+    </gazebo>
+
+    <!--
+      The OrcaThrusterPlugin turns ROS messages into thrust forces. Each message contains an array of thrust efforts [-1.0, 1.0].
+      The URDF to SDF translation nukes the joints, so joint locations must appear here.
+    -->
+    <gazebo>
+        <plugin name="OrcaThrusterPlugin" filename="libOrcaThrusterPlugin.so">
+            <link_name>orca::base_link</link_name>
+            <thruster name="front_right"> <!-- name attributes are ignored; the tag order must match the message array order -->
+                <pos_force>${FORWARD_FORCE}</pos_force> <!-- units are N, positive for ccw, negative for cw -->
+                <neg_force>${REVERSE_FORCE}</neg_force> <!-- units are N, positive for ccw, negative for cw -->
+                <xacro:insert_block name="front_right_origin"/>
+            </thruster>
+            <thruster name="front_left">
+                <pos_force>${FORWARD_FORCE}</pos_force>
+                <neg_force>${REVERSE_FORCE}</neg_force>
+                <xacro:insert_block name="front_left_origin"/>
+            </thruster>
+            <thruster name="rear_right">
+                <pos_force>${-REVERSE_FORCE}</pos_force>
+                <neg_force>${-FORWARD_FORCE}</neg_force>
+                <xacro:insert_block name="rear_right_origin"/>
+            </thruster>
+            <thruster name="rear_left">
+                <pos_force>${-REVERSE_FORCE}</pos_force>
+                <neg_force>${-FORWARD_FORCE}</neg_force>
+                <xacro:insert_block name="rear_left_origin"/>
+            </thruster>
+            <thruster name="vertical_right">
+                <pos_force>${FORWARD_FORCE}</pos_force>
+                <neg_force>${REVERSE_FORCE}</neg_force>
+                <xacro:insert_block name="vertical_right_origin"/>
+            </thruster>
+            <thruster name="vertical_left">
+                <pos_force>${-REVERSE_FORCE}</pos_force>
+                <neg_force>${-FORWARD_FORCE}</neg_force>
+                <xacro:insert_block name="vertical_left_origin"/>
+            </thruster>
+        </plugin>
+    </gazebo>
+
+    <!--
+      The OrcaBarometerPlugin (wraps a Gazebo altimeter sensor) simulates a barometer sensor such as the BlueRobotics Bar30.
+    -->
+    <gazebo reference="baro_link">
+        <sensor name="barometer_sensor" type="altimeter">
+            <update_rate>${BARO_FREQ}</update_rate>
+            <plugin name="OrcaBarometerPlugin" filename="libOrcaBarometerPlugin.so">
+                <fluid_density>${FLUID_DENSITY}</fluid_density>
+            </plugin>
+        </sensor>
+    </gazebo>
+
+    <!--
+      The OrcaIMUPlugin (wraps a Gazebo IMU sensor) simulates an IMU sensor such as the Phidgets 1044.
+    -->
+<!--    <gazebo reference="base_link">-->
+<!--        <gravity>true</gravity>-->
+<!--        <sensor name="imu_sensor" type="imu">-->
+<!--            <update_rate>50</update_rate> &lt;!&ndash; Gazebeo max seems to be 50Hz &ndash;&gt;-->
+<!--            <plugin name="OrcaIMUPlugin" filename="libOrcaIMUPlugin.so"/>-->
+<!--            <pose>0 0 0 0 0 0</pose>-->
+<!--        </sensor>-->
+<!--    </gazebo>-->
+
+    <!--
+    The camera_controller plugin (wraps a Gazebo camera sensor) simulates a camera driver.
+    This xacro macro attaches a camera to ${prefix}_camera_link:
+  -->
+    <xacro:macro name="camera_plugin" params="prefix width height horizontal_fov">
+        <gazebo reference="${prefix}_camera_link">
+            <sensor type="camera" name="${prefix}_camera">
+                <update_rate>${CAMERA_FREQ}</update_rate>
+                <camera name="head">
+                    <horizontal_fov>${horizontal_fov}</horizontal_fov>
+                    <image>
+                        <width>${width}</width>
+                        <height>${height}</height>
+                        <format>R8G8B8</format>
+                    </image>
+                    <clip>
+                        <near>0.02</near>
+                        <far>300</far>
+                    </clip>
+                    <noise>
+                        <type>gaussian</type>
+                        <!-- Noise is sampled independently per pixel on each frame.
+                             That pixel's noise value is added to each of its color
+                             channels, which at that point lie in the range [0,1]. -->
+                        <mean>0.0</mean>
+                        <stddev>0.007</stddev>
+                    </noise>
+                </camera>
+                <plugin name="${prefix}_camera_controller" filename="libgazebo_ros_camera.so">
+                    <alwaysOn>true</alwaysOn>
+                    <updateRate>0.0</updateRate>
+                    <cameraName>orca/${prefix}_camera</cameraName>
+                    <imageTopicName>image_raw</imageTopicName>
+                    <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+                    <frameName>${prefix}_camera_link</frameName>
+                    <hackBaseline>0.07</hackBaseline>
+                    <distortionK1>0.0</distortionK1>
+                    <distortionK2>0.0</distortionK2>
+                    <distortionK3>0.0</distortionK3>
+                    <distortionT1>0.0</distortionT1>
+                    <distortionT2>0.0</distortionT2>
+                </plugin>
+            </sensor>
+        </gazebo>
+    </xacro:macro>
+
+    <!-- Forward-facing camera: -->
+    <xacro:camera_plugin prefix="forward" width="800" height="600" horizontal_fov="1.4"/>
+
+    <!-- Left down-facing camera: -->
+<!--    <xacro:camera_plugin prefix="left" width="800" height="600" horizontal_fov="1.4"/>-->
+
+    <!-- Right down-facing camera: -->
+<!--    <xacro:camera_plugin prefix="right" width="800" height="600" horizontal_fov="1.4"/>-->
+
+    <gazebo>
+        <plugin name="p3d_test" filename="libgazebo_ros_p3d.so">
+            <ros>
+                <argument>odom:=ground_truth</argument>
+            </ros>
+            <update_rate>30.0</update_rate>
+            <body_name>base_link</body_name>
+            <frame_name>map</frame_name>
+            <xyz_offsets>0 0 0</xyz_offsets>
+            <rpy_offsets>0 0 0</rpy_offsets>
+        </plugin>
+    </gazebo>
+
+</robot>
