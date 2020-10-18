@@ -12,7 +12,7 @@ endif()
 
 ## Install launch and params directories
 install(
-  DIRECTORY launch params
+  DIRECTORY launch params worlds
   DESTINATION share/${PROJECT_NAME}
 )
 

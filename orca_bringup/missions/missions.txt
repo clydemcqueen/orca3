@@ -1,0 +1,9 @@
+# Handy set of mission actions
+
+# Box
+ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses: [\
+{pose: {position: {x: 1, y: 1}}},\
+{pose: {position: {x: -1, y: 1}}},\
+{pose: {position: {x: -1, y: -1}}},\
+{pose: {position: {x: 1, y: -1}}},\
+]}"

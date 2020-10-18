@@ -1,0 +1,87 @@
+# Params for Orca nodes
+
+inject_node:
+  ros__parameters:
+    use_sim_time: True
+
+robot_state_publisher:
+  ros__parameters:
+    use_sim_time: True
+
+vmap_main:
+  ros__parameters:
+    use_sim_time: True
+
+    # Publish marker /tf
+    publish_tfs: 1
+
+    # Use a pre-built map
+    make_not_use_map: 0
+
+    # Load map
+    marker_map_load_full_filename: "install/orca_gazebo/share/orca_gazebo/worlds/medium_ring_map.yaml"
+
+    # Don't save the map
+    marker_map_save_full_filename: ""
+
+    # Marker length
+    marker_length: 0.1778
+
+forward_camera/vloc_main:
+  ros__parameters:
+    use_sim_time: True
+    camera_frame_id: "forward_camera_frame"
+
+    # Publish various things
+    publish_camera_pose: 1
+    publish_base_pose: 0
+    publish_tfs: 0
+    publish_tfs_per_marker: 0
+    publish_camera_odom: 0
+    publish_base_odom: 0
+    publish_image_marked: 1
+
+    # Node.now() and gazebo.sim_time are pretty far apart, go with Node.now()
+    stamp_msgs_with_current_time: 1
+
+    # Gazebo 11 camera plugin publishes both camera info and images best-effort
+    sub_camera_info_best_effort_not_reliable: 1
+    sub_image_raw_best_effort_not_reliable: 1
+
+    # OpenCV4 ArUco corner refinement
+    # 0 = CORNER_REFINE_NONE
+    # 1 = CORNER_REFINE_SUBPIX
+    # 2 = CORNER_REFINE_CONTOUR (default)
+    # 3 = CORNER_REFINE_APRILTAG (best and slowest)
+    corner_refinement_method: 3
+
+depth_node:
+  ros__parameters:
+    use_sim_time: True
+    mdl_mass: 9.9
+    mdl_volume: 0.01
+    mdl_fluid_density: 997.0
+    mdl_thrust_scale: 1.0
+
+joy_node:
+  ros__parameters:
+    use_sim_time: True
+    dev: "/dev/input/js0"
+
+teleop_node:
+  ros__parameters:
+    use_sim_time: True
+
+base_controller:
+  ros__parameters:
+    use_sim_time: True
+    mdl_mass: 9.9
+    mdl_volume: 0.01
+    mdl_fluid_density: 997.0
+    mdl_thrust_scale: 1.0
+
+simple_localizer:
+  ros__parameters:
+    use_sim_time: True
+    camera_frame_id: "forward_camera_frame"
+    localize_period_ms: 50
