@@ -29,6 +29,29 @@ namespace mw
 {
 
 //=====================================================================================
+// Map
+//=====================================================================================
+
+bool Map::good_pose(const Pose & camera_pose,
+  const fiducial_vlam_msgs::msg::Observations & obs_msg,
+  double distance) const
+{
+  // At least 1 observed marker must be closer than 'distance'
+  for (const auto & observation : obs_msg.observations) {
+    for (int j = 0; j < msg_.ids.size(); ++j) {
+      if (msg_.ids[j] == observation.id) {
+        if (camera_pose.position().distance(Point(msg_.poses[j].pose.position)) < distance) {
+          return true;
+        } else {
+          break;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+//=====================================================================================
 // operator<<
 //=====================================================================================
 
@@ -55,6 +78,12 @@ std::ostream & operator<<(std::ostream & os, const Header & v)
   return os << std::fixed << std::setprecision(3) << "{" <<
          v.t().nanoseconds() << ", " <<
          v.frame_id() << "}";
+}
+
+std::ostream & operator<<(std::ostream & os, const Map & v)
+{
+  return os << std::fixed << std::setprecision(3) << "{" <<
+        v.msg_.poses.size() << "}";
 }
 
 std::ostream & operator<<(std::ostream & os, const Point & v)

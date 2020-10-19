@@ -20,12 +20,14 @@ if($ENV{CLION_IDE})
   find_package(fastrtps_cmake_module REQUIRED)
   set(FastRTPS_INCLUDE_DIR "/opt/ros/foxy/include")
   set(FastRTPS_LIBRARY_RELEASE "/opt/ros/foxy/lib/libfastrtps.so")
+  set(fiducial_vlam_msgs_DIR "${PROJECT_SOURCE_DIR}/../../../install/fiducial_vlam_msgs/share/fiducial_vlam_msgs/cmake")
   set(orca_msgs_DIR "${PROJECT_SOURCE_DIR}/../../../install/orca_msgs/share/orca_msgs/cmake")
   set(ros2_shared_DIR "${PROJECT_SOURCE_DIR}/../../../install/ros2_shared/share/ros2_shared/cmake")
 endif()
 
 # Find packages
 find_package(ament_cmake REQUIRED)
+find_package(fiducial_vlam_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(image_geometry REQUIRED)
 find_package(orca_msgs REQUIRED)
@@ -56,6 +58,7 @@ add_library(
 
 ament_target_dependencies(
   ${ORCA_SHARED_LIB}
+  fiducial_vlam_msgs
   geometry_msgs
   image_geometry
   orca_msgs
@@ -78,6 +81,7 @@ add_executable(
 
 ament_target_dependencies(
   test_node
+  fiducial_vlam_msgs
   geometry_msgs
   image_geometry
   orca_msgs
@@ -106,6 +110,7 @@ add_executable(
 
 ament_target_dependencies(
   test_main
+  fiducial_vlam_msgs
   image_geometry
   orca_msgs
   rclcpp

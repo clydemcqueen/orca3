@@ -20,17 +20,65 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef ORCA_SHARED__MW__MW_HPP_
-#define ORCA_SHARED__MW__MW_HPP_
+#ifndef ORCA_SHARED__MW__MAP_HPP_
+#define ORCA_SHARED__MW__MAP_HPP_
 
-#include "orca_shared/mw/accel.hpp"
-#include "orca_shared/mw/efforts.hpp"
-#include "orca_shared/mw/header.hpp"
-#include "orca_shared/mw/map.hpp"
-#include "orca_shared/mw/point.hpp"
+#include <utility>
+#include <vector>
+
+#include "fiducial_vlam_msgs/msg/map.hpp"
+#include "fiducial_vlam_msgs/msg/observations.hpp"
 #include "orca_shared/mw/pose.hpp"
-#include "orca_shared/mw/pose_stamped.hpp"
-#include "orca_shared/mw/twist.hpp"
-#include "orca_shared/mw/quaternion.hpp"
 
-#endif  // ORCA_SHARED__MW__MW_HPP_
+namespace mw
+{
+
+class Map
+{
+  fiducial_vlam_msgs::msg::Map msg_;
+
+public:
+  Map() = default;
+
+  explicit Map(fiducial_vlam_msgs::msg::Map  msg)
+  : msg_{std::move(msg)}
+  {
+  }
+
+  fiducial_vlam_msgs::msg::Map msg() const
+  {
+    return msg_;
+  }
+
+  bool valid() const
+  {
+    return Header(msg_.header).valid();
+  }
+
+  double marker_length() const
+  {
+    return msg_.marker_length;
+  }
+
+  // Return true if the camera pose is "good", defined as close enough to a visible marker
+  bool good_pose(
+    const Pose & camera_pose,
+    const fiducial_vlam_msgs::msg::Observations & obs_msg,
+    double distance) const;
+
+  bool operator==(const Map & that) const
+  {
+    return msg_ == that.msg_;
+  }
+
+  bool operator!=(const Map & that) const
+  {
+    return !(*this == that);
+  }
+
+  friend std::ostream & operator<<(std::ostream & os, const Map & v);
+};
+
+}  // namespace mw
+
+#endif  // ORCA_SHARED__MW__MAP_HPP_

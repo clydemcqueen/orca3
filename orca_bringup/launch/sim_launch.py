@@ -59,7 +59,7 @@ def generate_launch_description():
     urdf_file = os.path.join(orca_description_dir, 'urdf', 'orca.urdf')
 
     # Select map # TODO launch param
-    world = World.SMALL_FIELD
+    world = World.MEDIUM_RING
 
     if world == World.SMALL_FIELD:
         world_file = os.path.join(orca_gazebo_dir, 'worlds', 'small_field.world')

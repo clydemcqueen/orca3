@@ -14,6 +14,7 @@ if($ENV{CLION_IDE})
   find_package(fastrtps_cmake_module REQUIRED)
   set(FastRTPS_INCLUDE_DIR "/opt/ros/foxy/include")
   set(FastRTPS_LIBRARY_RELEASE "/opt/ros/foxy/lib/libfastrtps.so")
+  set(fiducial_vlam_msgs_DIR "${PROJECT_SOURCE_DIR}/../../../install/fiducial_vlam_msgs/share/fiducial_vlam_msgs/cmake")
   set(orca_description_DIR "${PROJECT_SOURCE_DIR}/../../../install/orca_description/share/orca_description/cmake")
   set(orca_msgs_DIR "${PROJECT_SOURCE_DIR}/../../../install/orca_msgs/share/orca_msgs/cmake")
   set(orca_shared_DIR "${PROJECT_SOURCE_DIR}/../../../install/orca_shared/share/orca_shared/cmake")
@@ -23,6 +24,7 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(cv_bridge REQUIRED)
+find_package(fiducial_vlam_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(image_geometry REQUIRED)
 find_package(nav_msgs REQUIRED)
@@ -75,6 +77,7 @@ add_executable(
 
 ament_target_dependencies(
   base_controller
+  fiducial_vlam_msgs
   geometry_msgs
   nav_msgs
   orca_msgs
@@ -115,6 +118,7 @@ add_executable(
 
 ament_target_dependencies(
   simple_localizer
+  fiducial_vlam_msgs
   geometry_msgs
   nav_msgs
   orca_msgs

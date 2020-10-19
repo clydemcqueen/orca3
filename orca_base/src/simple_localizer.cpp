@@ -23,8 +23,12 @@
 #include <memory>
 #include <string>
 
+#include "fiducial_vlam_msgs/msg/map.hpp"
+#include "fiducial_vlam_msgs/msg/observations.hpp"
 #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "message_filters/subscriber.h"
+#include "message_filters/sync_policies/exact_time.h"
 #include "orca_shared/mw/mw.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
@@ -39,11 +43,13 @@ namespace orca_base
   CXT_MACRO_MEMBER(camera_frame_id, std::string, "camera_frame") \
   CXT_MACRO_MEMBER(map_frame_id, std::string, "map") \
   CXT_MACRO_MEMBER(odom_frame_id, std::string, "odom") \
- \
+  \
   CXT_MACRO_MEMBER(localize_period_ms, int, 50) \
   CXT_MACRO_MEMBER(wait_for_transform_ms, int, 500) \
   CXT_MACRO_MEMBER(transform_expiration_ms, int, 1000) \
   /* Ignore old camera pose  */ \
+  \
+  CXT_MACRO_MEMBER(good_pose_distance, double, 2.0) \
 /* End of list */
 
 #undef CXT_MACRO_MEMBER
@@ -54,16 +60,16 @@ struct LocalizerContext
   LOCALIZER_ALL_PARAMS
 };
 
-constexpr int QUEUE_SIZE = 10;
-
-using namespace std::chrono_literals;
-
 class SimpleLocalizer : public rclcpp::Node
 {
   LocalizerContext cxt_;
 
   bool can_transform_{false};
-  bool have_transform_{false};
+  bool have_fiducial_map_{false};
+  bool have_initial_pose_{false};
+
+  // Map of ArUco markers
+  mw::Map fiducial_map_;
 
   // Transformation naming conventions:
   //    t_target_source is a transformation from a source frame to a target frame
@@ -74,29 +80,23 @@ class SimpleLocalizer : public rclcpp::Node
   //    t_a_c == t_a_b * t_b_c
   geometry_msgs::msg::TransformStamped t_odom_map_;
 
-  rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr camera_pose_sub_;
+  // Message filter subscriptions
+  message_filters::Subscriber<fiducial_vlam_msgs::msg::Observations> obs_sub_;
+  message_filters::Subscriber<geometry_msgs::msg::PoseWithCovarianceStamped> pose_sub_;
+
+  // Sync fiducial camera pose + observations
+  using FiducialPolicy = message_filters::sync_policies::ExactTime<
+    fiducial_vlam_msgs::msg::Observations,
+    geometry_msgs::msg::PoseWithCovarianceStamped>;
+  using FiducialSync = message_filters::Synchronizer<FiducialPolicy>;
+  std::shared_ptr<FiducialSync> fiducial_sync_;
+
+  rclcpp::Subscription<fiducial_vlam_msgs::msg::Map>::SharedPtr fiducial_map_sub_;
   rclcpp::TimerBase::SharedPtr timer_;
 
   std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
   std::unique_ptr<tf2_ros::TransformListener> tf_listener_;
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
-
-  void validate_parameters()
-  {
-    t_odom_map_.header.frame_id = cxt_.map_frame_id_;
-    t_odom_map_.child_frame_id = cxt_.odom_frame_id_;
-
-    timer_ = create_wall_timer(
-      std::chrono::milliseconds(cxt_.localize_period_ms_), [this]
-      {
-        if (have_transform_) {
-          // Adding time to the transform avoids problems and improves rviz2 display
-          t_odom_map_.header.stamp = now() +
-          rclcpp::Duration(std::chrono::milliseconds(cxt_.transform_expiration_ms_));
-          tf_broadcaster_->sendTransform(t_odom_map_);
-        }
-      });
-  }
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "bugprone-lambda-function-name"
@@ -126,12 +126,89 @@ class SimpleLocalizer : public rclcpp::Node
 
 #pragma clang diagnostic pop
 
+  void validate_parameters()
+  {
+    t_odom_map_.header.frame_id = cxt_.map_frame_id_;
+    t_odom_map_.child_frame_id = cxt_.odom_frame_id_;
+
+    timer_ = create_wall_timer(
+      std::chrono::milliseconds(cxt_.localize_period_ms_), [this]
+      {
+        if (have_initial_pose_) {
+          // Adding time to the transform avoids problems and improves rviz2 display
+          t_odom_map_.header.stamp = now() +
+            rclcpp::Duration(std::chrono::milliseconds(cxt_.transform_expiration_ms_));
+          tf_broadcaster_->sendTransform(t_odom_map_);
+        }
+      });
+  }
+
+  void fiducial_callback(
+    const fiducial_vlam_msgs::msg::Observations::ConstSharedPtr & obs_msg,
+    const geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr & pose_msg)
+  {
+    // Wait for transforms
+    if (!can_transform_) {
+      // Future: use a message filter
+      if (tf_buffer_->canTransform(
+        cxt_.odom_frame_id_, cxt_.camera_frame_id_,
+        tf2::TimePointZero))
+      {
+        can_transform_ = true;
+        RCLCPP_INFO(get_logger(), "Found all transforms"); // NOLINT
+      } else {
+        return;
+      }
+    }
+
+    // Wait for a map
+    if (!have_fiducial_map_) {
+      if (fiducial_map_.valid()) {
+        have_fiducial_map_ = true;
+        RCLCPP_INFO(get_logger(), "Have fiducial map"); // NOLINT
+      } else {
+        return;
+      }
+    }
+
+    // Reject poses that are too far away from the marker(s)
+    // Make an exception for the initial pose
+    if (have_initial_pose_) {
+      mw::Pose camera_pose(pose_msg->pose.pose);
+      if (!fiducial_map_.good_pose(camera_pose, *obs_msg, cxt_.good_pose_distance_)) {
+        return;
+      }
+    }
+
+    geometry_msgs::msg::PoseStamped map_f_camera_stamped;
+    map_f_camera_stamped.header.frame_id = cxt_.camera_frame_id_;
+    map_f_camera_stamped.header.stamp = pose_msg->header.stamp;
+    map_f_camera_stamped.pose = orca::invert(pose_msg->pose.pose);
+
+    try {
+      // Walk the tf tree and transform map_f_camera_stamped into map_f_odom_stamped
+      geometry_msgs::msg::PoseStamped map_f_odom_stamped = tf_buffer_->transform(
+        map_f_camera_stamped, cxt_.odom_frame_id_,
+        std::chrono::milliseconds(cxt_.wait_for_transform_ms_));
+
+      geometry_msgs::msg::Pose odom_f_map = orca::invert(map_f_odom_stamped.pose);
+      t_odom_map_.transform = orca::pose_msg_to_transform_msg(odom_f_map);
+
+      if (!have_initial_pose_) {
+        have_initial_pose_ = true;
+        RCLCPP_INFO(get_logger(), "Have initial pose, publishing map->odom transform"); // NOLINT
+      }
+    } catch (const std::exception & e) {
+      RCLCPP_ERROR(get_logger(), e.what()); // NOLINT
+    }
+  }
+
 public:
   SimpleLocalizer()
   : Node("simple_localizer")
   {
     // Suppress IDE warnings
-    (void) camera_pose_sub_;
+    (void) fiducial_map_sub_;
     (void) tf_listener_;
     (void) timer_;
 
@@ -141,46 +218,21 @@ public:
     tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_);
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
 
-    // TODO(clyde): depends on odom frame id, move to validate_parameters
-    camera_pose_sub_ = create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
-      "camera_pose", QUEUE_SIZE,
-      [this](geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr msg) // NOLINT
+    // Get ArUco marker observations and the resulting camera pose
+    // Keep last == 1, little need for stale transforms
+    obs_sub_.subscribe(this, "/fiducial_observations");
+    pose_sub_.subscribe(this, "camera_pose");
+    fiducial_sync_.reset(new FiducialSync(FiducialPolicy(10), obs_sub_, pose_sub_));
+    using namespace std::placeholders;
+    fiducial_sync_->registerCallback(std::bind(&SimpleLocalizer::fiducial_callback, this, _1, _2)); // NOLINT
+
+    fiducial_map_sub_ = create_subscription<fiducial_vlam_msgs::msg::Map>(
+      "fiducial_map", 10,
+      [this](fiducial_vlam_msgs::msg::Map::ConstSharedPtr msg) // NOLINT
       {
-        if (!can_transform_) {
-          // Future: use a message filter
-          if (tf_buffer_->canTransform(
-            cxt_.odom_frame_id_, cxt_.camera_frame_id_,
-            tf2::TimePointZero))
-          {
-            can_transform_ = true;
-            RCLCPP_INFO(get_logger(), "Found all transforms"); // NOLINT
-          } else {
-            return;
-          }
-        }
-
-        // TODO(clyde): reject poses that are too far away
-        geometry_msgs::msg::PoseStamped map_f_camera_stamped;
-        map_f_camera_stamped.header.frame_id = cxt_.camera_frame_id_;
-        map_f_camera_stamped.header.stamp = msg->header.stamp;
-        map_f_camera_stamped.pose = orca::invert(msg->pose.pose);
-
-        try {
-          // Walk the tf tree and transform map_f_camera_stamped into map_f_odom_stamped
-          geometry_msgs::msg::PoseStamped map_f_odom_stamped = tf_buffer_->transform(
-            map_f_camera_stamped,
-            cxt_.odom_frame_id_, std::chrono::milliseconds(cxt_.wait_for_transform_ms_));
-          geometry_msgs::msg::Pose odom_f_map = orca::invert(map_f_odom_stamped.pose);
-          t_odom_map_.transform = orca::pose_msg_to_transform_msg(odom_f_map);
-
-          if (!have_transform_) {
-            have_transform_ = true;
-            RCLCPP_INFO(get_logger(), "Have initial pose, publishing map->odom transform"); // NOLINT
-          }
-        } catch (const std::exception & e) {
-          RCLCPP_ERROR(get_logger(), e.what()); // NOLINT
-        }
+        fiducial_map_ = mw::Map(*msg);
       });
+
 
     RCLCPP_INFO(get_logger(), "simple_localizer ready");
   }

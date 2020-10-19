@@ -18,6 +18,7 @@ The `mw` (message wrapper) library provides core classes for Orca.
 | Accel | geometry_msgs::msg::Accel | Acceleration |
 | Efforts |  | Thrust efforts in the range [-1, 1] |
 | Header | std_msgs::msg::Header | Time stamp + frame id |
+| Map | fiducial_vlam_msgs::msg::Map | List of marker poses |
 | Point | geometry_msgs::msg::Point | Point |
 | Pose | geometry_msgs::msg::Pose | Point + Quaternion |
 | PoseStamped | geometry_msgs::msg::PoseStamped | Header + Pose |
