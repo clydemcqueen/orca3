@@ -21,7 +21,6 @@
   <!-- This recursively depends on a set of common linters -->
   <test_depend>ament_lint_common</test_depend>
 
-  <depend>astar</depend>
   <depend>fiducial_vlam_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>image_geometry</depend>

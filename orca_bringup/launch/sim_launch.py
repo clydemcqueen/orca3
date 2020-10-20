@@ -48,6 +48,7 @@ class World(Enum):
     SIX_RING = 3  # 6 markers arranged in a 12' diameter ring
     MEDIUM_RING = 4  # 12 markers arranged in a 3m diameter ring
     LARGE_RING = 5  # 4 markers arranged in a 20m diameter ring
+    PING_PONG = 6  # 2 markers far apart facing each other
 
 
 def generate_launch_description():
@@ -58,8 +59,8 @@ def generate_launch_description():
 
     urdf_file = os.path.join(orca_description_dir, 'urdf', 'orca.urdf')
 
-    # Select map # TODO launch param
-    world = World.MEDIUM_RING
+    # Select world
+    world = World.PING_PONG
 
     if world == World.SMALL_FIELD:
         world_file = os.path.join(orca_gazebo_dir, 'worlds', 'small_field.world')
@@ -76,9 +77,12 @@ def generate_launch_description():
     elif world == World.MEDIUM_RING:
         world_file = os.path.join(orca_gazebo_dir, 'worlds', 'medium_ring.world')
         vlam_map_file = os.path.join(orca_gazebo_dir, 'worlds', 'medium_ring_map.yaml')
-    else:  # world == World.LARGE_RING:
+    elif world == World.LARGE_RING:
         world_file = os.path.join(orca_gazebo_dir, 'worlds', 'large_ring.world')
         vlam_map_file = os.path.join(orca_gazebo_dir, 'worlds', 'large_ring_map.yaml')
+    else: # world == World.PING_PONG:
+        world_file = os.path.join(orca_gazebo_dir, 'worlds', 'ping_pong.world')
+        vlam_map_file = os.path.join(orca_gazebo_dir, 'worlds', 'ping_pong_map.yaml')
 
     return LaunchDescription([
         # Launch Gazebo

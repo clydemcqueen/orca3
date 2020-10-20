@@ -113,7 +113,7 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-## Install targets
+## Install C++ targets
 install(
   TARGETS
   OrcaDragPlugin
@@ -125,6 +125,13 @@ install(
   RUNTIME DESTINATION bin
 )
 
+# Install Python nodes
+install(PROGRAMS
+  scripts/republish_gt.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# Install worlds
 install(
   DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/worlds"
   DESTINATION share/${PROJECT_NAME}

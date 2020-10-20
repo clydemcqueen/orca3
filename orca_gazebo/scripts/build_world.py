@@ -240,6 +240,12 @@ small_field = [
     [5, 2, -0.6, -0.7, 0, -math.pi / 2, 0],
 ]
 
+# Ping pong: 2 markers, facing each other, 10m apart
+ping_pong = [
+    [0, 5, 0, -0.5, 0, -math.pi / 2, 0],
+    [1, -5, 0, -0.5, 0, math.pi / 2, 0],
+]
+
 worlds = [
     ['huge.world', 'huge_map.yaml', huge_pool],
     ['large.world', 'large_map.yaml', large_pool],
@@ -253,6 +259,7 @@ worlds = [
     ['two_wall_floor.world', 'two_wall_floor_map.yaml', two_wall_floor],
     ['small_field.world', 'small_field_map.yaml', small_field],
     ['six_ring.world', 'six_ring_map.yaml', six_ring],
+    ['ping_pong.world', 'ping_pong_map.yaml', ping_pong],
 ]
 
 result_dir = sys.argv[1] if len(sys.argv) > 1 else 'worlds'

@@ -15,3 +15,11 @@ ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses:
 {pose: {position: {x: -1.5, y: -1.5}}},\
 {pose: {position: {x: 1.5, y: -1.5}}},\
 ]}"
+
+# Ping pong
+ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses: [\
+{pose: {position: {x: 4, y: 0}}},\
+{pose: {position: {x: -4, y: 0}}},\
+{pose: {position: {x: 4, y: 0}}},\
+{pose: {position: {x: -4, y: 0}}},\
+]}"

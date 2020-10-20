@@ -465,17 +465,17 @@
     <!-- Right down-facing camera: -->
 <!--    <xacro:camera_plugin prefix="right" width="800" height="600" horizontal_fov="1.4"/>-->
 
-<!--    <gazebo>-->
-<!--        <plugin name="p3d_test" filename="libgazebo_ros_p3d.so">-->
-<!--            <ros>-->
-<!--                <argument>odom:=ground_truth</argument>-->
-<!--            </ros>-->
-<!--            <update_rate>30.0</update_rate>-->
-<!--            <body_name>base_link</body_name>-->
-<!--            <frame_name>map</frame_name>-->
-<!--            <xyz_offsets>0 0 0</xyz_offsets>-->
-<!--            <rpy_offsets>0 0 0</rpy_offsets>-->
-<!--        </plugin>-->
-<!--    </gazebo>-->
+    <gazebo>
+        <plugin name="p3d_test" filename="libgazebo_ros_p3d.so">
+            <ros>
+                <argument>odom:=ground_truth</argument>
+            </ros>
+            <update_rate>30.0</update_rate>
+            <body_name>base_link</body_name>
+            <frame_name>map</frame_name>
+            <xyz_offsets>0 0 0</xyz_offsets>
+            <rpy_offsets>0 0 0</rpy_offsets>
+        </plugin>
+    </gazebo>
 
 </robot>
