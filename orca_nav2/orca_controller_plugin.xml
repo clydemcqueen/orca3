@@ -1,0 +1,6 @@
+<library path="orca_controller">
+    <class type="orca_nav2::OrcaController" base_class_type="nav2_core::Controller">
+        <description>Orca motion controller, pursuit, trapezoidal velocity, 3D.</description>
+    </class>
+</library>
+

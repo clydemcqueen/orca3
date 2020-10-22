@@ -2,24 +2,24 @@
 
 # 2m box
 ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses: [\
-{pose: {position: {x: 1, y: 1}}},\
-{pose: {position: {x: -1, y: 1}}},\
-{pose: {position: {x: -1, y: -1}}},\
-{pose: {position: {x: 1, y: -1}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: 1, y: 1}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: -1, y: 1}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: -1, y: -1}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: 1, y: -1}}},\
 ]}"
 
 # 3m box
 ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses: [\
-{pose: {position: {x: 1.5, y: 1.5}}},\
-{pose: {position: {x: -1.5, y: 1.5}}},\
-{pose: {position: {x: -1.5, y: -1.5}}},\
-{pose: {position: {x: 1.5, y: -1.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: 1.5, y: 1.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: -1.5, y: 1.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: -1.5, y: -1.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: 1.5, y: -1.5}}},\
 ]}"
 
-# Ping pong
+# Ping pong, use with the ping_pong map
 ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses: [\
-{pose: {position: {x: 4, y: 0}}},\
-{pose: {position: {x: -4, y: 0}}},\
-{pose: {position: {x: 4, y: 0}}},\
-{pose: {position: {x: -4, y: 0}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: 4, y: 0, z: -2}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: -4, y: 0, z: -2}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: 4, y: 0, z: -2}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: -4, y: 0, z: -2}}},\
 ]}"

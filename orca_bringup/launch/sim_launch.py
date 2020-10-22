@@ -58,6 +58,7 @@ def generate_launch_description():
     orca_description_dir = get_package_share_directory('orca_description')
 
     urdf_file = os.path.join(orca_description_dir, 'urdf', 'orca.urdf')
+    nav2_params_file = os.path.join(orca_bringup_dir, 'params', 'nav2_params.yaml')
 
     # Select world
     world = World.PING_PONG
@@ -107,5 +108,6 @@ def generate_launch_description():
             launch_arguments={
                 'use_sim_time': 'true',
                 'vlam_map': vlam_map_file,
+                'nav2_params_file': nav2_params_file,
             }.items()),
     ])

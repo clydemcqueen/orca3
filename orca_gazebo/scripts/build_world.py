@@ -242,8 +242,9 @@ small_field = [
 
 # Ping pong: 2 markers, facing each other, 10m apart
 ping_pong = [
-    [0, 5, 0, -0.5, 0, -math.pi / 2, 0],
-    [1, -5, 0, -0.5, 0, math.pi / 2, 0],
+    [0, 1, 0, 0, 0, -math.pi / 2, 0],       # Hack: provide a good initial pose
+    [1, 5, 0, -2, 0, -math.pi / 2, 0],
+    [2, -5, 0, -2, -math.pi, -math.pi / 2, 0],
 ]
 
 worlds = [

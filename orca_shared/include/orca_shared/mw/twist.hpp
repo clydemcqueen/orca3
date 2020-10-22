@@ -27,6 +27,7 @@
 
 #include "geometry_msgs/msg/twist.hpp"
 #include "orca_shared/mw/accel.hpp"
+#include "orca_shared/model.hpp"
 
 namespace mw
 {

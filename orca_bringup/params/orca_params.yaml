@@ -85,3 +85,4 @@ simple_localizer:
     use_sim_time: True
     camera_frame_id: "forward_camera_frame"
     localize_period_ms: 50
+    good_pose_distance: 2.0
