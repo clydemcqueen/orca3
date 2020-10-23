@@ -35,6 +35,7 @@ find_package(rclcpp)
 find_package(ros2_shared)
 find_package(sensor_msgs)
 find_package(tf2 REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 
 # Local includes
@@ -65,6 +66,7 @@ ament_target_dependencies(
   rclcpp
   ros2_shared
   tf2
+  tf2_geometry_msgs
   tf2_ros
 )
 
@@ -116,6 +118,9 @@ ament_target_dependencies(
   rclcpp
   ros2_shared
   sensor_msgs
+  tf2
+  tf2_geometry_msgs
+  tf2_ros
 )
 
 #=============

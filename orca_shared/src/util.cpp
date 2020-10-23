@@ -85,18 +85,18 @@ double get_yaw(const geometry_msgs::msg::Quaternion & q)
   return yaw;
 }
 
-//*******************************************
+//=====================================================================================
 // Time
-//*******************************************
+//=====================================================================================
 
 bool valid(const rclcpp::Time & stamp)
 {
   return stamp.nanoseconds() > 0;
 }
 
-//*******************************************
+//=====================================================================================
 // Common tf2 functions -- easy to find
-//*******************************************
+//=====================================================================================
 
 tf2::Transform pose_msg_to_transform(const geometry_msgs::msg::Pose & pose)
 {
@@ -125,6 +125,73 @@ geometry_msgs::msg::Transform pose_msg_to_transform_msg(const geometry_msgs::msg
 geometry_msgs::msg::Pose invert(const geometry_msgs::msg::Pose & pose)
 {
   return transform_to_pose_msg(pose_msg_to_transform(pose).inverse());
+}
+
+//=====================================================================================
+// tf2_ros::Buffer functions
+//=====================================================================================
+
+bool transform_with_wait(
+  const rclcpp::Logger & logger,
+  const std::shared_ptr<tf2_ros::Buffer> & tf,
+  const std::string & frame,
+  const geometry_msgs::msg::PoseStamped & in_pose,
+  geometry_msgs::msg::PoseStamped & out_pose,
+  int wait_ms)
+{
+  if (in_pose.header.frame_id == frame) {
+    out_pose = in_pose;
+    return true;
+  }
+
+  try {
+    out_pose = tf->transform(in_pose, frame, std::chrono::milliseconds(wait_ms));
+    return true;
+  }
+  catch (const tf2::TransformException & e) {
+    RCLCPP_ERROR(logger, e.what());
+    return false;
+  }
+}
+
+bool transform_with_tolerance(
+  const rclcpp::Logger & logger,
+  const std::shared_ptr<tf2_ros::Buffer> & tf,
+  const std::string & frame,
+  const geometry_msgs::msg::PoseStamped & in_pose,
+  geometry_msgs::msg::PoseStamped & out_pose,
+  const rclcpp::Duration & tolerance)
+{
+  if (in_pose.header.frame_id == frame) {
+    out_pose = in_pose;
+    return true;
+  }
+
+  try {
+    // Interpolate
+    out_pose = tf->transform(in_pose, frame);
+    return true;
+  }
+  catch (const tf2::ExtrapolationException & e) {
+    // Use the most recent transform if possible
+    auto transform = tf->lookupTransform(frame, in_pose.header.frame_id, tf2::TimePointZero);
+    if ((rclcpp::Time(in_pose.header.stamp) - rclcpp::Time(transform.header.stamp)) >
+      tolerance) {
+      RCLCPP_ERROR(logger, "Transform too old when converting from %s to %s",
+        in_pose.header.frame_id.c_str(), frame.c_str());
+      RCLCPP_ERROR(logger, "Data: %s, transform: %ds %uns",
+        in_pose.header.stamp.sec, in_pose.header.stamp.nanosec,
+        transform.header.stamp.sec, transform.header.stamp.nanosec);
+      return false;
+    } else {
+      tf2::doTransform(in_pose, out_pose, transform);
+      return true;
+    }
+  }
+  catch (const tf2::TransformException & e) {
+    RCLCPP_ERROR(logger, e.what());
+    return false;
+  }
 }
 
 //=====================================================================================

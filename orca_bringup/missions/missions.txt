@@ -16,10 +16,18 @@ ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses:
 {header: {frame_id: 'map'}, pose: {position: {x: 1.5, y: -1.5}}},\
 ]}"
 
-# Ping pong, use with the ping_pong map
+# Aligns with markers on the ping-pong map
 ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses: [\
-{header: {frame_id: 'map'}, pose: {position: {x: 4, y: 0, z: -2}}},\
-{header: {frame_id: 'map'}, pose: {position: {x: -4, y: 0, z: -2}}},\
-{header: {frame_id: 'map'}, pose: {position: {x: 4, y: 0, z: -2}}},\
-{header: {frame_id: 'map'}, pose: {position: {x: -4, y: 0, z: -2}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: 4, z: -2}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: -4, z: -2}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: 4, z: -2}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: -4, z: -2}}},\
+]}"
+
+# Sideways ping pong
+ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses: [\
+{header: {frame_id: 'map'}, pose: {position: {y: 2, z: -2}}},\
+{header: {frame_id: 'map'}, pose: {position: {y: -2, z: -2}}},\
+{header: {frame_id: 'map'}, pose: {position: {y: 2, z: -2}}},\
+{header: {frame_id: 'map'}, pose: {position: {y: -2, z: -2}}},\
 ]}"

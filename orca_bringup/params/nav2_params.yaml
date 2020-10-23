@@ -55,19 +55,19 @@ controller_server:
     goal_checker:
       plugin: "nav2_controller::SimpleGoalChecker"
       xy_goal_tolerance: 0.25
-      yaw_goal_tolerance: 0.25
+      yaw_goal_tolerance: 10.0  # TODO update controller to set final yaw
       stateful: True
     # OrcaController parameters
     FollowPath:
       plugin: "orca_nav2::OrcaController"
-      max_horizontal_accel: 0.2
-      max_vertical_accel: 0.15
-      max_angular_accel: 0.2
-      max_horizontal_vel: 0.2
-      max_vertical_vel: 0.2
-      max_angular_vel: 1.0
-      vertical_goal_tolerance: 0.15  # TODO move to goal_checker
-      lookahead_dist: 0.4
+      max_xy_accel: 0.2
+      max_z_accel: 0.15
+      max_yaw_accel: 0.2
+      max_xy_vel: 0.4
+      max_z_vel: 0.3
+      max_yaw_vel: 1.0
+      z_goal_tolerance: 0.15  # TODO create 3d goal checker
+      lookahead_dist: 1.0
       transform_tolerance: 1.0
 
 controller_server_rclcpp_node:

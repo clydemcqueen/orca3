@@ -31,6 +31,7 @@
 
 #include "orca_nav2/param_macro.hpp"
 #include "orca_shared/mw/pose_stamped.hpp"
+#include "orca_shared/util.hpp"
 #include "nav2_core/controller.hpp"
 #include "nav2_core/exceptions.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -46,13 +47,13 @@ class OrcaController: public nav2_core::Controller
   std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros_;
 
   // Parameters
-  double max_horizontal_accel_{};
-  double max_vertical_accel_{};
-  double max_angular_accel_{};
-  double max_horizontal_vel_{};
-  double max_vertical_vel_{};
-  double max_angular_vel_{};
-  double vertical_goal_tolerance_{};
+  double max_xy_accel_{};
+  double max_z_accel_{};
+  double max_yaw_accel_{};
+  double max_xy_vel_{};
+  double max_z_vel_{};
+  double max_yaw_vel_{};
+  double z_goal_tolerance_{};
   double lookahead_dist_{};
   double transform_tolerance_{};
   rclcpp::Duration transform_tolerance_d_{0, 0};
@@ -60,69 +61,10 @@ class OrcaController: public nav2_core::Controller
   // Global plan from OrcaPlanner
   nav_msgs::msg::Path global_plan_;
   double goal_z_{};
+  geometry_msgs::msg::Twist twist_;
 
-  static bool transformPose(
-    const std::shared_ptr<tf2_ros::Buffer> & tf,
-    const std::string & frame,
-    const geometry_msgs::msg::PoseStamped & in_pose,
-    geometry_msgs::msg::PoseStamped & out_pose,
-    rclcpp::Duration & transform_tolerance)
+  nav_msgs::msg::Path transform_global_plan(const nav_msgs::msg::Path & path)
   {
-    // Implementation from nav_2d_utils in nav2_dwb_controller
-    // TODO(clyde): move to orca_shared?
-
-    if (in_pose.header.frame_id == frame) {
-      out_pose = in_pose;
-      return true;
-    }
-
-    try {
-      tf->transform(in_pose, out_pose, frame);
-      return true;
-    }
-    catch (tf2::ExtrapolationException & ex) {
-      auto transform = tf->lookupTransform(
-        frame,
-        in_pose.header.frame_id,
-        tf2::TimePointZero
-      );
-      if (
-        (rclcpp::Time(in_pose.header.stamp) - rclcpp::Time(transform.header.stamp)) >
-          transform_tolerance) {
-        RCLCPP_ERROR(
-          rclcpp::get_logger("tf_help"),
-          "Transform data too old when converting from %s to %s",
-          in_pose.header.frame_id.c_str(),
-          frame.c_str()
-        );
-        RCLCPP_ERROR(
-          rclcpp::get_logger("tf_help"),
-          "Data time: %ds %uns, Transform time: %ds %uns",
-          in_pose.header.stamp.sec,
-          in_pose.header.stamp.nanosec,
-          transform.header.stamp.sec,
-          transform.header.stamp.nanosec
-        );
-        return false;
-      } else {
-        tf2::doTransform(in_pose, out_pose, transform);
-        return true;
-      }
-    }
-    catch (tf2::TransformException & ex) {
-      RCLCPP_ERROR(
-        rclcpp::get_logger("tf_help"),
-        "Exception in transformPose: %s",
-        ex.what()
-      );
-      return false;
-    }
-  }
-
-  nav_msgs::msg::Path transformGlobalPlan(const nav_msgs::msg::Path & path)
-  {
-    // Implementation from nav2_dwb_controller
-
     // Compute distance threshold of points on the plan that are outside the local costmap
     // TODO(clyde): no need to trim the plan to the local costmap, which is always empty
     nav2_costmap_2d::Costmap2D *costmap = costmap_ros_->getCostmap();
@@ -137,13 +79,12 @@ class OrcaController: public nav2_core::Controller
 
     // Helper function for the transform below. Converts a pose from global
     // frame to robot's frame
-    auto transformGlobalPoseToRobotFrame = [&](const auto & global_plan_pose)
+    auto transform_global_pose_to_robot_frame = [&](const auto & global_plan_pose)
     {
       geometry_msgs::msg::PoseStamped stamped_pose, transformed_pose;
       stamped_pose.header.frame_id = path.header.frame_id;
       stamped_pose.pose = global_plan_pose.pose;
-      transformPose(
-        tf_, transformed_plan.header.frame_id,
+      orca::transform_with_tolerance(logger_, tf_, transformed_plan.header.frame_id,
         stamped_pose, transformed_pose, transform_tolerance_d_);
       return transformed_pose;
     };
@@ -151,7 +92,7 @@ class OrcaController: public nav2_core::Controller
     std::transform(
       path.poses.begin(), path.poses.end(),
       std::back_inserter(transformed_plan.poses),
-      transformGlobalPoseToRobotFrame);
+      transform_global_pose_to_robot_frame);
 
     auto transformation_end = std::find_if(
       transformed_plan.poses.begin(), transformed_plan.poses.end(),
@@ -172,6 +113,50 @@ class OrcaController: public nav2_core::Controller
     return transformed_plan;
   }
 
+  void calc_xy_cmd_vel()
+  {
+    // Find the first pose beyond the lookahead distance, or the goal pose
+    auto lookahead_pose = std::find_if(global_plan_.poses.begin(), global_plan_.poses.end(),
+      [&](const auto & global_plan_pose)
+      {
+        return std::hypot(
+          global_plan_pose.pose.position.x,
+          global_plan_pose.pose.position.y) >= lookahead_dist_;
+      }
+    )->pose;
+
+    double squared_dist = (lookahead_pose.position.x * lookahead_pose.position.x +
+      lookahead_pose.position.y * lookahead_pose.position.y);
+
+    double linear_vel, angular_vel;
+
+    if (std::pow(squared_dist, 0.5) < 0.05) {
+      RCLCPP_ERROR(logger_, "Hit xy target, did the goal checker fail?");
+      linear_vel = 0;
+      angular_vel = 0;
+    } else if (lookahead_pose.position.x > 0) {
+      // Pure pursuit
+      auto curvature = 2.0 * lookahead_pose.position.y / squared_dist;
+      linear_vel = max_xy_vel_;
+      angular_vel = max_xy_vel_ * curvature;
+
+      // Tight turn, slow down
+      double ratio = std::abs(angular_vel / max_yaw_vel_);
+      if (ratio > 1) {
+        std::cout << "tight turn, slow down: " << 1 / ratio << std::endl;
+        linear_vel /= ratio;
+        angular_vel /= ratio;
+      }
+    } else {
+      // Rotate to face the lookahead
+      linear_vel = 0;
+      angular_vel = max_yaw_vel_; // TODO spin the shortest way!!!
+    }
+
+    twist_.linear.x = linear_vel;
+    twist_.angular.z = angular_vel;
+  }
+
 public:
   OrcaController() = default;
   ~OrcaController() override = default;
@@ -190,13 +175,13 @@ public:
     tf_ = tf;
     costmap_ros_ = costmap_ros;
 
-    PARAMETER(parent, name, max_horizontal_accel, 0.2)
-    PARAMETER(parent, name, max_vertical_accel, 0.15)
-    PARAMETER(parent, name, max_angular_accel, 0.2)
-    PARAMETER(parent, name, max_horizontal_vel, 0.4)
-    PARAMETER(parent, name, max_vertical_vel, 0.2)
-    PARAMETER(parent, name, max_angular_vel, 0.4)
-    PARAMETER(parent, name, vertical_goal_tolerance, 0.25)
+    PARAMETER(parent, name, max_xy_accel, 0.2)
+    PARAMETER(parent, name, max_z_accel, 0.15)
+    PARAMETER(parent, name, max_yaw_accel, 0.2)
+    PARAMETER(parent, name, max_xy_vel, 0.4)
+    PARAMETER(parent, name, max_z_vel, 0.2)
+    PARAMETER(parent, name, max_yaw_vel, 0.4)
+    PARAMETER(parent, name, z_goal_tolerance, 0.25)
     PARAMETER(parent, name, lookahead_dist, 0.4)
     PARAMETER(parent, name, transform_tolerance, 1.0)
 
@@ -216,51 +201,23 @@ public:
     const geometry_msgs::msg::Twist &) override
   {
     // Notes on frames:
-    // pose is in 'odom' (world) frame
-    // global_plan_ poses are in 'base_link' frame
+    // pose is in odom frame
+    // global_plan_ poses are in base_link frame
 
-    // Implements a pure pursuit algorithm. It's a bit sensitive to the parameters chosen.
-    // If the horizontal velocity is too high or the angular velocity is too low it starts
-    // to get funky, particularly near the goal.
-    // TODO(clyde): algo can be simplified and improved
-
+    // TODO(clyde): transform plan to odom frame, not base_frame, and calc_xy_cmd_vel each time
+    // TODO(clyde): rotate to final pose
     // TODO(clyde): implement trap velo
 
     geometry_msgs::msg::TwistStamped cmd_vel;
     cmd_vel.header.frame_id = pose.header.frame_id;
     cmd_vel.header.stamp = clock_->now();
 
-    // Execute vertical motion first
-    if (std::abs(pose.pose.position.z - goal_z_) >= vertical_goal_tolerance_) {
+    // Execute vertical motion, then horizontal motion
+    if (std::abs(pose.pose.position.z - goal_z_) >= z_goal_tolerance_) {
       cmd_vel.twist.linear.z = pose.pose.position.z < goal_z_ ?
-                               max_vertical_vel_ : -max_vertical_vel_;
+                               max_z_vel_ : -max_z_vel_;
     } else {
-      // Find the first pose beyond the lookahead distance, or the goal pose
-      auto goal_pose = std::find_if(global_plan_.poses.begin(), global_plan_.poses.end(),
-        [&](const auto & global_plan_pose)
-        {
-          return std::hypot(
-            global_plan_pose.pose.position.x,
-            global_plan_pose.pose.position.y) >= lookahead_dist_;
-        }
-      )->pose;
-
-      double linear_vel, angular_vel;
-
-      if (goal_pose.position.x > 0) {
-        auto curvature = 2.0 * goal_pose.position.y /
-          (goal_pose.position.x * goal_pose.position.x +
-            goal_pose.position.y * goal_pose.position.y);
-        linear_vel = max_horizontal_vel_;
-        angular_vel = max_horizontal_vel_ * curvature;
-      } else {
-        linear_vel = 0.0;
-        angular_vel = max_angular_vel_;
-      }
-
-      cmd_vel.twist.linear.x = linear_vel;
-      cmd_vel.twist.angular.z = std::max(-1.0 * abs(max_angular_vel_),
-        std::min(angular_vel, abs(max_angular_vel_)));
+      cmd_vel.twist = twist_;
     }
 
     return cmd_vel;
@@ -273,11 +230,13 @@ public:
     }
 
     // Keep goal z position, required because the plan might be trimmed
-    // TODO(clyde): transform to odom frame
     goal_z_ = path.poses[path.poses.size() - 1].pose.position.z;
 
     // Transform global path into the base_link frame
-    global_plan_ = transformGlobalPlan(path);
+    global_plan_ = transform_global_plan(path);
+
+    // Calculate cmd_vel commands, will use these for 1s
+    calc_xy_cmd_vel();
   }
 
 };

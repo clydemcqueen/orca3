@@ -63,7 +63,7 @@ public:
 
     clock_ = parent->get_clock();
     logger_ = parent->get_logger();
-    global_frame_id_ = costmap_ros->getGlobalFrameID();
+    global_frame_id_ = costmap_ros->getGlobalFrameID();  // Map frame
 
     PARAMETER(parent, name, planning_dist, 0.1)
 

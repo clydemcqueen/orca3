@@ -94,7 +94,7 @@ class SimpleLocalizer : public rclcpp::Node
   rclcpp::Subscription<fiducial_vlam_msgs::msg::Map>::SharedPtr fiducial_map_sub_;
   rclcpp::TimerBase::SharedPtr timer_;
 
-  std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+  std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::unique_ptr<tf2_ros::TransformListener> tf_listener_;
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
@@ -185,12 +185,9 @@ class SimpleLocalizer : public rclcpp::Node
     map_f_camera_stamped.header.stamp = pose_msg->header.stamp;
     map_f_camera_stamped.pose = orca::invert(pose_msg->pose.pose);
 
-    try {
-      // Walk the tf tree and transform map_f_camera_stamped into map_f_odom_stamped
-      geometry_msgs::msg::PoseStamped map_f_odom_stamped = tf_buffer_->transform(
-        map_f_camera_stamped, cxt_.odom_frame_id_,
-        std::chrono::milliseconds(cxt_.wait_for_transform_ms_));
-
+    geometry_msgs::msg::PoseStamped map_f_odom_stamped;
+    if (orca::transform_with_wait(get_logger(), tf_buffer_, cxt_.odom_frame_id_,
+      map_f_camera_stamped, map_f_odom_stamped, cxt_.wait_for_transform_ms_)) {
       geometry_msgs::msg::Pose odom_f_map = orca::invert(map_f_odom_stamped.pose);
       t_odom_map_.transform = orca::pose_msg_to_transform_msg(odom_f_map);
 
@@ -198,8 +195,6 @@ class SimpleLocalizer : public rclcpp::Node
         have_initial_pose_ = true;
         RCLCPP_INFO(get_logger(), "Have initial pose, publishing map->odom transform"); // NOLINT
       }
-    } catch (const std::exception & e) {
-      RCLCPP_ERROR(get_logger(), e.what()); // NOLINT
     }
   }
 
@@ -214,7 +209,7 @@ public:
 
     init_parameters();
 
-    tf_buffer_ = std::make_unique<tf2_ros::Buffer>(get_clock());
+    tf_buffer_ = std::make_shared<tf2_ros::Buffer>(get_clock());
     tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_);
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
 

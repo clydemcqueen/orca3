@@ -28,11 +28,13 @@
 #include <string>
 
 #include "geometry_msgs/msg/pose.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/quaternion.hpp"
 #include "geometry_msgs/msg/transform.hpp"
 #include "rclcpp/time.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "tf2/LinearMath/Transform.h"
+#include "tf2_ros/transform_listener.h"
 
 namespace orca
 {
@@ -84,16 +86,16 @@ void get_rpy(const geometry_msgs::msg::Quaternion & q, double & roll, double & p
 // Get yaw from a quaternion
 double get_yaw(const geometry_msgs::msg::Quaternion & q);
 
-//*******************************************
+//=====================================================================================
 // Time
-//*******************************************
+//=====================================================================================
 
 // True if time is valid (non-zero)
 bool valid(const rclcpp::Time & stamp);
 
-//*******************************************
+//=====================================================================================
 // Common tf2 functions -- easy to find
-//*******************************************
+//=====================================================================================
 
 tf2::Transform pose_msg_to_transform(const geometry_msgs::msg::Pose & pose);
 
@@ -104,6 +106,26 @@ geometry_msgs::msg::Transform transform_to_transform_msg(const tf2::Transform & 
 geometry_msgs::msg::Transform pose_msg_to_transform_msg(const geometry_msgs::msg::Pose & pose);
 
 geometry_msgs::msg::Pose invert(const geometry_msgs::msg::Pose & pose);
+
+//=====================================================================================
+// tf2_ros::Buffer functions
+//=====================================================================================
+
+bool transform_with_wait(
+  const rclcpp::Logger & logger,
+  const std::shared_ptr<tf2_ros::Buffer> & tf,
+  const std::string & frame,
+  const geometry_msgs::msg::PoseStamped & in_pose,
+  geometry_msgs::msg::PoseStamped & out_pose,
+  int wait_ms);
+
+bool transform_with_tolerance(
+  const rclcpp::Logger & logger,
+  const std::shared_ptr<tf2_ros::Buffer> & tf,
+  const std::string & frame,
+  const geometry_msgs::msg::PoseStamped & in_pose,
+  geometry_msgs::msg::PoseStamped & out_pose,
+  const rclcpp::Duration & tolerance);
 
 //=====================================================================================
 // BlueRobotics T200 thruster + ESC
