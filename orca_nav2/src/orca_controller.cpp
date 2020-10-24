@@ -39,6 +39,26 @@
 
 namespace orca_nav2 {
 
+constexpr double dist_squared(double x, double y)
+{
+  return x * x + y * y;
+}
+
+double dist(double x, double y)
+{
+  return sqrt(dist_squared(x, y));
+}
+
+constexpr double dist_squared(double x, double y, double z)
+{
+  return x * x + y * y + z * z;
+}
+
+double dist(double x, double y, double z)
+{
+  return sqrt(dist_squared(x, y, z));
+}
+
 class OrcaController: public nav2_core::Controller
 {
   rclcpp::Clock::SharedPtr clock_;
@@ -47,114 +67,114 @@ class OrcaController: public nav2_core::Controller
   std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros_;
 
   // Parameters
-  double max_xy_accel_{};
-  double max_z_accel_{};
-  double max_yaw_accel_{};
-  double max_xy_vel_{};
-  double max_z_vel_{};
-  double max_yaw_vel_{};
-  double z_goal_tolerance_{};
+  double xy_vel_{};
+  double xy_accel_{};
+  double z_vel_{};
+  double z_accel_{};
+  double yaw_vel_{};
+  double yaw_accel_{};
   double lookahead_dist_{};
   double transform_tolerance_{};
   rclcpp::Duration transform_tolerance_d_{0, 0};
 
-  // Global plan from OrcaPlanner
-  nav_msgs::msg::Path global_plan_;
-  double goal_z_{};
-  geometry_msgs::msg::Twist twist_;
+  // Plan from OrcaPlanner
+  nav_msgs::msg::Path plan_;
 
-  nav_msgs::msg::Path transform_global_plan(const nav_msgs::msg::Path & path)
+  // Return the first pose in the plan > lookahead distance away, or the last pose in the plan
+  geometry_msgs::msg::PoseStamped
+  find_goal(const geometry_msgs::msg::PoseStamped & pose_f_map) const
   {
-    // Compute distance threshold of points on the plan that are outside the local costmap
-    // TODO(clyde): no need to trim the plan to the local costmap, which is always empty
-    nav2_costmap_2d::Costmap2D *costmap = costmap_ros_->getCostmap();
-    double transform_dist_threshold =
-      std::max(costmap->getSizeInCellsX(), costmap->getSizeInCellsY()) *
-        costmap->getResolution() / 2.0;
+    // Walk the plan calculating distance. The plan may be stale, so distances may be be
+    // decreasing for a while. When they start to increase we've found the closest pose. Then look
+    // for the first pose > lookahead_dist_. Return the last pose if we run out of poses.
+    auto min_dist = std::numeric_limits<double>::max();
+    bool dist_decreasing = true;
 
-    // Transform the near part of the global plan into the robot's frame of reference.
-    nav_msgs::msg::Path transformed_plan;
-    transformed_plan.header.frame_id = costmap_ros_->getBaseFrameID();
-    transformed_plan.header.stamp = path.header.stamp;
+    for (const auto & plan_pose_f_map : plan_.poses) {
+      auto plan_pose_dist = dist(
+        plan_pose_f_map.pose.position.x - pose_f_map.pose.position.x,
+        plan_pose_f_map.pose.position.y - pose_f_map.pose.position.y,
+        plan_pose_f_map.pose.position.z - pose_f_map.pose.position.z);
 
-    // Helper function for the transform below. Converts a pose from global
-    // frame to robot's frame
-    auto transform_global_pose_to_robot_frame = [&](const auto & global_plan_pose)
-    {
-      geometry_msgs::msg::PoseStamped stamped_pose, transformed_pose;
-      stamped_pose.header.frame_id = path.header.frame_id;
-      stamped_pose.pose = global_plan_pose.pose;
-      orca::transform_with_tolerance(logger_, tf_, transformed_plan.header.frame_id,
-        stamped_pose, transformed_pose, transform_tolerance_d_);
-      return transformed_pose;
-    };
+      if (dist_decreasing) {
+        if (plan_pose_dist < min_dist) {
+          min_dist = plan_pose_dist;
+        } else {
+          dist_decreasing = false;
+        }
+      }
 
-    std::transform(
-      path.poses.begin(), path.poses.end(),
-      std::back_inserter(transformed_plan.poses),
-      transform_global_pose_to_robot_frame);
-
-    auto transformation_end = std::find_if(
-      transformed_plan.poses.begin(), transformed_plan.poses.end(),
-      [&](const auto & global_plan_pose)
-      {
-        return hypot(
-          global_plan_pose.pose.position.x,
-          global_plan_pose.pose.position.y) > transform_dist_threshold;
-      });
-
-    // Discard points on the plan that are outside the local costmap
-    transformed_plan.poses.erase(transformation_end, transformed_plan.poses.end());
-
-    if (transformed_plan.poses.empty()) {
-      throw nav2_core::PlannerException("Resulting plan has 0 poses in it.");
+      if (!dist_decreasing) {
+        if (plan_pose_dist > lookahead_dist_) {
+          return plan_pose_f_map;
+        }
+      }
     }
 
-    return transformed_plan;
+    return plan_.poses[plan_.poses.size() - 1];
   }
 
-  void calc_xy_cmd_vel()
+  // Pure pursuit path tracking algorithm, modified for 3D
+  // Reference "Implementation of the Pure Pursuit Path Tracking Algorithm" by R. Craig Coulter
+  geometry_msgs::msg::Twist
+  pure_pursuit_3d(const geometry_msgs::msg::PoseStamped & pose_f_odom) const
   {
-    // Find the first pose beyond the lookahead distance, or the goal pose
-    auto lookahead_pose = std::find_if(global_plan_.poses.begin(), global_plan_.poses.end(),
-      [&](const auto & global_plan_pose)
-      {
-        return std::hypot(
-          global_plan_pose.pose.position.x,
-          global_plan_pose.pose.position.y) >= lookahead_dist_;
-      }
-    )->pose;
-
-    double squared_dist = (lookahead_pose.position.x * lookahead_pose.position.x +
-      lookahead_pose.position.y * lookahead_pose.position.y);
-
-    double linear_vel, angular_vel;
-
-    if (std::pow(squared_dist, 0.5) < 0.05) {
-      RCLCPP_ERROR(logger_, "Hit xy target, did the goal checker fail?");
-      linear_vel = 0;
-      angular_vel = 0;
-    } else if (lookahead_pose.position.x > 0) {
-      // Pure pursuit
-      auto curvature = 2.0 * lookahead_pose.position.y / squared_dist;
-      linear_vel = max_xy_vel_;
-      angular_vel = max_xy_vel_ * curvature;
-
-      // Tight turn, slow down
-      double ratio = std::abs(angular_vel / max_yaw_vel_);
-      if (ratio > 1) {
-        std::cout << "tight turn, slow down: " << 1 / ratio << std::endl;
-        linear_vel /= ratio;
-        angular_vel /= ratio;
-      }
-    } else {
-      // Rotate to face the lookahead
-      linear_vel = 0;
-      angular_vel = max_yaw_vel_; // TODO spin the shortest way!!!
+    // Transform pose odom -> map
+    geometry_msgs::msg::PoseStamped pose_f_map;
+    if (!orca::transform_with_tolerance(logger_, tf_, costmap_ros_->getGlobalFrameID(),
+      pose_f_odom, pose_f_map,
+      transform_tolerance_d_)) {
+      return geometry_msgs::msg::Twist{};
     }
 
-    twist_.linear.x = linear_vel;
-    twist_.angular.z = angular_vel;
+    // Find goal
+    auto goal_f_map = find_goal(pose_f_map);
+
+    // Transform goal map -> base
+    geometry_msgs::msg::PoseStamped goal_f_base;
+    if (!orca::transform_with_tolerance(logger_, tf_, costmap_ros_->getBaseFrameID(),
+      goal_f_map, goal_f_base,
+      transform_tolerance_d_)) {
+      return geometry_msgs::msg::Twist{};
+    }
+
+    // Don't move if we're very close to the goal
+    constexpr double THRESHOLD = 0.1;
+
+    geometry_msgs::msg::Twist cmd_vel;
+
+    // z rules:
+    // -- move to goal.z
+    // -- future: limit acceleration to avoid overshoot
+    if (abs(goal_f_base.pose.position.z) > THRESHOLD) {
+      cmd_vel.linear.z = goal_f_base.pose.position.z > 0 ? z_vel_ : -z_vel_;
+    }
+
+    // xy rules:
+    // -- if goal is ahead, move forward along the shortest curve to the goal
+    // -- if goal is behind, spin in the shortest direction
+    // -- don't exceed the velocity limits
+    // -- future: limit acceleration to avoid pitch and drift
+    if (goal_f_base.pose.position.x > 0) {
+      auto xy_dist_squared = dist_squared(goal_f_base.pose.position.x, goal_f_base.pose.position.y);
+      if (pow(xy_dist_squared, 0.5) > THRESHOLD) {
+        auto curvature = 2.0 * goal_f_base.pose.position.y / xy_dist_squared;
+        if (curvature * xy_vel_ <= yaw_vel_) {
+          // Move at constant velocity
+          cmd_vel.linear.x = xy_vel_;
+          cmd_vel.angular.z = curvature * xy_vel_;
+        } else {
+          // Don't exceed angular velocity limit
+          cmd_vel.linear.x = yaw_vel_ / abs(curvature);
+          cmd_vel.angular.z = curvature > 0 ? yaw_vel_ : -yaw_vel_;
+        }
+      }
+    } else {
+      // Rotate to face the goal
+      cmd_vel.angular.z = goal_f_base.pose.position.y > 0 ? yaw_vel_ : -yaw_vel_;
+    }
+
+    return cmd_vel;
   }
 
 public:
@@ -175,13 +195,12 @@ public:
     tf_ = tf;
     costmap_ros_ = costmap_ros;
 
-    PARAMETER(parent, name, max_xy_accel, 0.2)
-    PARAMETER(parent, name, max_z_accel, 0.15)
-    PARAMETER(parent, name, max_yaw_accel, 0.2)
-    PARAMETER(parent, name, max_xy_vel, 0.4)
-    PARAMETER(parent, name, max_z_vel, 0.2)
-    PARAMETER(parent, name, max_yaw_vel, 0.4)
-    PARAMETER(parent, name, z_goal_tolerance, 0.25)
+    PARAMETER(parent, name, xy_vel, 0.4)
+    PARAMETER(parent, name, xy_accel, 0.2)
+    PARAMETER(parent, name, z_vel, 0.2)
+    PARAMETER(parent, name, z_accel, 0.15)
+    PARAMETER(parent, name, yaw_vel, 0.4)
+    PARAMETER(parent, name, yaw_accel, 0.2)
     PARAMETER(parent, name, lookahead_dist, 0.4)
     PARAMETER(parent, name, transform_tolerance, 1.0)
 
@@ -200,43 +219,19 @@ public:
     const geometry_msgs::msg::PoseStamped & pose,
     const geometry_msgs::msg::Twist &) override
   {
-    // Notes on frames:
-    // pose is in odom frame
-    // global_plan_ poses are in base_link frame
-
-    // TODO(clyde): transform plan to odom frame, not base_frame, and calc_xy_cmd_vel each time
-    // TODO(clyde): rotate to final pose
-    // TODO(clyde): implement trap velo
-
     geometry_msgs::msg::TwistStamped cmd_vel;
     cmd_vel.header.frame_id = pose.header.frame_id;
     cmd_vel.header.stamp = clock_->now();
-
-    // Execute vertical motion, then horizontal motion
-    if (std::abs(pose.pose.position.z - goal_z_) >= z_goal_tolerance_) {
-      cmd_vel.twist.linear.z = pose.pose.position.z < goal_z_ ?
-                               max_z_vel_ : -max_z_vel_;
-    } else {
-      cmd_vel.twist = twist_;
-    }
-
+    cmd_vel.twist = pure_pursuit_3d(pose);
     return cmd_vel;
   }
 
-  void setPlan(const nav_msgs::msg::Path & path) override
+  void setPlan(const nav_msgs::msg::Path & plan) override
   {
-    if (path.poses.empty()) {
+    if (plan.poses.empty()) {
       throw nav2_core::PlannerException("Received plan with zero length");
     }
-
-    // Keep goal z position, required because the plan might be trimmed
-    goal_z_ = path.poses[path.poses.size() - 1].pose.position.z;
-
-    // Transform global path into the base_link frame
-    global_plan_ = transform_global_plan(path);
-
-    // Calculate cmd_vel commands, will use these for 1s
-    calc_xy_cmd_vel();
+    plan_ = plan;
   }
 
 };

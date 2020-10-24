@@ -31,3 +31,11 @@ ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses:
 {header: {frame_id: 'map'}, pose: {position: {y: 2, z: -2}}},\
 {header: {frame_id: 'map'}, pose: {position: {y: -2, z: -2}}},\
 ]}"
+
+# Up down ping pong
+ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses: [\
+{header: {frame_id: 'map'}, pose: {position: {y: 2, z: -4}}},\
+{header: {frame_id: 'map'}, pose: {position: {y: -2, z: -2}}},\
+{header: {frame_id: 'map'}, pose: {position: {y: 2, z: -4}}},\
+{header: {frame_id: 'map'}, pose: {position: {y: -2, z: -2}}},\
+]}"

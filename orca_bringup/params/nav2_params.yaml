@@ -60,13 +60,12 @@ controller_server:
     # OrcaController parameters
     FollowPath:
       plugin: "orca_nav2::OrcaController"
-      max_xy_accel: 0.2
-      max_z_accel: 0.15
-      max_yaw_accel: 0.2
-      max_xy_vel: 0.4
-      max_z_vel: 0.3
-      max_yaw_vel: 1.0
-      z_goal_tolerance: 0.15  # TODO create 3d goal checker
+      xy_vel: 0.4
+      xy_accel: 0.2
+      z_vel: 0.3
+      z_accel: 0.15
+      yaw_vel: 1.0
+      yaw_accel: 0.2
       lookahead_dist: 1.0
       transform_tolerance: 1.0
 

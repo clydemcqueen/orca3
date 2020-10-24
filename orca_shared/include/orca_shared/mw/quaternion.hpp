@@ -92,12 +92,12 @@ public:
     yaw_ = orca::norm_angle(v);
   }
 
-  double distance_yaw(const Quaternion & that) const
+  double dist_yaw(const Quaternion & that) const
   {
     return std::abs(orca::norm_angle(yaw() - that.yaw()));
   }
 
-  double distance_yaw(const double & that) const
+  double dist_yaw(const double & that) const
   {
     return std::abs(orca::norm_angle(yaw() - that));
   }

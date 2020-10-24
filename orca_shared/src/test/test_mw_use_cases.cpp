@@ -62,8 +62,8 @@ bool test_mw_pose_segment()
   std::cout << goal << std::endl;
 
   const int num_iter = 10;
-  auto xy_distance = goal.position().distance_xy(plan.pose().position());
-  auto yaw_distance = goal.orientation().distance_yaw(plan.pose().orientation());
+  auto xy_dist = goal.position().dist_xy(plan.pose().position());
+  auto yaw_dist = goal.orientation().dist_yaw(plan.pose().orientation());
   auto angle_to_goal = std::atan2(
     goal.position().y() - plan.pose().position().y(),
     goal.position().x() - plan.pose().position().x());
@@ -71,11 +71,11 @@ bool test_mw_pose_segment()
   for (int i = 0; i < num_iter; ++i) {
     plan.pose().position().x(
       plan.pose().position().x() + std::cos(
-        angle_to_goal) * xy_distance / num_iter);
+        angle_to_goal) * xy_dist / num_iter);
     plan.pose().position().y(
       plan.pose().position().x() + std::sin(
-        angle_to_goal) * xy_distance / num_iter);
-    plan.pose().orientation().yaw(plan.pose().orientation().yaw() + yaw_distance / num_iter);
+        angle_to_goal) * xy_dist / num_iter);
+    plan.pose().orientation().yaw(plan.pose().orientation().yaw() + yaw_dist / num_iter);
     std::cout << plan.pose() << std::endl;
   }
 

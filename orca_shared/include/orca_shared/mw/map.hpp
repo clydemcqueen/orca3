@@ -64,7 +64,7 @@ public:
   bool good_pose(
     const Pose & camera_pose,
     const fiducial_vlam_msgs::msg::Observations & obs_msg,
-    double distance) const;
+    double dist) const;
 
   bool operator==(const Map & that) const
   {

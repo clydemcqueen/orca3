@@ -84,24 +84,24 @@ public:
     msg_.z = v;
   }
 
-  double distance(const Point & that) const
+  double dist(const Point & that) const
   {
     return std::sqrt(std::pow(x() - that.x(), 2) +
       std::pow(y() - that.y(), 2) +
       std::pow(z() - that.z(), 2));
   }
 
-  double distance_xy(const Point & that) const
+  double dist_xy(const Point & that) const
   {
     return std::hypot(x() - that.x(), y() - that.y());
   }
 
-  double distance_xy(const double & _x, const double & _y) const
+  double dist_xy(const double & _x, const double & _y) const
   {
     return std::hypot(x() - _x, y() - _y);
   }
 
-  double distance_z(const Point & that) const
+  double dist_z(const Point & that) const
   {
     return std::abs(z() - that.z());
   }

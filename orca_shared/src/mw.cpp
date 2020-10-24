@@ -34,13 +34,13 @@ namespace mw
 
 bool Map::good_pose(const Pose & camera_pose,
   const fiducial_vlam_msgs::msg::Observations & obs_msg,
-  double distance) const
+  double dist) const
 {
-  // At least 1 observed marker must be closer than 'distance'
+  // At least 1 observed marker must be closer than 'dist'
   for (const auto & observation : obs_msg.observations) {
     for (int j = 0; j < msg_.ids.size(); ++j) {
       if (msg_.ids[j] == observation.id) {
-        if (camera_pose.position().distance(Point(msg_.poses[j].pose.position)) < distance) {
+        if (camera_pose.position().dist(Point(msg_.poses[j].pose.position)) < dist) {
           return true;
         } else {
           break;
