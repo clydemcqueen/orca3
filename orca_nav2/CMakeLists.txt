@@ -36,7 +36,7 @@ find_package(visualization_msgs REQUIRED)
 include_directories(include)
 
 #=============
-# Orca controller
+# Orca controller, a modified pure-pursuit controller
 #=============
 
 add_library(
@@ -67,7 +67,7 @@ target_compile_definitions(orca_controller PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNC
 pluginlib_export_plugin_description_file(nav2_core orca_controller_plugin.xml)
 
 #=============
-# Orca planner
+# Orca planner, a straight line planner
 #=============
 
 add_library(
@@ -104,6 +104,50 @@ target_compile_definitions(orca_planner PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIO
 pluginlib_export_plugin_description_file(nav2_core orca_planner_plugin.xml)
 
 #=============
+# Orca goal checker, a simple 3d goal checker
+#=============
+
+add_library(
+  orca_goal_checker SHARED
+  src/orca_goal_checker.cpp
+)
+
+set(
+  ORCA_GOAL_CHECKER_DEPS
+  rclcpp
+)
+
+ament_target_dependencies(
+  orca_goal_checker
+  ${ORCA_GOAL_CHECKER_DEPS}
+)
+
+target_compile_definitions(orca_goal_checker PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
+pluginlib_export_plugin_description_file(nav2_core orca_goal_checker_plugin.xml)
+
+#=============
+# Orca progress checker, a simple 3D progress checker
+#=============
+
+add_library(
+  orca_progress_checker SHARED
+  src/orca_progress_checker.cpp
+)
+
+set(
+  ORCA_PROGRESS_CHECKER_DEPS
+  rclcpp
+)
+
+ament_target_dependencies(
+  orca_progress_checker
+  ${ORCA_PROGRESS_CHECKER_DEPS}
+)
+
+target_compile_definitions(orca_progress_checker PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
+pluginlib_export_plugin_description_file(nav2_core orca_progress_checker_plugin.xml)
+
+#=============
 # Test
 #=============
 
@@ -121,6 +165,8 @@ install(
   TARGETS
   orca_controller
   orca_planner
+  orca_goal_checker
+  orca_progress_checker
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
@@ -130,10 +176,22 @@ install(
   FILES
   orca_controller_plugin.xml
   orca_planner_plugin.xml
+  orca_goal_checker_plugin.xml
+  orca_progress_checker_plugin.xml
   DESTINATION share/${PROJECT_NAME}
 )
 
-ament_export_libraries(orca_controller orca_planner)
-ament_export_dependencies(${ORCA_CONTROLLER_DEPS} ${ORCA_PLANNER_DEPS})
+ament_export_libraries(
+  orca_controller
+  orca_planner
+  orca_goal_checker
+  orca_progress_checker
+)
+ament_export_dependencies(
+  ${ORCA_CONTROLLER_DEPS}
+  ${ORCA_PLANNER_DEPS}
+  ${ORCA_GOAL_CHECKER_DEPS}
+  ${ORCA_PROGRESS_CHECKER_DEPS}
+)
 
 ament_package()

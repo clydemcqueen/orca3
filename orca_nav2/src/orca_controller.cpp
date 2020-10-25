@@ -23,8 +23,6 @@
 // Inspired by
 // https://navigation.ros.org/plugin_tutorials/docs/writing_new_nav2controller_plugin.html
 
-// #include "orca_nav2/orca_controller.hpp"
-
 #include <algorithm>
 #include <string>
 #include <vector>

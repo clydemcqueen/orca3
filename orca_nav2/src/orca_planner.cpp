@@ -23,8 +23,6 @@
 // Inspired by
 // https://navigation.ros.org/plugin_tutorials/docs/writing_new_nav2planner_plugin.html
 
-// #include "orca_nav2/orca_planner.hpp"
-
 #include <cmath>
 #include <memory>
 #include <string>
