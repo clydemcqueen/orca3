@@ -63,11 +63,11 @@ controller_server:
     FollowPath:
       plugin: "orca_nav2::OrcaController"
       xy_vel: 0.4
-      xy_accel: 0.2
+      xy_accel: 0.4
       z_vel: 0.3
       z_accel: 0.15
       yaw_vel: 1.0
-      yaw_accel: 0.2
+      yaw_accel: 1.0
       lookahead_dist: 1.0
       transform_tolerance: 1.0
 

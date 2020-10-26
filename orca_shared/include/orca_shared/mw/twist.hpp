@@ -105,6 +105,16 @@ public:
     };
   }
 
+  mw::Twist robot_to_world_frame(double yaw_f_world) const
+  {
+    return {
+      x() * std::cos(yaw_f_world) - y() * sin(yaw_f_world),
+      x() * std::sin(yaw_f_world) + y() * cos(yaw_f_world),
+      z(),
+      yaw()
+    };
+  }
+
   bool operator==(const Twist & that) const
   {
     return msg_ == that.msg_;

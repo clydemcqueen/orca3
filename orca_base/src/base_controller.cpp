@@ -132,7 +132,7 @@ class BaseController : public rclcpp::Node
     mw::Pose pose(odom_msg_.pose.pose);
     pose = odometry(pose, cmd_vel_, dt);
     odom_msg_.pose.pose = pose.msg();
-    odom_msg_.twist.twist = cmd_vel_.msg();
+    odom_msg_.twist.twist = cmd_vel_.robot_to_world_frame(pose.yaw()).msg();
     odom_msg_.header.stamp = t;
     odom_pub_->publish(odom_msg_);
 

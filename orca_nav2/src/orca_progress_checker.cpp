@@ -22,18 +22,9 @@
 
 #include "nav2_core/progress_checker.hpp"
 #include "orca_nav2/param_macro.hpp"
+#include "orca_nav2/util.hpp"
 
 namespace orca_nav2 {
-
-double dist(double x, double y, double z)
-{
-  return sqrt(x * x + y * y + z * z);
-}
-
-double dist(const geometry_msgs::msg::Point & p1, const geometry_msgs::msg::Point & p2)
-{
-  return dist(p2.x - p1.x, p2.y - p1.y, p2.z - p1.z);
-}
 
 class OrcaProgressChecker: public nav2_core::ProgressChecker
 {
