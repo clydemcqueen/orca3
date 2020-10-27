@@ -39,6 +39,7 @@ namespace orca_base
 #define DEPTH_NODE_PARAMS \
   CXT_MACRO_MEMBER(map_frame, std::string, "map") \
   CXT_MACRO_MEMBER(z_variance, double, orca::Model::DEPTH_STDDEV * orca::Model::DEPTH_STDDEV) \
+  CXT_MACRO_MEMBER(stamp_msgs_with_current_time, bool, false) \
 /* End of list */
 
 #undef CXT_MACRO_MEMBER
@@ -86,8 +87,14 @@ class DepthNode : public rclcpp::Node
     }
 
     orca_msgs::msg::Depth depth_msg;
-    depth_msg.header.stamp = baro_msg->header.stamp;
     depth_msg.header.frame_id = cxt_.map_frame_;
+
+    // Overwrite stamp
+    if (cxt_.stamp_msgs_with_current_time_) {
+      depth_msg.header.stamp = now();
+    } else {
+      depth_msg.header.stamp = baro_msg->header.stamp;
+    }
 
     // Convert pressure at baro_link to depth at base_link
     depth_msg.z = barometer_.pressure_to_base_link_z(cxt_, baro_msg->pressure);

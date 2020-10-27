@@ -2,15 +2,15 @@
 
 inject_node:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
 
 robot_state_publisher:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
 
 vmap_main:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
 
     # Publish marker /tf
     publish_tfs: 1
@@ -29,7 +29,9 @@ vmap_main:
 
 forward_camera/vloc_main:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
+    stamp_msgs_with_current_time: 1 # Int can't be modified by param_rewrites? Hand-edit
+
     camera_frame_id: "forward_camera_frame"
 
     # Publish various things
@@ -40,9 +42,6 @@ forward_camera/vloc_main:
     publish_camera_odom: 0
     publish_base_odom: 0
     publish_image_marked: 1
-
-    # Node.now() and gazebo.sim_time are pretty far apart, go with Node.now()
-    stamp_msgs_with_current_time: 1
 
     # Gazebo 11 camera plugin publishes both camera info and images best-effort
     sub_camera_info_best_effort_not_reliable: 1
@@ -57,7 +56,9 @@ forward_camera/vloc_main:
 
 depth_node:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
+    stamp_msgs_with_current_time: True
+
     mdl_mass: 9.9
     mdl_volume: 0.01
     mdl_fluid_density: 997.0
@@ -65,16 +66,16 @@ depth_node:
 
 joy_node:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
     dev: "/dev/input/js0"
 
 teleop_node:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
 
 base_controller:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
     mdl_mass: 9.9
     mdl_volume: 0.01
     mdl_fluid_density: 997.0
@@ -82,7 +83,7 @@ base_controller:
 
 simple_localizer:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
     camera_frame_id: "forward_camera_frame"
     localize_period_ms: 50
     good_pose_distance: 2.0

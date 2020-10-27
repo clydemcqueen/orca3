@@ -25,6 +25,7 @@ class RepublishNode(rclpy.node.Node):
                                           rclpy.qos.qos_profile_services_default)
 
     def callback(self, msg: nav_msgs.msg.Odometry) -> None:
+        msg.header.stamp = self.get_clock().now().to_msg() # Use wall time, not sim time
         self._pub.publish(msg)
 
 

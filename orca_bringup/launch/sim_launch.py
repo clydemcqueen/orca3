@@ -106,7 +106,7 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(orca_launch_dir, 'bringup_launch.py')),
             launch_arguments={
-                'use_sim_time': 'true',
+                'use_sim_time': 'false', # now() gives wall time
                 'vlam_map': vlam_map_file,
                 'nav2_params_file': nav2_params_file,
             }.items()),
