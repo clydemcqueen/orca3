@@ -75,8 +75,10 @@ std::ostream & operator<<(std::ostream & os, Efforts const & e)
 
 std::ostream & operator<<(std::ostream & os, const Header & v)
 {
+  builtin_interfaces::msg::Time stamp{v.t()};
   return os << std::fixed << std::setprecision(3) << "{" <<
-         v.t().nanoseconds() << ", " <<
+         stamp.sec << "." <<
+         stamp.nanosec << ", " <<
          v.frame_id() << "}";
 }
 

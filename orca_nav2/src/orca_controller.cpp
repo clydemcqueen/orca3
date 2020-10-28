@@ -55,38 +55,34 @@ public:
     assert(dt > 0);
   }
 
-  double limit(const double & desired_v, const double & prev_v) const
+  // Ramp down velocity as the sub approaches the goal
+  // Particularly important for linear.x, as momentum will carry the sub a good distance
+  // Less important for linear.z, as drag is higher and buoyancy tends to dominate
+  void decelerate(double & v, const double & goal_dist) const
   {
-    auto dv = desired_v - prev_v;
-
-    if (dv > max_dv_) {
-      return prev_v + max_dv_;
-    } else if (dv < -max_dv_) {
-      return prev_v - max_dv_;
-    } else {
-      return desired_v;
-    }
+    assert(sign(v) == sign(goal_dist));
+    auto decel_v = std::sqrt(2 * std::abs(goal_dist) * max_a_);
+    auto result_v = std::min(std::abs(v), decel_v);
+    v = (sign(v) ? result_v : -result_v);
   }
 
-  double decel(const double & desired_v, const double & goal_dist) const
+  // Limit acceleration
+  void limit(double & v, const double & prev_v) const
   {
-    assert(sign(desired_v) == sign(goal_dist));
-
-    auto decel_v = sqrt(2 * std::abs(goal_dist) * max_a_);
-    auto result_v = std::min(std::abs(desired_v), decel_v);
-
-    // std::cout << "abs(decel_v): " << decel_v << ", abs(result_v): " << result_v << std::endl;
-
-    return (sign(desired_v) ? result_v : -result_v);
+    auto dv = v - prev_v;
+    if (dv > max_dv_) {
+      v = prev_v + max_dv_;
+    } else if (dv < -max_dv_) {
+      v = prev_v - max_dv_;
+    }
   }
 };
 
 class OrcaController: public nav2_core::Controller
 {
-  rclcpp::Clock::SharedPtr clock_;
   rclcpp::Logger logger_{rclcpp::get_logger("placeholder_will_be_set_in_configure")};
   std::shared_ptr<tf2_ros::Buffer> tf_;
-  std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros_;
+  std::string base_frame_id_;
 
   // Parameters
   double xy_vel_{};
@@ -109,6 +105,9 @@ class OrcaController: public nav2_core::Controller
   // Plan from OrcaPlanner
   nav_msgs::msg::Path plan_;
 
+  // Keep track of the previous cmd_vel to limit acceleration
+  geometry_msgs::msg::Twist prev_vel_{};
+
   // Return the first pose in the plan > lookahead distance away, or the last pose in the plan
   geometry_msgs::msg::PoseStamped
   find_goal(const geometry_msgs::msg::PoseStamped & pose_f_map) const
@@ -119,23 +118,23 @@ class OrcaController: public nav2_core::Controller
     auto min_dist = std::numeric_limits<double>::max();
     bool dist_decreasing = true;
 
-    for (const auto & plan_pose_f_map : plan_.poses) {
-      auto plan_pose_dist = dist(
-        plan_pose_f_map.pose.position.x - pose_f_map.pose.position.x,
-        plan_pose_f_map.pose.position.y - pose_f_map.pose.position.y,
-        plan_pose_f_map.pose.position.z - pose_f_map.pose.position.z);
+    for (const auto & item : plan_.poses) {
+      auto item_dist = dist(
+        item.pose.position.x - pose_f_map.pose.position.x,
+        item.pose.position.y - pose_f_map.pose.position.y,
+        item.pose.position.z - pose_f_map.pose.position.z);
 
       if (dist_decreasing) {
-        if (plan_pose_dist < min_dist) {
-          min_dist = plan_pose_dist;
+        if (item_dist < min_dist) {
+          min_dist = item_dist;
         } else {
           dist_decreasing = false;
         }
       }
 
       if (!dist_decreasing) {
-        if (plan_pose_dist > lookahead_dist_) {
-          return plan_pose_f_map;
+        if (item_dist > lookahead_dist_) {
+          return item;
         }
       }
     }
@@ -143,15 +142,14 @@ class OrcaController: public nav2_core::Controller
     return plan_.poses[plan_.poses.size() - 1];
   }
 
-  // Pure pursuit path tracking algorithm, modified for 3D
+  // Modified pure pursuit path tracking algorithm: works in 3D and supports deceleration
   // Reference "Implementation of the Pure Pursuit Path Tracking Algorithm" by R. Craig Coulter
   geometry_msgs::msg::Twist
-  pure_pursuit_3d(const geometry_msgs::msg::PoseStamped & pose_f_odom,
-    const geometry_msgs::msg::Twist & prev_cmd_vel) const
+  pure_pursuit_3d(const geometry_msgs::msg::PoseStamped & pose_f_odom) const
   {
     // Transform pose odom -> map
     geometry_msgs::msg::PoseStamped pose_f_map;
-    if (!orca::transform_with_tolerance(logger_, tf_, costmap_ros_->getGlobalFrameID(),
+    if (!orca::transform_with_tolerance(logger_, tf_, plan_.header.frame_id,
       pose_f_odom, pose_f_map,
       transform_tolerance_d_)) {
       return geometry_msgs::msg::Twist{};
@@ -160,52 +158,64 @@ class OrcaController: public nav2_core::Controller
     // Find goal
     auto goal_f_map = find_goal(pose_f_map);
 
+    // Plan poses are stale, update the timestamp to get recent map -> odom -> base transforms
+    goal_f_map.header.stamp = pose_f_map.header.stamp;
+
     // Transform goal map -> base
     geometry_msgs::msg::PoseStamped goal_f_base;
-    if (!orca::transform_with_tolerance(logger_, tf_, costmap_ros_->getBaseFrameID(),
+    if (!orca::transform_with_tolerance(logger_, tf_, base_frame_id_,
       goal_f_map, goal_f_base,
       transform_tolerance_d_)) {
       return geometry_msgs::msg::Twist{};
     }
 
+    auto xy_dist_sq = dist_sq(goal_f_base.pose.position.x, goal_f_base.pose.position.y);
+    auto xy_dist = std::sqrt(xy_dist_sq);
+    auto z_dist = std::abs(goal_f_base.pose.position.z);
+
+#if 0
+    // Useful for debugging, but happens frequently as the sub decelerates
+    if (z_dist < move_threshold_ && xy_dist < move_threshold_) {
+      std::cout << "Decelerating / coasting" << std::endl;
+      std::cout << "pose_f_odom: " << mw::PoseStamped(pose_f_odom) << std::endl;
+      std::cout << "pose_f_map: " << mw::PoseStamped(pose_f_map) << std::endl;
+      std::cout << "goal_f_map: " << mw::PoseStamped(goal_f_map) << std::endl;
+      std::cout << "goal_f_base: " << mw::PoseStamped(goal_f_base) << std::endl;
+      std::cout << "prev_vel: " << mw::Twist(prev_vel_) << std::endl;
+    }
+#endif
+
     geometry_msgs::msg::Twist cmd_vel;
 
-    // z rules:
-    // -- move to goal.z
-    // -- limit acceleration to avoid overshoot
-    if (abs(goal_f_base.pose.position.z) > move_threshold_) {
-      auto desired_v = goal_f_base.pose.position.z > 0 ? z_vel_ : -z_vel_;
+    // Calc linear.z
+    if (z_dist > move_threshold_) {
+      cmd_vel.linear.z = goal_f_base.pose.position.z > 0 ? z_vel_ : -z_vel_;
 
-      // Really need "is_last_pose", but this hack should work:
-      if (abs(goal_f_base.pose.position.z) < lookahead_dist_ / 2) {
-        cmd_vel.linear.z = z_limiter_.decel(desired_v, goal_f_base.pose.position.z);
-      } else {
-        cmd_vel.linear.z = z_limiter_.limit(desired_v, prev_cmd_vel.linear.z);
-      }
+      // Decelerate
+      z_limiter_.decelerate(cmd_vel.linear.z, goal_f_base.pose.position.z);
     }
 
-    // xy rules:
-    // -- if goal is ahead, move forward along the shortest curve to the goal
-    // -- if goal is behind, spin in the shortest direction
-    // -- don't exceed the velocity limits
-    // -- future: limit acceleration to avoid pitch and drift
-    if (goal_f_base.pose.position.x > 0) {
-      auto xy_dist_squared = dist_squared(goal_f_base.pose.position.x, goal_f_base.pose.position.y);
-      if (pow(xy_dist_squared, 0.5) > move_threshold_) {
-        auto curvature = 2.0 * goal_f_base.pose.position.y / xy_dist_squared;
-        if (curvature * xy_vel_ <= yaw_vel_) {
+    // Calc linear.x and angular.z using pure pursuit algorithm
+    if (xy_dist > move_threshold_) {
+      if (goal_f_base.pose.position.x > 0) {
+        // Goal is ahead of the sub: move forward along the shortest curve
+        auto curvature = 2.0 * goal_f_base.pose.position.y / xy_dist_sq;
+        if (std::abs(curvature) * xy_vel_ <= yaw_vel_) {
           // Move at constant velocity
           cmd_vel.linear.x = xy_vel_;
           cmd_vel.angular.z = curvature * xy_vel_;
         } else {
-          // Don't exceed angular velocity limit
-          cmd_vel.linear.x = yaw_vel_ / abs(curvature);
+          // Tight curve... don't exceed angular velocity limit
+          cmd_vel.linear.x = yaw_vel_ / std::abs(curvature);
           cmd_vel.angular.z = curvature > 0 ? yaw_vel_ : -yaw_vel_;
         }
+
+        // Decelerate
+        xy_limiter_.decelerate(cmd_vel.linear.x, xy_dist);
+      } else {
+        // Goal is behind the sub: rotate to face it
+        cmd_vel.angular.z = goal_f_base.pose.position.y > 0 ? yaw_vel_ : -yaw_vel_;
       }
-    } else {
-      // Rotate to face the goal
-      cmd_vel.angular.z = goal_f_base.pose.position.y > 0 ? yaw_vel_ : -yaw_vel_;
     }
 
     return cmd_vel;
@@ -224,10 +234,9 @@ public:
     // Do not keep a ptr to the parent, this may cause a circular ref
     // Discussion: https://github.com/ros-planning/navigation2/pull/1900
 
-    clock_ = parent->get_clock();
     logger_ = parent->get_logger();
     tf_ = tf;
-    costmap_ros_ = costmap_ros;
+    base_frame_id_ = costmap_ros->getBaseFrameID();
 
     PARAMETER(parent, name, xy_vel, 0.4)
     PARAMETER(parent, name, xy_accel, 0.4)
@@ -262,11 +271,17 @@ public:
     geometry_msgs::msg::TwistStamped cmd_vel;
     cmd_vel.header = pose.header;
 
-    // Current twist is always 0, why?
-    // Hack around this by keeping track of the previous cmd_vel
-    static geometry_msgs::msg::Twist prev_vel{}; // TODO => data member
-    cmd_vel.twist = pure_pursuit_3d(pose, prev_vel);
-    prev_vel = cmd_vel.twist;
+    // Track the plan
+    cmd_vel.twist = pure_pursuit_3d(pose);
+
+    // Limit acceleration
+    xy_limiter_.limit(cmd_vel.twist.linear.x, prev_vel_.linear.x);
+    z_limiter_.limit(cmd_vel.twist.linear.z, prev_vel_.linear.z);
+    yaw_limiter_.limit(cmd_vel.twist.angular.z, prev_vel_.angular.z);
+
+    // Twist parameter from nav2_controller is generated from a Twist2D, so linear.z is always 0
+    // Keep a copy of the previous cmd_vel instead
+    prev_vel_ = cmd_vel.twist;
 
     return cmd_vel;
   }

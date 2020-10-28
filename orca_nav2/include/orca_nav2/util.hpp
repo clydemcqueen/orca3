@@ -27,24 +27,24 @@
 
 namespace orca_nav2 {
 
-constexpr double dist_squared(double x, double y)
+constexpr double dist_sq(double x, double y)
 {
   return x * x + y * y;
 }
 
 double dist(double x, double y)
 {
-  return sqrt(dist_squared(x, y));
+  return sqrt(dist_sq(x, y));
 }
 
-constexpr double dist_squared(double x, double y, double z)
+constexpr double dist_sq(double x, double y, double z)
 {
   return x * x + y * y + z * z;
 }
 
 double dist(double x, double y, double z)
 {
-  return sqrt(dist_squared(x, y, z));
+  return sqrt(dist_sq(x, y, z));
 }
 
 double dist(const geometry_msgs::msg::Point & p1, const geometry_msgs::msg::Point & p2)

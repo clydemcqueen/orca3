@@ -194,6 +194,8 @@ class SimpleLocalizer : public rclcpp::Node
       if (!have_initial_pose_) {
         have_initial_pose_ = true;
         RCLCPP_INFO(get_logger(), "Have initial pose, publishing map->odom transform"); // NOLINT
+      } else {
+        RCLCPP_INFO(get_logger(), "New map->odom transform");
       }
     }
   }

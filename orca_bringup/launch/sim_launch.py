@@ -94,6 +94,13 @@ def generate_launch_description():
                  world_file],
             output='screen'),
 
+        # Republish ground truth with service QoS for PlotJuggler and rqt
+        Node(
+            package='orca_gazebo',
+            executable='republish_gt.py',
+            output='screen',
+            name='republish_gt'),
+
         # Inject the urdf file
         # Must inject urdf at z=0 to correctly calibrate the altimeter
         Node(package='sim_fiducial',

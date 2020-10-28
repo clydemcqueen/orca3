@@ -31,7 +31,11 @@ class OrcaGoalChecker: public nav2_core::GoalChecker
 {
   double xy_goal_tolerance_{};
   double z_goal_tolerance_{};
-  double yaw_goal_tolerance_{};
+
+  // Most recent cmd_vel message
+  geometry_msgs::msg::Twist cmd_vel_;
+
+  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
 
 public:
   void initialize(
@@ -40,7 +44,13 @@ public:
   {
     PARAMETER(parent, plugin_name, xy_goal_tolerance, 0.25)
     PARAMETER(parent, plugin_name, z_goal_tolerance, 0.25)
-    PARAMETER(parent, plugin_name, yaw_goal_tolerance, 0.25)
+
+    cmd_vel_sub_ = parent->create_subscription<geometry_msgs::msg::Twist>(
+      "cmd_vel", 1,
+      [this](geometry_msgs::msg::Twist::ConstSharedPtr msg) // NOLINT
+      {
+        cmd_vel_ = *msg;
+      });
 
     RCLCPP_INFO(parent->get_logger(), "OrcaGoalChecker configured");
   }
@@ -52,23 +62,22 @@ public:
     const geometry_msgs::msg::Pose & goal_pose,
     const geometry_msgs::msg::Twist &) override
   {
+    // Wait for OrcaController to finish decelerating
+    if (cmd_vel_.linear.x > 0 || cmd_vel_.linear.z > 0 || cmd_vel_.angular.z > 0) {
+      return false;
+    }
+
     double dx = query_pose.position.x - goal_pose.position.x;
     double dy = query_pose.position.y - goal_pose.position.y;
     double dz = query_pose.position.z - goal_pose.position.z;
 
-    double dyaw = angles::shortest_angular_distance(
-      tf2::getYaw(query_pose.orientation),
-      tf2::getYaw(goal_pose.orientation));
-
+    // Check xy position
     if (dx * dx + dy * dy > xy_goal_tolerance_ * xy_goal_tolerance_) {
       return false;
     }
 
-    if (abs(dz) > z_goal_tolerance_) {
-      return false;
-    }
-
-    return abs(dyaw) < yaw_goal_tolerance_;
+    // Check z position
+    return abs(dz) <= z_goal_tolerance_;
   }
 };
 

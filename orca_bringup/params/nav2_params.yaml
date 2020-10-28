@@ -55,21 +55,22 @@ controller_server:
     # Goal checker parameters
     goal_checker:
       plugin: "orca_nav2::OrcaGoalChecker"
-      xy_goal_tolerance: 0.25
-      z_goal_tolerance: 0.25
+      xy_goal_tolerance: 0.1
+      z_goal_tolerance: 0.1
       yaw_goal_tolerance: 10.0  # Ignore yaw
 
     # Controller parameters
     FollowPath:
       plugin: "orca_nav2::OrcaController"
       xy_vel: 0.4
-      xy_accel: 0.4
+      xy_accel: 0.2
       z_vel: 0.3
       z_accel: 0.15
       yaw_vel: 1.0
       yaw_accel: 1.0
       lookahead_dist: 1.0
       transform_tolerance: 1.0
+      move_threshold: 0.05
 
 controller_server_rclcpp_node:
   ros__parameters:
