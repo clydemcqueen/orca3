@@ -26,7 +26,7 @@
 
 namespace orca_nav2 {
 
-class OrcaGoalChecker: public nav2_core::GoalChecker
+class GoalChecker3D: public nav2_core::GoalChecker
 {
   double xy_goal_tolerance_{};
   double z_goal_tolerance_{};
@@ -51,7 +51,7 @@ public:
         cmd_vel_ = *msg;
       });
 
-    RCLCPP_INFO(parent->get_logger(), "OrcaGoalChecker configured");
+    RCLCPP_INFO(parent->get_logger(), "GoalChecker3D configured");
   }
 
   void reset() override {}
@@ -61,7 +61,7 @@ public:
     const geometry_msgs::msg::Pose & goal_pose,
     const geometry_msgs::msg::Twist &) override
   {
-    // Wait for OrcaController to finish decelerating
+    // Wait for PurePursuitController3D to finish decelerating
     if (cmd_vel_.linear.x > 0 || cmd_vel_.linear.z > 0 || cmd_vel_.angular.z > 0) {
       return false;
     }
@@ -84,4 +84,4 @@ public:
 
 #include "pluginlib/class_list_macros.hpp"
 
-PLUGINLIB_EXPORT_CLASS(orca_nav2::OrcaGoalChecker, nav2_core::GoalChecker)
+PLUGINLIB_EXPORT_CLASS(orca_nav2::GoalChecker3D, nav2_core::GoalChecker)

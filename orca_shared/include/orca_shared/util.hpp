@@ -79,11 +79,11 @@ constexpr B scale(const A a, const A a_min, const A a_max, const B b_min, const 
 // Geometry
 //=====================================================================================
 
-constexpr double dist_sq(double x, double y);
+double dist_sq(double x, double y);
 
 double dist(double x, double y);
 
-constexpr double dist_sq(double x, double y, double z);
+double dist_sq(double x, double y, double z);
 
 double dist(double x, double y, double z);
 

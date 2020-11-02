@@ -1,6 +1,0 @@
-<library path="orca_goal_checker">
-  <class type="orca_nav2::OrcaGoalChecker" base_class_type="nav2_core::GoalChecker">
-    <description>3D goal checker.</description>
-  </class>
-</library>
-

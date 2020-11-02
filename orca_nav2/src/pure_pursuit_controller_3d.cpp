@@ -76,7 +76,7 @@ public:
   }
 };
 
-class OrcaController: public nav2_core::Controller
+class PurePursuitController3D: public nav2_core::Controller
 {
   rclcpp::Logger logger_{rclcpp::get_logger("placeholder_will_be_set_in_configure")};
   std::shared_ptr<tf2_ros::Buffer> tf_;
@@ -100,7 +100,7 @@ class OrcaController: public nav2_core::Controller
 
   rclcpp::Duration transform_tolerance_d_{0, 0};
 
-  // Plan from OrcaPlanner
+  // Plan from StraightLinePlanner3D
   nav_msgs::msg::Path plan_;
 
   // Keep track of the previous cmd_vel to limit acceleration
@@ -220,8 +220,8 @@ class OrcaController: public nav2_core::Controller
   }
 
 public:
-  OrcaController() = default;
-  ~OrcaController() override = default;
+  PurePursuitController3D() = default;
+  ~PurePursuitController3D() override = default;
 
   void configure(
     const rclcpp_lifecycle::LifecycleNode::SharedPtr & parent,
@@ -253,7 +253,7 @@ public:
 
     transform_tolerance_d_ = rclcpp::Duration::from_seconds(transform_tolerance_);
 
-    RCLCPP_INFO(logger_, "OrcaController configured");
+    RCLCPP_INFO(logger_, "PurePursuitController3D configured");
   }
 
   void cleanup() override {}
@@ -299,4 +299,4 @@ public:
 #include "pluginlib/class_list_macros.hpp"
 
 // Register this controller as a nav2_core plugin
-PLUGINLIB_EXPORT_CLASS(orca_nav2::OrcaController, nav2_core::Controller)
+PLUGINLIB_EXPORT_CLASS(orca_nav2::PurePursuitController3D, nav2_core::Controller)

@@ -26,7 +26,7 @@
 
 namespace orca_nav2 {
 
-class OrcaProgressChecker: public nav2_core::ProgressChecker
+class ProgressChecker3D: public nav2_core::ProgressChecker
 {
   rclcpp::Clock::SharedPtr clock_;
 
@@ -58,7 +58,7 @@ public:
 
     time_allowance_d_ = rclcpp::Duration::from_seconds(time_allowance_);
 
-    RCLCPP_INFO(parent->get_logger(), "OrcaProgressChecker configured");
+    RCLCPP_INFO(parent->get_logger(), "ProgressChecker3D configured");
   }
 
   bool check(geometry_msgs::msg::PoseStamped & pose) override
@@ -81,4 +81,4 @@ public:
 
 #include "pluginlib/class_list_macros.hpp"
 
-PLUGINLIB_EXPORT_CLASS(orca_nav2::OrcaProgressChecker, nav2_core::ProgressChecker)
+PLUGINLIB_EXPORT_CLASS(orca_nav2::ProgressChecker3D, nav2_core::ProgressChecker)

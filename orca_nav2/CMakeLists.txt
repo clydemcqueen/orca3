@@ -36,16 +36,16 @@ find_package(visualization_msgs REQUIRED)
 include_directories(include)
 
 #=============
-# Orca controller, a modified pure-pursuit controller
+# Pure-pursuit controller 3D
 #=============
 
 add_library(
-  orca_controller SHARED
-  src/orca_controller.cpp
+  pure_pursuit_controller_3d SHARED
+  src/pure_pursuit_controller_3d.cpp
 )
 
 set(
-  ORCA_CONTROLLER_DEPS
+  PURE_PURSUIT_CONTROLLER_3D_DEPS
   geometry_msgs
   nav_msgs
   nav2_costmap_2d
@@ -59,24 +59,24 @@ set(
 )
 
 ament_target_dependencies(
-  orca_controller
-  ${ORCA_CONTROLLER_DEPS}
+  pure_pursuit_controller_3d
+  ${PURE_PURSUIT_CONTROLLER_3D_DEPS}
 )
 
-target_compile_definitions(orca_controller PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
-pluginlib_export_plugin_description_file(nav2_core orca_controller_plugin.xml)
+target_compile_definitions(pure_pursuit_controller_3d PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
+pluginlib_export_plugin_description_file(nav2_core pure_pursuit_controller_3d_plugin.xml)
 
 #=============
-# Orca planner, a straight line planner
+# Straight line planner 3D
 #=============
 
 add_library(
-  orca_planner SHARED
-  src/orca_planner.cpp
+  straight_line_planner_3d SHARED
+  src/straight_line_planner_3d.cpp
 )
 
 set(
-  ORCA_PLANNER_DEPS
+  STRAIGHT_LINE_PLANNER_3D_DEPS
   builtin_interfaces
   geometry_msgs
   nav_msgs
@@ -96,57 +96,57 @@ set(
 )
 
 ament_target_dependencies(
-  orca_planner
-  ${ORCA_PLANNER_DEPS}
+  straight_line_planner_3d
+  ${STRAIGHT_LINE_PLANNER_3D_DEPS}
 )
 
-target_compile_definitions(orca_planner PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
-pluginlib_export_plugin_description_file(nav2_core orca_planner_plugin.xml)
+target_compile_definitions(straight_line_planner_3d PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
+pluginlib_export_plugin_description_file(nav2_core straight_line_planner_3d_plugin.xml)
 
 #=============
-# Orca goal checker, a simple 3d goal checker
+# Goal checker 3D
 #=============
 
 add_library(
-  orca_goal_checker SHARED
-  src/orca_goal_checker.cpp
+  goal_checker_3d SHARED
+  src/goal_checker_3d.cpp
 )
 
 set(
-  ORCA_GOAL_CHECKER_DEPS
+  GOAL_CHECKER_3D_DEPS
   rclcpp
 )
 
 ament_target_dependencies(
-  orca_goal_checker
-  ${ORCA_GOAL_CHECKER_DEPS}
+  goal_checker_3d
+  ${GOAL_CHECKER_3D_DEPS}
 )
 
-target_compile_definitions(orca_goal_checker PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
-pluginlib_export_plugin_description_file(nav2_core orca_goal_checker_plugin.xml)
+target_compile_definitions(goal_checker_3d PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
+pluginlib_export_plugin_description_file(nav2_core goal_checker_3d_plugin.xml)
 
 #=============
-# Orca progress checker, a simple 3D progress checker
+# Progress checker 3D
 #=============
 
 add_library(
-  orca_progress_checker SHARED
-  src/orca_progress_checker.cpp
+  progress_checker_3d SHARED
+  src/progress_checker_3d.cpp
 )
 
 set(
-  ORCA_PROGRESS_CHECKER_DEPS
+  PROGRESS_CHECKER_3D_DEPS
   orca_shared
   rclcpp
 )
 
 ament_target_dependencies(
-  orca_progress_checker
-  ${ORCA_PROGRESS_CHECKER_DEPS}
+  progress_checker_3d
+  ${PROGRESS_CHECKER_3D_DEPS}
 )
 
-target_compile_definitions(orca_progress_checker PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
-pluginlib_export_plugin_description_file(nav2_core orca_progress_checker_plugin.xml)
+target_compile_definitions(progress_checker_3d PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
+pluginlib_export_plugin_description_file(nav2_core progress_checker_3d_plugin.xml)
 
 #=============
 # Test
@@ -164,10 +164,10 @@ endif ()
 
 install(
   TARGETS
-  orca_controller
-  orca_planner
-  orca_goal_checker
-  orca_progress_checker
+  pure_pursuit_controller_3d
+  straight_line_planner_3d
+  goal_checker_3d
+  progress_checker_3d
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
@@ -175,24 +175,24 @@ install(
 
 install(
   FILES
-  orca_controller_plugin.xml
-  orca_planner_plugin.xml
-  orca_goal_checker_plugin.xml
-  orca_progress_checker_plugin.xml
+  pure_pursuit_controller_3d_plugin.xml
+  straight_line_planner_3d_plugin.xml
+  goal_checker_3d_plugin.xml
+  progress_checker_3d_plugin.xml
   DESTINATION share/${PROJECT_NAME}
 )
 
 ament_export_libraries(
-  orca_controller
-  orca_planner
-  orca_goal_checker
-  orca_progress_checker
+  pure_pursuit_controller_3d
+  straight_line_planner_3d
+  goal_checker_3d
+  progress_checker_3d
 )
 ament_export_dependencies(
-  ${ORCA_CONTROLLER_DEPS}
-  ${ORCA_PLANNER_DEPS}
-  ${ORCA_GOAL_CHECKER_DEPS}
-  ${ORCA_PROGRESS_CHECKER_DEPS}
+  ${PURE_PURSUIT_CONTROLLER_3D_DEPS}
+  ${STRAIGHT_LINE_PLANNER_3D_DEPS}
+  ${GOAL_CHECKER_3D_DEPS}
+  ${PROGRESS_CHECKER_3D_DEPS}
 )
 
 ament_package()

@@ -34,7 +34,7 @@ namespace orca
 // Geometry
 //=====================================================================================
 
-constexpr double dist_sq(double x, double y)
+double dist_sq(double x, double y)
 {
   return x * x + y * y;
 }
@@ -44,7 +44,7 @@ double dist(double x, double y)
   return sqrt(dist_sq(x, y));
 }
 
-constexpr double dist_sq(double x, double y, double z)
+double dist_sq(double x, double y, double z)
 {
   return x * x + y * y + z * z;
 }

@@ -80,7 +80,7 @@ struct LocalizerContext
   LOCALIZER_ALL_PARAMS
 };
 
-class SimpleLocalizer : public rclcpp::Node
+class FiducialLocalizer : public rclcpp::Node
 {
   LocalizerContext cxt_;
 
@@ -220,8 +220,8 @@ class SimpleLocalizer : public rclcpp::Node
   }
 
 public:
-  SimpleLocalizer()
-  : Node("simple_localizer")
+  FiducialLocalizer()
+  : Node("fiducial_localizer")
   {
     // Suppress IDE warnings
     (void) fiducial_map_sub_;
@@ -240,7 +240,7 @@ public:
     pose_sub_.subscribe(this, "camera_pose");
     fiducial_sync_.reset(new FiducialSync(FiducialPolicy(10), obs_sub_, pose_sub_));
     using namespace std::placeholders;
-    fiducial_sync_->registerCallback(std::bind(&SimpleLocalizer::fiducial_callback, this, _1, _2)); // NOLINT
+    fiducial_sync_->registerCallback(std::bind(&FiducialLocalizer::fiducial_callback, this, _1, _2)); // NOLINT
 
     fiducial_map_sub_ = create_subscription<fiducial_vlam_msgs::msg::Map>(
       "fiducial_map", 10,
@@ -250,7 +250,7 @@ public:
       });
 
 
-    RCLCPP_INFO(get_logger(), "simple_localizer ready");
+    RCLCPP_INFO(get_logger(), "fiducial_localizer ready");
   }
 };
 
@@ -269,7 +269,7 @@ int main(int argc, char ** argv)
   rclcpp::init(argc, argv);
 
   // Init node
-  auto node = std::make_shared<orca_base::SimpleLocalizer>();
+  auto node = std::make_shared<orca_base::FiducialLocalizer>();
 
   // Spin node
   rclcpp::spin(node);

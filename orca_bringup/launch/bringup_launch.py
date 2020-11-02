@@ -161,9 +161,9 @@ def generate_launch_description():
         # Subscribe to /camera_pose and publish /tf map->odom
         Node(
             package='orca_base',
-            executable='simple_localizer',
+            executable='fiducial_localizer',
             output='screen',
-            name='simple_localizer',
+            name='fiducial_localizer',
             parameters=[configured_orca_params],
             remappings=[
                 ('camera_pose', '/' + camera_name + '/camera_pose'),

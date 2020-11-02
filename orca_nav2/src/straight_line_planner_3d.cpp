@@ -37,7 +37,7 @@
 
 namespace orca_nav2 {
 
-class OrcaPlanner: public nav2_core::GlobalPlanner
+class StraightLinePlanner3D: public nav2_core::GlobalPlanner
 {
   rclcpp::Clock::SharedPtr clock_;
   rclcpp::Logger logger_{rclcpp::get_logger("placeholder_will_be_set_in_configure")};
@@ -47,8 +47,8 @@ class OrcaPlanner: public nav2_core::GlobalPlanner
   double planning_dist_{};
 
 public:
-  OrcaPlanner() = default;
-  ~OrcaPlanner() override = default;
+  StraightLinePlanner3D() = default;
+  ~StraightLinePlanner3D() override = default;
 
   void configure(
     rclcpp_lifecycle::LifecycleNode::SharedPtr parent,
@@ -70,7 +70,7 @@ public:
       planning_dist_ = 0.1;
     }
 
-    RCLCPP_INFO(logger_, "OrcaPlanner configured");
+    RCLCPP_INFO(logger_, "StraightLinePlanner3D configured");
   }
 
   void cleanup() override {}
@@ -148,4 +148,4 @@ public:
 
 #include "pluginlib/class_list_macros.hpp"
 
-PLUGINLIB_EXPORT_CLASS(orca_nav2::OrcaPlanner, nav2_core::GlobalPlanner)
+PLUGINLIB_EXPORT_CLASS(orca_nav2::StraightLinePlanner3D, nav2_core::GlobalPlanner)

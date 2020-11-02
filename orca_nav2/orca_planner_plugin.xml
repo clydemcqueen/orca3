@@ -1,5 +1,0 @@
-<library path="orca_planner">
-	<class name="orca_nav2/OrcaPlanner" type="orca_nav2::OrcaPlanner" base_class_type="nav2_core::GlobalPlanner">
-	  <description>3D straight line planner.</description>
-	</class>
-</library>

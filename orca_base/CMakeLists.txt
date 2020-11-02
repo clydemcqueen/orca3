@@ -108,16 +108,16 @@ ament_target_dependencies(
 )
 
 #=============
-# Simple localizer
+# Fiducial localizer
 #=============
 
 add_executable(
-  simple_localizer
-  src/simple_localizer.cpp
+  fiducial_localizer
+  src/fiducial_localizer.cpp
 )
 
 ament_target_dependencies(
-  simple_localizer
+  fiducial_localizer
   fiducial_vlam_msgs
   geometry_msgs
   nav_msgs
@@ -150,7 +150,7 @@ install(
   baro_filter_node
   base_controller
   depth_node
-  simple_localizer
+  fiducial_localizer
   DESTINATION lib/${PROJECT_NAME}
 )
 

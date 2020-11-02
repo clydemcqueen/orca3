@@ -48,20 +48,20 @@ controller_server:
 
     # Progress checker parameters
     progress_checker:
-      plugin: "orca_nav2::OrcaProgressChecker"
+      plugin: "orca_nav2::ProgressChecker3D"
       radius: 0.5
       time_allowance: 10.0
 
     # Goal checker parameters
     goal_checker:
-      plugin: "orca_nav2::OrcaGoalChecker"
+      plugin: "orca_nav2::GoalChecker3D"
       xy_goal_tolerance: 0.1
       z_goal_tolerance: 0.1
       yaw_goal_tolerance: 10.0  # Ignore yaw
 
     # Controller parameters
     FollowPath:
-      plugin: "orca_nav2::OrcaController"
+      plugin: "orca_nav2::PurePursuitController3D"
       xy_vel: 0.4
       xy_accel: 0.2
       z_vel: 0.3
@@ -172,7 +172,7 @@ planner_server:
 
     # OrcaPlanner parameters
     GridBased:
-      plugin: "orca_nav2/OrcaPlanner"
+      plugin: "orca_nav2/StraightLinePlanner3D"
       planning_dist: 0.1  # Plan a pose every planning_dist meters
 
 planner_server_rclcpp_node:
