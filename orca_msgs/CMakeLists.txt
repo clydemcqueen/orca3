@@ -41,7 +41,7 @@ rosidl_generate_interfaces(
   msg/Depth.msg
   msg/Effort.msg
   msg/Status.msg
-  msg/Thrusters.msg
+  msg/Thrust.msg
   DEPENDENCIES geometry_msgs std_msgs
 )
 

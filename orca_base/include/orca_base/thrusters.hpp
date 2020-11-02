@@ -29,7 +29,7 @@
 
 #include "orca_base/base_context.hpp"
 #include "orca_msgs/msg/effort.hpp"
-#include "orca_msgs/msg/thrusters.hpp"
+#include "orca_msgs/msg/thrust.hpp"
 
 namespace orca_base
 {
@@ -61,13 +61,12 @@ struct Thruster
 class Thrusters
 {
   std::vector<Thruster> thrusters_;
-  std::vector<int> prev_pwm_;
 
 public:
   Thrusters();
 
-  orca_msgs::msg::Thrusters effort_to_thrust(const BaseContext & cxt,
-    const orca_msgs::msg::Effort & effort);
+  std::vector<uint16_t> effort_to_thrust(const BaseContext & cxt,
+    const orca_msgs::msg::Effort & effort, bool & saturated);
 };
 
 }  // namespace orca_base

@@ -24,8 +24,6 @@
 #include "orca_shared/pwm.hpp"
 #include "orca_shared/util.hpp"
 
-#include <iostream>
-
 namespace orca_base
 {
 
@@ -83,7 +81,6 @@ int Thruster::effort_to_pwm(const BaseContext & cxt, const orca_msgs::msg::Effor
   return orca::effort_to_pwm(cxt.mdl_thrust_dz_pwm_, total_effort);
 }
 
-// TODO(clyde): make this a singleton
 Thrusters::Thrusters()
 {
   // Off-by-1, thruster 1 is thrusters_[0], etc.
@@ -94,28 +91,17 @@ Thrusters::Thrusters()
   thrusters_.emplace_back("t200_link_rear_left", true, 1.0, 1.0, -1.0, 0.0);
   thrusters_.emplace_back("t200_link_vertical_right", false, 0.0, 0.0, 0.0, 1.0);
   thrusters_.emplace_back("t200_link_vertical_left", true, 0.0, 0.0, 0.0, -1.0);
-
-  // Thrusters and Maestro boot at 1500 (off)
-  for (int i = 0; i < 6; ++i) {
-    prev_pwm_.push_back(1500);
-  }
 }
 
-orca_msgs::msg::Thrusters Thrusters::effort_to_thrust(const BaseContext & cxt, const orca_msgs::msg::Effort & effort)
+std::vector<uint16_t> Thrusters::effort_to_thrust(const BaseContext & cxt, const orca_msgs::msg::Effort & effort, bool & saturated)
 {
-  orca_msgs::msg::Thrusters result;
-  bool saturated = false;
+  std::vector<uint16_t> result;
+  saturated = false;
 
-  result.fr_1 = thrusters_[0].effort_to_pwm(cxt, effort, saturated);
-  result.fl_2 = thrusters_[1].effort_to_pwm(cxt, effort, saturated);
-  result.rr_3 = thrusters_[2].effort_to_pwm(cxt, effort, saturated);
-  result.rl_4 = thrusters_[3].effort_to_pwm(cxt, effort, saturated);
-  result.vr_5 = thrusters_[4].effort_to_pwm(cxt, effort, saturated);
-  result.vl_6 = thrusters_[5].effort_to_pwm(cxt, effort, saturated);
-
-  if (saturated) {
-    std::cout << "Thruster(s) saturated" << std::endl;
+  for (auto & thruster : thrusters_) {
+    result.emplace_back(thruster.effort_to_pwm(cxt, effort, saturated));
   }
+
   return result;
 }
 

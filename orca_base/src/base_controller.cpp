@@ -73,7 +73,7 @@ class BaseController : public rclcpp::Node
   rclcpp::Subscription<orca_msgs::msg::Depth>::SharedPtr depth_sub_;
 
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
-  rclcpp::Publisher<orca_msgs::msg::Thrusters>::SharedPtr thrusters_pub_;
+  rclcpp::Publisher<orca_msgs::msg::Thrust>::SharedPtr thrust_pub_;
 
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
@@ -169,10 +169,14 @@ class BaseController : public rclcpp::Node
     orca_msgs::msg::Effort effort = cxt_.accel_to_effort(accel);
 
     // Effort to pwm
-    orca_msgs::msg::Thrusters thrusters_msg;
-    thrusters_msg = thrusters_.effort_to_thrust(cxt_, effort);
-    thrusters_msg.header.stamp = t;
-    thrusters_pub_->publish(thrusters_msg);
+    orca_msgs::msg::Thrust thrust_msg;
+    bool saturated;
+    thrust_msg.thrust = thrusters_.effort_to_thrust(cxt_, effort, saturated);
+    if (saturated) {
+      RCLCPP_WARN(get_logger(), "thruster(s) saturated");
+    }
+    thrust_msg.header.stamp = t;
+    thrust_pub_->publish(thrust_msg);
   }
 
 public:
@@ -189,7 +193,7 @@ public:
     init_parameters();
 
     odom_pub_ = create_publisher<nav_msgs::msg::Odometry>("odom", QUEUE_SIZE);
-    thrusters_pub_ = create_publisher<orca_msgs::msg::Thrusters>("thrusters", QUEUE_SIZE);
+    thrust_pub_ = create_publisher<orca_msgs::msg::Thrust>("thrust", QUEUE_SIZE);
 
     cmd_vel_sub_ = create_subscription<geometry_msgs::msg::Twist>(
       "cmd_vel", QUEUE_SIZE,

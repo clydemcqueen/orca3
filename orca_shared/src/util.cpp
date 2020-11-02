@@ -25,7 +25,6 @@
 #include <iomanip>
 #include <string>
 
-#include "orca_msgs/msg/thrusters.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 
 namespace orca

@@ -27,7 +27,7 @@
 #include "gazebo/physics/physics.hh"
 #include "gazebo_ros/node.hpp"
 #include "orca_shared/pwm.hpp"
-#include "orca_msgs/msg/thrusters.hpp"
+#include "orca_msgs/msg/thrust.hpp"
 #include "orca_msgs/msg/status.hpp"
 #include "rclcpp/rclcpp.hpp"
 
@@ -36,7 +36,7 @@
  *    <gazebo>
  *      <plugin name="OrcaThrusterPlugin" filename="libOrcaThrusterPlugin.so">
  *        <link_name>base_link</link_name>
- *        <ros_topic>/control</ros_topic>
+ *        <ros_topic>/thrust</ros_topic>
  *        <thrust_dz_pwm>35</thrust_dz_pwm>
  *        <thruster>
  *          <pos_force>50</pos_force>
@@ -46,13 +46,13 @@
  *      </plugin>
  *    </gazebo>
  *
- * We listen for control messages and apply thrust forces to base_link.
+ * We listen for thrust messages and apply thrust forces to base_link.
  *
  * There can the multiple <thruster> tags; the number and order of <thruster> tags must match the number and order
- * of int32s in the orca_msgs::msg::Control message. Each int32 indicates ESC pulse width and ranges from
+ * of int16s in the orca_msgs::msg::Thrust message. Each int16 indicates ESC pulse width and ranges from
  * 1100 (full reverse) through 1500 (stop) to 1900 (full forward).
  *
- *    <ros_topic> topic for Control messages. Default is /control.
+ *    <ros_topic> topic for thrust messages. Default is /thrust.
  *    <pos_force> force (N) with max positive effort (pwm=1900). Default 50.
  *      Use negative if prop is reversed.
  *    <neg_force> force (N) with max negative effort (pwm=1100). Default is 40.
@@ -97,7 +97,7 @@ class OrcaThrusterPlugin : public ModelPlugin
   gazebo_ros::Node::SharedPtr node_;
 
   // Subscribe to thruster messages
-  rclcpp::Subscription<orca_msgs::msg::Thrusters>::SharedPtr thrusters_sub_;
+  rclcpp::Subscription<orca_msgs::msg::Thrust>::SharedPtr thrust_sub_;
   rclcpp::Time thrusters_msg_time_;
 
   // Publish status messages
@@ -127,7 +127,7 @@ public:
   // Called once when the plugin is loaded.
   void Load(physics::ModelPtr model, sdf::ElementPtr sdf) override
   {
-    (void) thrusters_sub_;
+    (void) thrust_sub_;
     (void) update_connection_;
 
     // Get the GazeboROS node
@@ -138,21 +138,21 @@ public:
     if (sdf->HasElement("link_name")) {
       link_name = sdf->GetElement("link_name")->Get<std::string>();
     }
-    RCLCPP_INFO(node_->get_logger(), "thrust force will be applied to %s", link_name.c_str());
+    RCLCPP_INFO(node_->get_logger(), "Thrust force will be applied to %s", link_name.c_str());
     base_link_ = model->GetLink(link_name);
     GZ_ASSERT(base_link_ != nullptr, "Missing link");
 
     // Look for our ROS topic
-    std::string ros_topic = "/thrusters";
+    std::string ros_topic = "/thrust";
     if (sdf->HasElement("ros_topic")) {
       ros_topic = sdf->GetElement("ros_topic")->Get<std::string>();
     }
-    RCLCPP_INFO(node_->get_logger(), "listening on %s", ros_topic.c_str());
+    RCLCPP_INFO(node_->get_logger(), "Listening on %s", ros_topic.c_str());
 
     // Subscribe to the topic
     // Note the use of std::placeholders::_1 vs. the included _1 from Boost
-    thrusters_sub_ = node_->create_subscription<orca_msgs::msg::Thrusters>(
-      ros_topic, QUEUE_SIZE, std::bind(&OrcaThrusterPlugin::OnRosMsg, this, std::placeholders::_1));
+    thrust_sub_ = node_->create_subscription<orca_msgs::msg::Thrust>(
+      ros_topic, QUEUE_SIZE, std::bind(&OrcaThrusterPlugin::OnThrustMsg, this, std::placeholders::_1));
 
     // Periodically publish driver status messages
     // TODO(clyde): topic should be param
@@ -172,9 +172,7 @@ public:
     // Listen to the update event. This event is broadcast every simulation iteration.
     update_connection_ =
       event::Events::ConnectWorldUpdateBegin(
-      boost::bind(
-        &OrcaThrusterPlugin::OnUpdate, this,
-        _1));
+      boost::bind(&OrcaThrusterPlugin::OnUpdate, this, _1));
 
     // Look for <thruster> tags
     for (sdf::ElementPtr elem = sdf->GetElement("thruster"); elem;
@@ -211,22 +209,21 @@ public:
   }
 
   // Handle an incoming message from ROS
-  void OnRosMsg(const orca_msgs::msg::Thrusters::SharedPtr msg)
+  void OnThrustMsg(const orca_msgs::msg::Thrust::SharedPtr msg)
   {
-    if (valid(msg->header.stamp)) {
-      thrusters_msg_time_ = msg->header.stamp;
-
-      thrusters_[0].effort = orca::pwm_to_effort(thrust_dz_pwm_, msg->fr_1);
-      thrusters_[1].effort = orca::pwm_to_effort(thrust_dz_pwm_, msg->fl_2);
-      thrusters_[2].effort = orca::pwm_to_effort(thrust_dz_pwm_, msg->rr_3);
-      thrusters_[3].effort = orca::pwm_to_effort(thrust_dz_pwm_, msg->rl_4);
-      thrusters_[4].effort = orca::pwm_to_effort(thrust_dz_pwm_, msg->vr_5);
-      thrusters_[5].effort = orca::pwm_to_effort(thrust_dz_pwm_, msg->vl_6);
+    if (!valid(msg->header.stamp)) {
+      RCLCPP_ERROR(node_->get_logger(), "Invalid timestamp");
+      status_msg_.status = orca_msgs::msg::Status::STATUS_ABORT;
+    } else if (thrusters_.size() != msg->thrust.size()) {
+      RCLCPP_ERROR(node_->get_logger(), "Wrong number of thrusters");
+      status_msg_.status = orca_msgs::msg::Status::STATUS_ABORT;
     } else {
-      RCLCPP_ERROR(node_->get_logger(), "invalid timestamp");
+      thrusters_msg_time_ = msg->header.stamp;
+      for (int i = 0; i < thrusters_.size(); ++i) {
+        thrusters_[i].effort = orca::pwm_to_effort(thrust_dz_pwm_, msg->thrust[i]);
+      }
+      status_msg_.status = orca_msgs::msg::Status::STATUS_OK;
     }
-
-    status_msg_.status = orca_msgs::msg::Status::STATUS_OK;
   }
 
   // Stop thrusters
@@ -251,10 +248,10 @@ public:
 #endif
 
     if (valid(thrusters_msg_time_) && update_time - thrusters_msg_time_ > THRUSTERS_TIMEOUT) {
-      // We were receiving control messages, but they stopped.
+      // We were receiving thrust messages, but they stopped.
       // This is normal, but it might also indicate that a node died.
       // RCLCPP_INFO isn't flushed right away, so use iostream directly.
-      std::cout << "OrcaThrusterPlugin control timeout" << std::endl;
+      std::cout << "OrcaThrusterPlugin message timeout" << std::endl;
       thrusters_msg_time_ = rclcpp::Time();
       AllStop();
     }
