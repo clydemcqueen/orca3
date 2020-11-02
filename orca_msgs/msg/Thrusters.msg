@@ -1,7 +1,5 @@
-# Header
 std_msgs/Header header
 
-# Thruster pwm values, front/rear/vertical left/right BlueROV thruster number 1-6
 # https://bluerobotics.com/learn/bluerov2-assembly/
 uint16 THRUST_FULL_REV=1100
 uint16 THRUST_STOP=1500

@@ -23,7 +23,6 @@
 #include "angles/angles.h"
 #include "nav2_core/goal_checker.hpp"
 #include "orca_nav2/param_macro.hpp"
-#include "tf2/utils.h"
 
 namespace orca_nav2 {
 

@@ -23,16 +23,21 @@
 #ifndef ORCA_SHARED__UTIL_HPP_
 #define ORCA_SHARED__UTIL_HPP_
 
-#include <cstdint>
 #include <cmath>
 #include <string>
 
+#include "geometry_msgs/msg/accel.hpp"
+#include "geometry_msgs/msg/point.hpp"
 #include "geometry_msgs/msg/pose.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/quaternion.hpp"
 #include "geometry_msgs/msg/transform.hpp"
+#include "geometry_msgs/msg/twist.hpp"
+#include "geometry_msgs/msg/vector3.hpp"
+#include "geometry_msgs/msg/wrench.hpp"
 #include "rclcpp/time.hpp"
 #include "sensor_msgs/msg/joy.hpp"
+#include "std_msgs/msg/header.hpp"
 #include "tf2/LinearMath/Transform.h"
 #include "tf2_ros/transform_listener.h"
 
@@ -74,17 +79,29 @@ constexpr B scale(const A a, const A a_min, const A a_max, const B b_min, const 
 // Geometry
 //=====================================================================================
 
-// Move an angle to the region [-M_PI, M_PI)
-double norm_angle(double a);
+constexpr double dist_sq(double x, double y);
 
-// Compute a 2d point in a rotated frame (v' = R_transpose * v)
-void rotate_frame(double x, double y, double theta, double & x_r, double & y_r);
+double dist(double x, double y);
 
-// Get roll, pitch and yaw from a quaternion
-void get_rpy(const geometry_msgs::msg::Quaternion & q, double & roll, double & pitch, double & yaw);
+constexpr double dist_sq(double x, double y, double z);
 
-// Get yaw from a quaternion
+double dist(double x, double y, double z);
+
+double dist(const geometry_msgs::msg::Point & p1, const geometry_msgs::msg::Point & p2);
+
+void get_rpy(const geometry_msgs::msg::Quaternion & q, double & r, double & p, double & y);
+
+void set_rpy(geometry_msgs::msg::Quaternion & q, const double & r, const double & p, const double & y);
+
 double get_yaw(const geometry_msgs::msg::Quaternion & q);
+
+void set_yaw(geometry_msgs::msg::Quaternion & q, const double & yaw);
+
+geometry_msgs::msg::Twist invert(const geometry_msgs::msg::Twist & v);
+
+geometry_msgs::msg::Accel invert(const geometry_msgs::msg::Accel & a);
+
+geometry_msgs::msg::Twist robot_to_world_frame(const geometry_msgs::msg::Twist & vel, const double & yaw_f_world);
 
 //=====================================================================================
 // Time
@@ -128,30 +145,30 @@ bool transform_with_tolerance(
   const rclcpp::Duration & tolerance);
 
 //=====================================================================================
-// BlueRobotics T200 thruster + ESC
+// str()
 //=====================================================================================
 
-// Domain
-// TODO(clyde): add deadzone
-constexpr double THRUST_FULL_REV = -1.0;
-constexpr double THRUST_STOP = 0.0;
-constexpr double THRUST_FULL_FWD = 1.0;
+std::string str(const builtin_interfaces::msg::Time & v);
 
-uint16_t effort_to_pwm(uint16_t thrust_dz_pwm, double effort);
+std::string str(const geometry_msgs::msg::Accel & v);
 
-double pwm_to_effort(uint16_t thrust_dz_pwm, uint16_t pwm);
+std::string str(const geometry_msgs::msg::Point & v);
 
-//=====================================================================================
-// Various to_str functions, most of these now live in the mw (message wrapper) classes
-//=====================================================================================
+std::string str(const geometry_msgs::msg::Pose & v);
 
-std::string to_str_rpy(const tf2::Transform & t);
+std::string str(const geometry_msgs::msg::PoseStamped & v);
 
-std::string to_str_q(const tf2::Transform & t);
+std::string str(const geometry_msgs::msg::Quaternion & v);
 
-std::string to_str(const rclcpp::Time & t);
+std::string str(const geometry_msgs::msg::Twist & v);
 
-std::string to_str(const builtin_interfaces::msg::Time & t);
+std::string str(const geometry_msgs::msg::Vector3 & v);
+
+std::string str(const geometry_msgs::msg::Wrench & v);
+
+std::string str(const rclcpp::Time & v);
+
+std::string str(const std_msgs::msg::Header & v);
 
 }  // namespace orca
 

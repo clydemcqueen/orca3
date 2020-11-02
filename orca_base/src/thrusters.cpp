@@ -21,15 +21,17 @@
 // SOFTWARE.
 
 #include "orca_base/thrusters.hpp"
+#include "orca_shared/pwm.hpp"
+#include "orca_shared/util.hpp"
 
 #include <iostream>
 
 namespace orca_base
 {
 
-int Thruster::efforts_to_pwm(const BaseContext & cxt, const mw::Efforts & efforts, bool & saturated)
+int Thruster::effort_to_pwm(const BaseContext & cxt, const orca_msgs::msg::Effort & effort, bool & saturated)
 {
-  double combined_effort = efforts.forward() * forward + efforts.strafe() * strafe;
+  double combined_effort = effort.force.x * forward + effort.force.y * strafe;
 
   // Clamp forward + strafe to xy_limit
   if (combined_effort > cxt.thruster_xy_limit_) {
@@ -40,7 +42,7 @@ int Thruster::efforts_to_pwm(const BaseContext & cxt, const mw::Efforts & effort
     saturated = true;
   }
 
-  combined_effort += efforts.yaw() * yaw;
+  combined_effort += effort.torque.z * yaw;
 
   // Clamp forward + strafe + yaw to max values
   if (combined_effort > orca::THRUST_FULL_FWD) {
@@ -51,7 +53,7 @@ int Thruster::efforts_to_pwm(const BaseContext & cxt, const mw::Efforts & effort
     saturated = true;
   }
 
-  double vertical_effort = efforts.vertical() * vertical;
+  double vertical_effort = effort.force.z * vertical;
 
   // Clamp vertical effort to max values
   if (vertical_effort > orca::THRUST_FULL_FWD) {
@@ -63,22 +65,22 @@ int Thruster::efforts_to_pwm(const BaseContext & cxt, const mw::Efforts & effort
   }
 
   // Vertical effort is independent from the rest, no need to clamp
-  double effort = combined_effort + vertical_effort;
+  double total_effort = combined_effort + vertical_effort;
 
   // Protect the thruster:
   // -- limit change to +/- max_change
   // -- don't reverse thruster, i.e., stop at 0.0
-  effort = orca::clamp(
-    effort,
+  total_effort = orca::clamp(
+    total_effort,
     prev_effort - cxt.thruster_accel_limit_,
     prev_effort + cxt.thruster_accel_limit_);
-  if (effort < 0 && prev_effort > 0 || effort > 0 && prev_effort < 0) {
-    effort = 0;
+  if (total_effort < 0 && prev_effort > 0 || total_effort > 0 && prev_effort < 0) {
+    total_effort = 0;
   }
 
-  prev_effort = effort;
+  prev_effort = total_effort;
 
-  return orca::effort_to_pwm(cxt.mdl_thrust_dz_pwm_, effort);
+  return orca::effort_to_pwm(cxt.mdl_thrust_dz_pwm_, total_effort);
 }
 
 // TODO(clyde): make this a singleton
@@ -99,22 +101,22 @@ Thrusters::Thrusters()
   }
 }
 
-void Thrusters::efforts_to_pwm(
-  const BaseContext & cxt, const mw::Efforts & efforts,
-  orca_msgs::msg::Thrusters & thrusters_msg)
+orca_msgs::msg::Thrusters Thrusters::effort_to_thrust(const BaseContext & cxt, const orca_msgs::msg::Effort & effort)
 {
+  orca_msgs::msg::Thrusters result;
   bool saturated = false;
 
-  thrusters_msg.fr_1 = thrusters_[0].efforts_to_pwm(cxt, efforts, saturated);
-  thrusters_msg.fl_2 = thrusters_[1].efforts_to_pwm(cxt, efforts, saturated);
-  thrusters_msg.rr_3 = thrusters_[2].efforts_to_pwm(cxt, efforts, saturated);
-  thrusters_msg.rl_4 = thrusters_[3].efforts_to_pwm(cxt, efforts, saturated);
-  thrusters_msg.vr_5 = thrusters_[4].efforts_to_pwm(cxt, efforts, saturated);
-  thrusters_msg.vl_6 = thrusters_[5].efforts_to_pwm(cxt, efforts, saturated);
+  result.fr_1 = thrusters_[0].effort_to_pwm(cxt, effort, saturated);
+  result.fl_2 = thrusters_[1].effort_to_pwm(cxt, effort, saturated);
+  result.rr_3 = thrusters_[2].effort_to_pwm(cxt, effort, saturated);
+  result.rl_4 = thrusters_[3].effort_to_pwm(cxt, effort, saturated);
+  result.vr_5 = thrusters_[4].effort_to_pwm(cxt, effort, saturated);
+  result.vl_6 = thrusters_[5].effort_to_pwm(cxt, effort, saturated);
 
   if (saturated) {
     std::cout << "Thruster(s) saturated" << std::endl;
   }
+  return result;
 }
 
 }  // namespace orca_base

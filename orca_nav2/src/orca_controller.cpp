@@ -28,8 +28,6 @@
 #include <vector>
 
 #include "orca_nav2/param_macro.hpp"
-#include "orca_nav2/util.hpp"
-#include "orca_shared/mw/pose_stamped.hpp"
 #include "orca_shared/util.hpp"
 #include "nav2_core/controller.hpp"
 #include "nav2_core/exceptions.hpp"
@@ -119,7 +117,7 @@ class OrcaController: public nav2_core::Controller
     bool dist_decreasing = true;
 
     for (const auto & item : plan_.poses) {
-      auto item_dist = dist(
+      auto item_dist = orca::dist(
         item.pose.position.x - pose_f_map.pose.position.x,
         item.pose.position.y - pose_f_map.pose.position.y,
         item.pose.position.z - pose_f_map.pose.position.z);
@@ -169,7 +167,7 @@ class OrcaController: public nav2_core::Controller
       return geometry_msgs::msg::Twist{};
     }
 
-    auto xy_dist_sq = dist_sq(goal_f_base.pose.position.x, goal_f_base.pose.position.y);
+    auto xy_dist_sq = orca::dist_sq(goal_f_base.pose.position.x, goal_f_base.pose.position.y);
     auto xy_dist = std::sqrt(xy_dist_sq);
     auto z_dist = std::abs(goal_f_base.pose.position.z);
 
@@ -177,11 +175,11 @@ class OrcaController: public nav2_core::Controller
     // Useful for debugging, but happens frequently as the sub decelerates
     if (z_dist < move_threshold_ && xy_dist < move_threshold_) {
       std::cout << "Decelerating / coasting" << std::endl;
-      std::cout << "pose_f_odom: " << mw::PoseStamped(pose_f_odom) << std::endl;
-      std::cout << "pose_f_map: " << mw::PoseStamped(pose_f_map) << std::endl;
-      std::cout << "goal_f_map: " << mw::PoseStamped(goal_f_map) << std::endl;
-      std::cout << "goal_f_base: " << mw::PoseStamped(goal_f_base) << std::endl;
-      std::cout << "prev_vel: " << mw::Twist(prev_vel_) << std::endl;
+      std::cout << "pose_f_odom: " << orca::to_str(pose_f_odom) << std::endl;
+      std::cout << "pose_f_map: " << orca::to_str(pose_f_map) << std::endl;
+      std::cout << "goal_f_map: " << orca::to_str(goal_f_map) << std::endl;
+      std::cout << "goal_f_base: " << orca::to_str(goal_f_base) << std::endl;
+      std::cout << "prev_vel: " << orca::to_str(prev_vel_) << std::endl;
     }
 #endif
 

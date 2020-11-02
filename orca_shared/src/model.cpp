@@ -22,35 +22,45 @@
 
 #include "orca_shared/model.hpp"
 #include "orca_shared/util.hpp"
+#include "orca_shared/pwm.hpp"
 #include "rclcpp/logging.hpp"
 
 namespace orca
 {
 
-void Model::drag_const_world(
-  double yaw, double motion_world, double & drag_const_world_x,
-  double & drag_const_world_y) const
+geometry_msgs::msg::Accel Model::drag(const geometry_msgs::msg::Twist & vel) const
 {
-  // Direction of motion in the body frame
-  auto motion_body = norm_angle(motion_world - yaw);
+  geometry_msgs::msg::Accel result;
+  result.linear.x = drag_accel_x(vel.linear.x);
+  result.linear.y = drag_accel_y(vel.linear.y);
+  result.linear.z = drag_accel_z(vel.linear.z);
+  result.angular.z = drag_accel_yaw(vel.angular.z);
+  return result;
+}
 
-  // Fold quadrants II, II and IV into quadrant I
-  if (motion_body < 0) {
-    motion_body = -motion_body;
-  }
-  if (motion_body > M_PI / 2) {
-    motion_body = M_PI - motion_body;
-  }
+geometry_msgs::msg::Wrench Model::accel_to_wrench(const geometry_msgs::msg::Accel & accel) const
+{
+  geometry_msgs::msg::Wrench result;
+  result.force.x = accel_to_force(accel.linear.x);
+  result.force.y = accel_to_force(accel.linear.y);
+  result.force.z = accel_to_force(accel.linear.z);
+  result.torque.z = accel_to_torque_yaw(accel.angular.z);
+  return result;
+}
 
-  // Interpolate between drag_const_y and drag_const_x to find the drag constant
-  // for the direction of motion
-  auto drag_const_motion =
-    (motion_body * drag_const_y() + (M_PI / 2 - motion_body) * drag_const_x()) / (M_PI / 2);
+orca_msgs::msg::Effort Model::wrench_to_effort(const geometry_msgs::msg::Wrench & wrench) const
+{
+  orca_msgs::msg::Effort result;
+  result.force.x = clamp(force_to_effort_xy(wrench.force.x), 1.0);
+  result.force.y = clamp(force_to_effort_xy(wrench.force.y), 1.0);
+  result.force.z = clamp(force_to_effort_z(wrench.force.z), 1.0);
+  result.torque.z = clamp(torque_to_effort_yaw(wrench.torque.z), 1.0);
+  return result;
+}
 
-  // Break the drag down to x and y components
-  // Coef must be positive, note abs()
-  drag_const_world_x = abs(cos(motion_world)) * drag_const_motion;
-  drag_const_world_y = abs(sin(motion_world)) * drag_const_motion;
+orca_msgs::msg::Effort Model::accel_to_effort(const geometry_msgs::msg::Accel & accel) const
+{
+  return (wrench_to_effort(accel_to_wrench(accel)));
 }
 
 void Model::log_info(const rclcpp::Logger & logger) const
@@ -64,7 +74,7 @@ void Model::log_info(const rclcpp::Logger & logger) const
     logger, "hover accel: %g, force: %g, effort: %g, pwm: %d",
     hover_accel, hover_force, hover_effort, hover_pwm);
 
-  // Describe force, effort and pwm for a representative foward velocity
+  // Describe force, effort and pwm for a representative forward velocity
   double fwd_velo = 0.4;
   auto fwd_accel = -drag_accel_x(fwd_velo);
   auto fwd_force = accel_to_force(fwd_accel);

@@ -20,65 +20,36 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef ORCA_SHARED__MW__MAP_HPP_
-#define ORCA_SHARED__MW__MAP_HPP_
+#include "orca_shared/pwm.hpp"
 
-#include <utility>
-#include <vector>
+#include "orca_shared/util.hpp"
+#include "orca_msgs/msg/thrusters.hpp"
 
-#include "fiducial_vlam_msgs/msg/map.hpp"
-#include "fiducial_vlam_msgs/msg/observations.hpp"
-#include "orca_shared/mw/pose.hpp"
-
-namespace mw
+namespace orca
 {
 
-class Map
+uint16_t effort_to_pwm(const uint16_t thrust_dz_pwm, const double effort)
 {
-  fiducial_vlam_msgs::msg::Map msg_;
+  uint16_t thrust_range_pwm = 400 - thrust_dz_pwm;
 
-public:
-  Map() = default;
+  return clamp(
+    static_cast<uint16_t>(orca_msgs::msg::Thrusters::THRUST_STOP +
+      (effort > THRUST_STOP ? thrust_dz_pwm : (effort < THRUST_STOP ?
+                                               -thrust_dz_pwm : 0)) +
+      std::round(effort * thrust_range_pwm)),
+    orca_msgs::msg::Thrusters::THRUST_FULL_REV,
+    orca_msgs::msg::Thrusters::THRUST_FULL_FWD);
+}
 
-  explicit Map(fiducial_vlam_msgs::msg::Map  msg)
-  : msg_{std::move(msg)}
-  {
-  }
+double pwm_to_effort(const uint16_t thrust_dz_pwm, const uint16_t pwm)
+{
+  uint16_t thrust_range_pwm = 400 - thrust_dz_pwm;
 
-  fiducial_vlam_msgs::msg::Map msg() const
-  {
-    return msg_;
-  }
+  return static_cast<double>(
+    pwm - orca_msgs::msg::Thrusters::THRUST_STOP +
+      (pwm > orca_msgs::msg::Thrusters::THRUST_STOP ? -thrust_dz_pwm :
+       (pwm < orca_msgs::msg::Thrusters::THRUST_STOP ? thrust_dz_pwm : 0))) /
+    thrust_range_pwm;
+}
 
-  bool valid() const
-  {
-    return Header(msg_.header).valid();
-  }
-
-  double marker_length() const
-  {
-    return msg_.marker_length;
-  }
-
-  // Return true if the camera pose is "good", defined as close enough to a visible marker
-  bool good_pose(
-    const Pose & camera_pose,
-    const fiducial_vlam_msgs::msg::Observations & obs_msg,
-    double dist) const;
-
-  bool operator==(const Map & that) const
-  {
-    return msg_ == that.msg_;
-  }
-
-  bool operator!=(const Map & that) const
-  {
-    return !(*this == that);
-  }
-
-  friend std::ostream & operator<<(std::ostream & os, const Map & v);
-};
-
-}  // namespace mw
-
-#endif  // ORCA_SHARED__MW__MAP_HPP_
+}  // namespace orca

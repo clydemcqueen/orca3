@@ -22,7 +22,7 @@
 
 #include "nav2_core/progress_checker.hpp"
 #include "orca_nav2/param_macro.hpp"
-#include "orca_nav2/util.hpp"
+#include "orca_shared/util.hpp"
 
 namespace orca_nav2 {
 
@@ -63,7 +63,7 @@ public:
 
   bool check(geometry_msgs::msg::PoseStamped & pose) override
   {
-    if (!baseline_set_ || dist(pose.pose.position, baseline_.position) > radius_) {
+    if (!baseline_set_ || orca::dist(pose.pose.position, baseline_.position) > radius_) {
       set_baseline(pose.pose);
       return true;
     }

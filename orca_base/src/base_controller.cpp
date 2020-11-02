@@ -27,25 +27,27 @@
 #include "orca_base/pid.hpp"
 #include "orca_base/thrusters.hpp"
 #include "orca_msgs/msg/depth.hpp"
-#include "orca_shared/mw/mw.hpp"
+#include "orca_shared/model.hpp"
+#include "orca_shared/util.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "tf2_ros/transform_broadcaster.h"
 
 namespace orca_base
 {
 
-mw::Pose odometry(const mw::Pose & pose, const mw::Twist & v, double dt)
+geometry_msgs::msg::Pose odometry(const geometry_msgs::msg::Pose & pose, const geometry_msgs::msg::Twist & v, double dt)
 {
-  mw::Pose result;
+  geometry_msgs::msg::Pose result;
+  auto yaw = orca::get_yaw(pose.orientation);
+  result.position.x = pose.position.x + (v.linear.x * cos(yaw) + v.linear.y * sin(-yaw)) * dt;
+  result.position.y = pose.position.y + (v.linear.x * sin(yaw) + v.linear.y * cos(-yaw)) * dt;
+  result.position.z = pose.position.z + v.linear.z * dt;
+  yaw = yaw + v.angular.z * dt;
+  orca::set_yaw(result.orientation, yaw);
 
-  result.x(pose.x() + (v.x() * cos(pose.yaw()) + v.y() * sin(-pose.yaw())) * dt);
-  result.y(pose.y() + (v.x() * sin(pose.yaw()) + v.y() * cos(-pose.yaw())) * dt);
-  result.z(pose.z() + v.z() * dt);
-  result.yaw(pose.yaw() + v.yaw() * dt);
-
-  if (result.z() > 0) {
+  if (result.position.z > 0) {
     // Can't go above the surface
-    result.z(0);
+    result.position.z = 0;
   }
 
   return result;
@@ -59,7 +61,7 @@ class BaseController : public rclcpp::Node
   Thrusters thrusters_;
 
   // Most recent incoming messages
-  mw::Twist cmd_vel_;
+  geometry_msgs::msg::Twist cmd_vel_;
   orca_msgs::msg::Depth depth_msg_;
 
   // Previous odometry
@@ -92,9 +94,9 @@ class BaseController : public rclcpp::Node
     };
     odom_msg_.header.frame_id = cxt_.odom_frame_id_;
     odom_msg_.child_frame_id = cxt_.base_frame_id_;
-    odom_msg_.pose.pose = mw::Pose(0, 0, 0, 0).msg();
+    odom_msg_.pose.pose = geometry_msgs::msg::Pose{};
     odom_msg_.pose.covariance = covariance;
-    odom_msg_.twist.twist = mw::Twist(0, 0, 0, 0).msg();
+    odom_msg_.twist.twist = geometry_msgs::msg::Twist{};
     odom_msg_.twist.covariance = covariance;
   }
 
@@ -129,10 +131,9 @@ class BaseController : public rclcpp::Node
   void publish_odometry(const rclcpp::Time & t, double dt)
   {
     // Publish odometry
-    mw::Pose pose(odom_msg_.pose.pose);
-    pose = odometry(pose, cmd_vel_, dt);
-    odom_msg_.pose.pose = pose.msg();
-    odom_msg_.twist.twist = cmd_vel_.robot_to_world_frame(pose.yaw()).msg();
+    auto yaw = orca::get_yaw(odom_msg_.pose.pose.orientation);
+    odom_msg_.pose.pose = odometry(odom_msg_.pose.pose, cmd_vel_, dt);
+    odom_msg_.twist.twist = orca::robot_to_world_frame(cmd_vel_, yaw);
     odom_msg_.header.stamp = t;
     odom_pub_->publish(odom_msg_);
 
@@ -160,17 +161,17 @@ class BaseController : public rclcpp::Node
     }
 
     // Velocity to acceleration
-    mw::Accel drag = cmd_vel_.drag(cxt_);
-    mw::Accel accel = -drag;
-    accel.z(accel.z() + pid_accel_z);
+    geometry_msgs::msg::Accel drag = cxt_.drag(cmd_vel_);
+    geometry_msgs::msg::Accel accel = orca::invert(drag);
+    accel.linear.z += pid_accel_z;
 
     // Acceleration to effort
-    mw::Efforts efforts(cxt_, accel);
+    orca_msgs::msg::Effort effort = cxt_.accel_to_effort(accel);
 
     // Effort to pwm
     orca_msgs::msg::Thrusters thrusters_msg;
+    thrusters_msg = thrusters_.effort_to_thrust(cxt_, effort);
     thrusters_msg.header.stamp = t;
-    thrusters_.efforts_to_pwm(cxt_, efforts, thrusters_msg);
     thrusters_pub_->publish(thrusters_msg);
   }
 
@@ -194,7 +195,7 @@ public:
       "cmd_vel", QUEUE_SIZE,
       [this](geometry_msgs::msg::Twist::ConstSharedPtr msg) // NOLINT
       {
-        cmd_vel_ = mw::Twist(*msg);
+        cmd_vel_ = *msg;
       });
 
     // Depth messages are continuous and reliable, use this to drive the control loop

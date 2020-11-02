@@ -136,6 +136,7 @@ add_library(
 
 set(
   ORCA_PROGRESS_CHECKER_DEPS
+  orca_shared
   rclcpp
 )
 

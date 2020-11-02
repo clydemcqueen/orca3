@@ -20,13 +20,22 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef ORCA_SHARED__TEST_HPP_
-#define ORCA_SHARED__TEST_HPP_
+#ifndef ORCA_SHARED__PWM_HPP_
+#define ORCA_SHARED__PWM_HPP_
 
-bool test_mw_header();
+#include <cstdint>
 
-bool test_mw_pose_segment();
+namespace orca
+{
 
-bool test_mw_roundtrip();
+constexpr double THRUST_FULL_REV = -1.0;
+constexpr double THRUST_STOP = 0.0;
+constexpr double THRUST_FULL_FWD = 1.0;
 
-#endif  // ORCA_SHARED__TEST_HPP_
+uint16_t effort_to_pwm(uint16_t thrust_dz_pwm, double effort);
+
+double pwm_to_effort(uint16_t thrust_dz_pwm, uint16_t pwm);
+
+}  // namespace orca
+
+#endif  // ORCA_SHARED__PWM_HPP_

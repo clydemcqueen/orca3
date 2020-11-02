@@ -26,7 +26,7 @@
 #include "gazebo/gazebo.hh"
 #include "gazebo/physics/physics.hh"
 #include "gazebo_ros/node.hpp"
-#include "orca_shared/util.hpp"
+#include "orca_shared/pwm.hpp"
 #include "orca_msgs/msg/thrusters.hpp"
 #include "orca_msgs/msg/status.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -222,6 +222,8 @@ public:
       thrusters_[3].effort = orca::pwm_to_effort(thrust_dz_pwm_, msg->rl_4);
       thrusters_[4].effort = orca::pwm_to_effort(thrust_dz_pwm_, msg->vr_5);
       thrusters_[5].effort = orca::pwm_to_effort(thrust_dz_pwm_, msg->vl_6);
+    } else {
+      RCLCPP_ERROR(node_->get_logger(), "invalid timestamp");
     }
 
     status_msg_.status = orca_msgs::msg::Status::STATUS_OK;

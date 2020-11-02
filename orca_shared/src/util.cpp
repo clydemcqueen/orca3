@@ -22,6 +22,7 @@
 
 #include "orca_shared/util.hpp"
 
+#include <iomanip>
 #include <string>
 
 #include "orca_msgs/msg/thrusters.hpp"
@@ -34,55 +35,93 @@ namespace orca
 // Geometry
 //=====================================================================================
 
-#if 1
-double norm_angle(double a)
+constexpr double dist_sq(double x, double y)
 {
-  if (a < -M_PI || a > M_PI) {
-    // Force to [-2PI, 2PI)
-    a = fmod(a, 2 * M_PI);
-
-    // Move to [-PI, PI)
-    if (a < -M_PI) {
-      a += 2 * M_PI;
-    } else if (a > M_PI) {
-      a -= 2 * M_PI;
-    }
-  }
-
-  return a;
-}
-#else
-double norm_angle(double a)
-{
-  while (a < -M_PI) {
-    a += 2 * M_PI;
-  }
-  while (a > M_PI) {
-    a -= 2 * M_PI;
-  }
-
-  return a;
-}
-#endif
-
-void rotate_frame(const double x, const double y, const double theta, double & x_r, double & y_r)
-{
-  x_r = x * cos(theta) + y * sin(theta);
-  y_r = y * cos(theta) - x * sin(theta);
+  return x * x + y * y;
 }
 
-void get_rpy(const geometry_msgs::msg::Quaternion & q, double & roll, double & pitch, double & yaw)
+double dist(double x, double y)
+{
+  return sqrt(dist_sq(x, y));
+}
+
+constexpr double dist_sq(double x, double y, double z)
+{
+  return x * x + y * y + z * z;
+}
+
+double dist(double x, double y, double z)
+{
+  return sqrt(dist_sq(x, y, z));
+}
+
+double dist(const geometry_msgs::msg::Point & p1, const geometry_msgs::msg::Point & p2)
+{
+  return dist(p2.x - p1.x, p2.y - p1.y, p2.z - p1.z);
+}
+
+void get_rpy(const geometry_msgs::msg::Quaternion & q, double & r, double & p, double & y)
 {
   tf2::Quaternion tf2_q;
   tf2::fromMsg(q, tf2_q);
-  tf2::Matrix3x3(tf2_q).getRPY(roll, pitch, yaw);
+  tf2::Matrix3x3(tf2_q).getRPY(r, p, y);
+}
+
+void
+set_rpy(geometry_msgs::msg::Quaternion & q, const double & r, const double & p, const double & y)
+{
+  tf2::Quaternion tf2_q;
+  tf2_q.setRPY(r, p, y);
+  q = tf2::toMsg(tf2_q);
 }
 
 double get_yaw(const geometry_msgs::msg::Quaternion & q)
 {
-  double roll = 0, pitch = 0, yaw = 0;
-  get_rpy(q, roll, pitch, yaw);
-  return yaw;
+  double r, p, y;
+  get_rpy(q, r, p, y);
+  return y;
+}
+
+void set_yaw(geometry_msgs::msg::Quaternion & q, const double & yaw)
+{
+  double r, p, y;
+  get_rpy(q, r, p, y);
+  set_rpy(q, r, p, yaw);
+}
+
+geometry_msgs::msg::Twist invert(const geometry_msgs::msg::Twist & v)
+{
+  geometry_msgs::msg::Twist result;
+  result.linear.x = -v.linear.x;
+  result.linear.y = -v.linear.y;
+  result.linear.z = -v.linear.z;
+  result.angular.x = -v.angular.x;
+  result.angular.y = -v.angular.y;
+  result.angular.z = -v.angular.z;
+  return result;
+}
+
+geometry_msgs::msg::Accel invert(const geometry_msgs::msg::Accel & a)
+{
+  geometry_msgs::msg::Accel result;
+  result.linear.x = -a.linear.x;
+  result.linear.y = -a.linear.y;
+  result.linear.z = -a.linear.z;
+  result.angular.x = -a.angular.x;
+  result.angular.y = -a.angular.y;
+  result.angular.z = -a.angular.z;
+  return result;
+}
+
+geometry_msgs::msg::Twist
+robot_to_world_frame(const geometry_msgs::msg::Twist & vel, const double & yaw_f_world)
+{
+  geometry_msgs::msg::Twist result;
+  result.linear.x = vel.linear.x * std::cos(yaw_f_world) - vel.linear.y * sin(yaw_f_world);
+  result.linear.y = vel.linear.x * std::sin(yaw_f_world) + vel.linear.y * cos(yaw_f_world);
+  result.linear.z = vel.linear.z;
+  result.angular.z = vel.angular.z;
+  return result;
 }
 
 //=====================================================================================
@@ -195,69 +234,136 @@ bool transform_with_tolerance(
 }
 
 //=====================================================================================
-// BlueRobotics T200 thruster + ESC
+// str()
 //=====================================================================================
 
-uint16_t effort_to_pwm(const uint16_t thrust_dz_pwm, const double effort)
+std::string str(const builtin_interfaces::msg::Time & v)
 {
-  uint16_t thrust_range_pwm = 400 - thrust_dz_pwm;
-
-  return clamp(
-    static_cast<uint16_t>(orca_msgs::msg::Thrusters::THRUST_STOP +
-    (effort > THRUST_STOP ? thrust_dz_pwm : (effort < THRUST_STOP ?
-    -thrust_dz_pwm : 0)) +
-    std::round(effort * thrust_range_pwm)),
-    orca_msgs::msg::Thrusters::THRUST_FULL_REV,
-    orca_msgs::msg::Thrusters::THRUST_FULL_FWD);
-}
-
-double pwm_to_effort(const uint16_t thrust_dz_pwm, const uint16_t pwm)
-{
-  uint16_t thrust_range_pwm = 400 - thrust_dz_pwm;
-
-  return static_cast<double>(
-    pwm - orca_msgs::msg::Thrusters::THRUST_STOP +
-    (pwm > orca_msgs::msg::Thrusters::THRUST_STOP ? -thrust_dz_pwm :
-    (pwm < orca_msgs::msg::Thrusters::THRUST_STOP ? thrust_dz_pwm : 0))) /
-         thrust_range_pwm;
-}
-
-//=====================================================================================
-// Various to_str functions, most of these now live in the mw (message wrapper) classes
-//=====================================================================================
-
-std::string to_str_rpy(const tf2::Transform & t)
-{
-  double roll, pitch, yaw;
-  t.getBasis().getRPY(roll, pitch, yaw);
   std::stringstream s;
-  s <<
-    "xyz(" << t.getOrigin().x() << ", " << t.getOrigin().y() << ", " << t.getOrigin().z() << ") " <<
-    "rpy(" << roll << ", " << pitch << ", " << yaw << ") ";
+
+  s << std::fixed << std::setprecision(3) << "{" <<
+    v.sec << "." <<
+    v.nanosec <<
+    "}";
+
   return s.str();
 }
 
-std::string to_str_q(const tf2::Transform & t)
+std::string str(const geometry_msgs::msg::Accel & v)
 {
   std::stringstream s;
-  s <<
-    "xyz(" << t.getOrigin().x() << ", " << t.getOrigin().y() << ", " << t.getOrigin().z() << ") " <<
-    "q(" << t.getRotation().x() << ", " << t.getRotation().y() << ", " << t.getRotation().z() <<
-    ", " <<
-    t.getRotation().w() << ")";
+
+  s << std::fixed << std::setprecision(3) << "{" <<
+    str(v.linear) <<
+    str(v.angular) <<
+    "}";
+
   return s.str();
 }
 
-std::string to_str(const rclcpp::Time & t)
-{
-  return to_str(builtin_interfaces::msg::Time{t});
-}
-
-std::string to_str(const builtin_interfaces::msg::Time & t)
+std::string str(const geometry_msgs::msg::Point & v)
 {
   std::stringstream s;
-  s << "{" << t.sec << "s + " << t.nanosec << "ns (~" << static_cast<int>(t.nanosec / 1000000) <<
-    "ms)}";
+
+  s << std::fixed << std::setprecision(3) << "{" <<
+    v.x << ", " <<
+    v.y << ", " <<
+    v.z <<
+    "}";
+
+  return s.str();
+}
+
+std::string str(const geometry_msgs::msg::Pose & v)
+{
+  std::stringstream s;
+
+  s << std::fixed << std::setprecision(3) << "{" <<
+    str(v.position) << ", " <<
+    str(v.orientation) << ", " <<
+    "}";
+
+  return s.str();
+}
+
+std::string str(const geometry_msgs::msg::PoseStamped & v)
+{
+  std::stringstream s;
+
+  s << std::fixed << std::setprecision(3) << "{" <<
+    str(v.header) << ", " <<
+    str(v.pose) <<
+    "}";
+
+  return s.str();
+}
+
+std::string str(const geometry_msgs::msg::Quaternion & v)
+{
+  double r, p, y;
+  get_rpy(v, r, p, y);
+  std::stringstream s;
+
+  s << std::fixed << std::setprecision(3) << "{" <<
+    r << ", " <<
+    p << ", " <<
+    y <<
+    "}";
+
+  return s.str();
+}
+
+std::string str(const geometry_msgs::msg::Twist & v)
+{
+  std::stringstream s;
+
+  s << std::fixed << std::setprecision(3) << "{" <<
+    str(v.linear) << ", " <<
+    str(v.angular) <<
+    "}";
+
+  return s.str();
+}
+
+std::string str(const geometry_msgs::msg::Vector3 & v)
+{
+  std::stringstream s;
+
+  s << std::fixed << std::setprecision(3) << "{" <<
+    v.x << ", " <<
+    v.y << ", " <<
+    v.z <<
+    "}";
+
+  return s.str();
+}
+
+std::string str(const geometry_msgs::msg::Wrench & v)
+{
+  std::stringstream s;
+
+  s << std::fixed << std::setprecision(3) << "{" <<
+    str(v.force) << ", " <<
+    str(v.torque) <<
+    "}";
+
+  return s.str();
+}
+
+std::string str(const rclcpp::Time & v)
+{
+  return str(builtin_interfaces::msg::Time{v});
+}
+
+std::string str(const std_msgs::msg::Header & v)
+{
+  std::stringstream s;
+
+  s << std::fixed << std::setprecision(3) << "{" <<
+    str(v.stamp) << ", " <<
+    v.frame_id <<
+    "}";
+
   return s.str();
 }
 

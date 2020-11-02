@@ -29,7 +29,8 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "message_filters/subscriber.h"
 #include "message_filters/sync_policies/exact_time.h"
-#include "orca_shared/mw/mw.hpp"
+#include "orca_shared/model.hpp"
+#include "orca_shared/util.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 #include "tf2_ros/transform_broadcaster.h"
@@ -37,6 +38,25 @@
 
 namespace orca_base
 {
+
+// Return the distance to the closest visible marker
+double closest_visible_marker(const fiducial_vlam_msgs::msg::Map & map,
+  const fiducial_vlam_msgs::msg::Observations & observations,
+  const geometry_msgs::msg::Pose & camera_pose)
+{
+  auto min_dist = std::numeric_limits<double>::max();
+  for (const auto & observation : observations.observations) {
+    for (int j = 0; j < map.ids.size(); ++j) {
+      if (map.ids[j] == observation.id) {
+        auto dist = orca::dist(camera_pose.position, map.poses[j].pose.position);
+        if (dist < min_dist) {
+          min_dist = dist;
+        }
+      }
+    }
+  }
+  return min_dist;
+}
 
 #define LOCALIZER_ALL_PARAMS \
   CXT_MACRO_MEMBER(base_frame_id, std::string, "base_link") \
@@ -69,7 +89,7 @@ class SimpleLocalizer : public rclcpp::Node
   bool have_initial_pose_{false};
 
   // Map of ArUco markers
-  mw::Map fiducial_map_;
+  fiducial_vlam_msgs::msg::Map fiducial_map_;
 
   // Transformation naming conventions:
   //    t_target_source is a transformation from a source frame to a target frame
@@ -163,7 +183,7 @@ class SimpleLocalizer : public rclcpp::Node
 
     // Wait for a map
     if (!have_fiducial_map_) {
-      if (fiducial_map_.valid()) {
+      if (orca::valid(fiducial_map_.header.stamp)) {
         have_fiducial_map_ = true;
         RCLCPP_INFO(get_logger(), "Have fiducial map"); // NOLINT
       } else {
@@ -174,8 +194,7 @@ class SimpleLocalizer : public rclcpp::Node
     // Reject poses that are too far away from the marker(s)
     // Make an exception for the initial pose
     if (have_initial_pose_) {
-      mw::Pose camera_pose(pose_msg->pose.pose);
-      if (!fiducial_map_.good_pose(camera_pose, *obs_msg, cxt_.good_pose_distance_)) {
+      if (closest_visible_marker(fiducial_map_, *obs_msg, pose_msg->pose.pose) > cxt_.good_pose_distance_) {
         return;
       }
     }
@@ -227,7 +246,7 @@ public:
       "fiducial_map", 10,
       [this](fiducial_vlam_msgs::msg::Map::ConstSharedPtr msg) // NOLINT
       {
-        fiducial_map_ = mw::Map(*msg);
+        fiducial_map_ = *msg;
       });
 
 

@@ -53,7 +53,7 @@ add_library(
   ${ORCA_SHARED_LIB} SHARED
   src/baro.cpp
   src/model.cpp
-  src/mw.cpp
+  src/pwm.cpp
   src/util.cpp
 )
 
@@ -100,28 +100,6 @@ if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 endif()
-
-add_executable(
-  test_main
-  src/test/test_main.cpp
-  src/test/test_mw_roundtrip.cpp
-  src/test/test_mw_use_cases.cpp
-  src/mw.cpp
-  src/util.cpp
-)
-
-ament_target_dependencies(
-  test_main
-  fiducial_vlam_msgs
-  image_geometry
-  orca_msgs
-  rclcpp
-  ros2_shared
-  sensor_msgs
-  tf2
-  tf2_geometry_msgs
-  tf2_ros
-)
 
 #=============
 # Install

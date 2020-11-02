@@ -25,6 +25,10 @@
 
 #include <cmath>
 
+#include "geometry_msgs/msg/accel.hpp"
+#include "geometry_msgs/msg/twist.hpp"
+#include "geometry_msgs/msg/wrench.hpp"
+#include "orca_msgs/msg/effort.hpp"
 #include "rclcpp/logger.hpp"
 #include "ros2_shared/context_macros.hpp"
 
@@ -114,7 +118,7 @@ struct Model
   MODEL_PARAMS
 
   //=====================================================================================
-  // Dynamics
+  // Force / torque <=> acceleration
   //=====================================================================================
 
   // Assume a uniform distribution of mass in the vehicle box
@@ -302,10 +306,22 @@ struct Model
     return torque_to_accel_yaw(drag_torque_yaw(velo_yaw));
   }
 
-  /// @deprecated
-  void drag_const_world(
-    double yaw, double motion_world, double & drag_const_world_x,
-    double & drag_const_world_y) const;
+  //=====================================================================================
+  // Combine all 4 DoF
+  //=====================================================================================
+
+  geometry_msgs::msg::Accel drag(const geometry_msgs::msg::Twist & vel) const;
+
+  geometry_msgs::msg::Wrench accel_to_wrench(const geometry_msgs::msg::Accel & accel) const;
+
+  // Wrench scaled by bollard force, clamped to [-1, 1]
+  orca_msgs::msg::Effort wrench_to_effort(const geometry_msgs::msg::Wrench & wrench) const;
+
+  orca_msgs::msg::Effort accel_to_effort(const geometry_msgs::msg::Accel & accel) const;
+
+  //=====================================================================================
+  // Logging
+  //=====================================================================================
 
   // Log some info... handy for debugging
   void log_info(const rclcpp::Logger & logger) const;

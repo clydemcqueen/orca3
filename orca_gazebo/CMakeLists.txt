@@ -83,6 +83,7 @@ add_library(OrcaDragPlugin SHARED src/drag_plugin.cpp)
 ament_target_dependencies(
   OrcaDragPlugin
   gazebo_dev
+  orca_msgs
   orca_shared
   rclcpp
   ros2_shared

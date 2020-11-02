@@ -31,6 +31,7 @@ endif ()
 # Find packages
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
 # Generate ROS messages
@@ -38,9 +39,10 @@ rosidl_generate_interfaces(
   orca_msgs
   msg/Barometer.msg
   msg/Depth.msg
+  msg/Effort.msg
   msg/Status.msg
   msg/Thrusters.msg
-  DEPENDENCIES std_msgs
+  DEPENDENCIES geometry_msgs std_msgs
 )
 
 ament_export_dependencies(rosidl_default_runtime)
