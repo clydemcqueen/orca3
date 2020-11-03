@@ -35,7 +35,8 @@
 namespace orca_base
 {
 
-geometry_msgs::msg::Pose odometry(const geometry_msgs::msg::Pose & pose, const geometry_msgs::msg::Twist & v, double dt)
+geometry_msgs::msg::Pose
+calc_odometry(const geometry_msgs::msg::Pose & pose, const geometry_msgs::msg::Twist & v, double dt)
 {
   geometry_msgs::msg::Pose result;
   auto yaw = orca::get_yaw(pose.orientation);
@@ -125,25 +126,24 @@ class BaseController : public rclcpp::Node
 
   void publish_odometry(const rclcpp::Time & t, double dt)
   {
-    // Publish odometry
+    // Update odometry
     auto yaw = orca::get_yaw(odom_msg_.pose.pose.orientation);
-    odom_msg_.pose.pose = odometry(odom_msg_.pose.pose, cmd_vel_, dt);
+    odom_msg_.pose.pose = calc_odometry(odom_msg_.pose.pose, cmd_vel_, dt);
     odom_msg_.twist.twist = orca::robot_to_world_frame(cmd_vel_, yaw);
     odom_msg_.header.stamp = t;
+
+    // Publish odometry
     odom_pub_->publish(odom_msg_);
 
     // Publish odom->base_link transform
     geometry_msgs::msg::TransformStamped t_base_odom;
-    t_base_odom.transform.translation.x = odom_msg_.pose.pose.position.x;
-    t_base_odom.transform.translation.y = odom_msg_.pose.pose.position.y;
-    t_base_odom.transform.translation.z = odom_msg_.pose.pose.position.z;
-    t_base_odom.transform.rotation = odom_msg_.pose.pose.orientation;
+    t_base_odom.transform = orca::pose_msg_to_transform_msg(odom_msg_.pose.pose);
     t_base_odom.header = odom_msg_.header;
     t_base_odom.child_frame_id = odom_msg_.child_frame_id;
     tf_broadcaster_->sendTransform(t_base_odom);
   }
 
-  void publish_thrusters(const rclcpp::Time & t, double dt)
+  void publish_thrust(const rclcpp::Time & t, double dt)
   {
     // TODO(clyde): add z hover
 
@@ -182,7 +182,7 @@ public:
     (void) cmd_vel_sub_;
     (void) depth_sub_;
 
-    // Broadcast odom->base_link
+    // Broadcaster for odom->base_link
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
 
     init_parameters();
@@ -202,7 +202,6 @@ public:
       "depth", QUEUE_SIZE,
       [this](orca_msgs::msg::Depth::ConstSharedPtr msg) // NOLINT
       {
-        // TODO(clyde): check cmd_vel timeout, all stop but continue sending /thrusters
         depth_msg_ = *msg;
 
         // Skip 1st message
@@ -212,7 +211,7 @@ public:
           rclcpp::Time t{msg->header.stamp};
           double dt = (t - prev_t).seconds();
           publish_odometry(t, dt);
-          publish_thrusters(t, dt);
+          publish_thrust(t, dt);
         }
       });
 
