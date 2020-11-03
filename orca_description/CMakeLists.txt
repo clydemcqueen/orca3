@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 project(orca_description)
 
-# Find packages
-find_package(ament_cmake REQUIRED)
-find_package(xacro REQUIRED)
+find_package(ament_cmake_auto REQUIRED)
+ament_auto_find_build_dependencies()
 
 #=============
 # Run Xacro to turn orca.urdf.xacro into orca.urdf
@@ -29,23 +28,10 @@ add_custom_command(
 
 add_custom_target(generate_urdf ALL DEPENDS ${URDF_FILE})
 
-#=============
-# Test
-#=============
-
-# This will load & run linters listed in package.xml
+# Load & run linters listed in package.xml
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-#=============
-# Install
-#=============
-
-install(
-  DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/urdf"
-  DESTINATION share/${PROJECT_NAME}
-)
-
-ament_package()
+ament_auto_package(INSTALL_TO_SHARE "${CMAKE_CURRENT_BINARY_DIR}/urdf")

@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 project(orca_msgs)
 
-# Default to C++14
 if (NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 14)
 endif ()
@@ -12,7 +11,6 @@ endif ()
 
 # Emulate colcon in CLion
 if ($ENV{CLION_IDE})
-  message("Running inside CLion")
   find_package(fastrtps_cmake_module REQUIRED)
   set(FastRTPS_INCLUDE_DIR "/opt/ros/foxy/include")
   set(FastRTPS_LIBRARY_RELEASE "/opt/ros/foxy/lib/libfastrtps.so")
@@ -28,11 +26,8 @@ if (_dump_all_variables)
   endforeach ()
 endif ()
 
-# Find packages
-find_package(ament_cmake REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
-find_package(geometry_msgs REQUIRED)
-find_package(std_msgs REQUIRED)
+find_package(ament_cmake_auto REQUIRED)
+ament_auto_find_build_dependencies()
 
 # Generate ROS messages
 rosidl_generate_interfaces(
@@ -45,6 +40,4 @@ rosidl_generate_interfaces(
   DEPENDENCIES geometry_msgs std_msgs
 )
 
-ament_export_dependencies(rosidl_default_runtime)
-
-ament_package()
+ament_auto_package()

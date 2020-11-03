@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 project(orca_base)
 
-# Default to C++14
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 14)
 endif()
@@ -9,7 +8,7 @@ endif()
 # Suppress warning until ros2_shared is updated for Foxy
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 
-# Emulate colcon by providing paths to other projects in the workspace
+# Emulate colcon in CLion
 if($ENV{CLION_IDE})
   find_package(fastrtps_cmake_module REQUIRED)
   set(FastRTPS_INCLUDE_DIR "/opt/ros/foxy/include")
@@ -22,136 +21,23 @@ if($ENV{CLION_IDE})
   set(ukf_DIR "${PROJECT_SOURCE_DIR}/../../../install/ukf/share/ukf/cmake")
 endif()
 
-find_package(ament_cmake REQUIRED)
-find_package(cv_bridge REQUIRED)
-find_package(fiducial_vlam_msgs REQUIRED)
-find_package(geometry_msgs REQUIRED)
-find_package(image_geometry REQUIRED)
-find_package(nav_msgs REQUIRED)
-find_package(orca_description REQUIRED)
-find_package(orca_msgs REQUIRED)
-find_package(orca_shared REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(rclcpp_action REQUIRED)
-find_package(rclpy REQUIRED)
-find_package(ros2_shared REQUIRED)
-find_package(sensor_msgs REQUIRED)
-find_package(tf2 REQUIRED)
-find_package(tf2_geometry_msgs REQUIRED)
-find_package(tf2_ros REQUIRED)
-find_package(ukf REQUIRED)
+find_package(ament_cmake_auto REQUIRED)
+ament_auto_find_build_dependencies()
 
-# Package includes not needed for CMake >= 2.8.11
-include_directories(
-  include
-)
+include_directories(include)
 
-#=============
-# Barometer filter node
-#=============
+ament_auto_add_executable(baro_filter_node src/baro_filter_node.cpp)
 
-add_executable(
-  baro_filter_node
-  src/baro_filter_node.cpp
-)
+ament_auto_add_executable(base_controller src/base_controller.cpp src/pid.cpp src/thrusters.cpp)
 
-ament_target_dependencies(
-  baro_filter_node
-  orca_msgs
-  orca_shared
-  rclcpp
-  ros2_shared
-  ukf
-)
+ament_auto_add_executable(depth_node src/depth_node.cpp)
 
-#=============
-# Base controller
-#=============
+ament_auto_add_executable(fiducial_localizer src/fiducial_localizer.cpp)
 
-add_executable(
-  base_controller
-  src/base_controller.cpp
-  src/pid.cpp
-  src/thrusters.cpp
-)
-
-ament_target_dependencies(
-  base_controller
-  fiducial_vlam_msgs
-  geometry_msgs
-  nav_msgs
-  orca_msgs
-  orca_shared
-  rclcpp
-  ros2_shared
-  tf2
-  tf2_geometry_msgs
-  tf2_ros
-)
-
-#=============
-# Depth node
-#=============
-
-add_executable(
-  depth_node
-  src/depth_node.cpp
-)
-
-ament_target_dependencies(
-  depth_node
-  image_geometry
-  orca_msgs
-  orca_shared
-  rclcpp
-  ros2_shared
-)
-
-#=============
-# Fiducial localizer
-#=============
-
-add_executable(
-  fiducial_localizer
-  src/fiducial_localizer.cpp
-)
-
-ament_target_dependencies(
-  fiducial_localizer
-  fiducial_vlam_msgs
-  geometry_msgs
-  nav_msgs
-  orca_msgs
-  orca_shared
-  rclcpp
-  ros2_shared
-  tf2
-  tf2_geometry_msgs
-  tf2_ros
-)
-
-#=============
-# Test
-#=============
-
-# This will load & run linters listed in package.xml
+# Load & run linters listed in package.xml
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-#=============
-# Install
-#=============
-
-# Install C++ targets
-install(
-  TARGETS
-  baro_filter_node
-  base_controller
-  depth_node
-  fiducial_localizer
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-ament_package()
+ament_auto_package()

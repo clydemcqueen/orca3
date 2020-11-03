@@ -1,19 +1,14 @@
 cmake_minimum_required(VERSION 3.5)
 project(orca_bringup)
 
-find_package(ament_cmake REQUIRED)
-find_package(rclpy REQUIRED)
+# Add -Wno-dev to CLion CMake options to suppress warning about gazebo_dev
+find_package(ament_cmake_auto REQUIRED)
+ament_auto_find_build_dependencies()
 
-## Load & run linters listed in package.xml
+# Load & run linters listed in package.xml
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-## Install launch and params directories
-install(
-  DIRECTORY launch params worlds
-  DESTINATION share/${PROJECT_NAME}
-)
-
-ament_package()
+ament_auto_package(INSTALL_TO_SHARE launch params worlds)
