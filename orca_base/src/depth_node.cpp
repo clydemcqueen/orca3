@@ -26,8 +26,7 @@
 #include "orca_msgs/msg/barometer.hpp"
 #include "orca_msgs/msg/depth.hpp"
 #include "orca_shared/baro.hpp"
-#include "orca_shared/monotonic.hpp"
-#include "rclcpp/node.hpp"
+#include "rclcpp/rclcpp.hpp"
 
 namespace orca_base
 {
@@ -73,39 +72,6 @@ class DepthNode : public rclcpp::Node
   rclcpp::Subscription<orca_msgs::msg::Barometer>::SharedPtr baro_sub_;
   rclcpp::Publisher<orca_msgs::msg::Depth>::SharedPtr depth_pub_;
 
-  // Callback wrapper, guarantees timestamp monotonicity
-  monotonic::Monotonic<DepthNode *, const orca_msgs::msg::Barometer::SharedPtr>
-  baro_cb_{this, &DepthNode::baro_callback};
-
-  void baro_callback(orca_msgs::msg::Barometer::SharedPtr baro_msg, bool first)
-  {
-    (void) first;
-
-    if (!barometer_.initialized()) {
-      // Barometer is not initialized so we can't compute depth
-      return;
-    }
-
-    orca_msgs::msg::Depth depth_msg;
-    depth_msg.header.frame_id = cxt_.map_frame_;
-
-    // Overwrite stamp
-    if (cxt_.stamp_msgs_with_current_time_) {
-      depth_msg.header.stamp = now();
-    } else {
-      depth_msg.header.stamp = baro_msg->header.stamp;
-    }
-
-    // Convert pressure at baro_link to depth at base_link
-    depth_msg.z = barometer_.pressure_to_base_link_z(cxt_, baro_msg->pressure);
-
-    // Measurement uncertainty
-    depth_msg.z_variance = cxt_.z_variance_;
-
-    depth_pub_->publish(depth_msg);
-  }
-
-  // Validate parameters
   void validate_parameters()
   {
     // _Any_ parameter change will clear (re-initialize) the barometer
@@ -118,7 +84,7 @@ class DepthNode : public rclcpp::Node
     cxt_.log_info(get_logger());
   }
 
-  void init_params()
+  void init_parameters()
   {
     // Get parameters, this will immediately call validate_parameters()
 #undef CXT_MACRO_MEMBER
@@ -147,11 +113,34 @@ public:
   {
     (void) baro_sub_;
 
-    init_params();
+    init_parameters();
 
     baro_sub_ = create_subscription<orca_msgs::msg::Barometer>(
-      "barometer", QUEUE_SIZE, [this](const orca_msgs::msg::Barometer::SharedPtr msg) -> void
-      {this->baro_cb_.call(msg);});
+      "barometer", QUEUE_SIZE, [this](const orca_msgs::msg::Barometer::ConstSharedPtr msg)
+      {
+        if (!barometer_.initialized()) {
+          // Barometer is not initialized so we can't compute depth
+          return;
+        }
+
+        orca_msgs::msg::Depth depth_msg;
+        depth_msg.header.frame_id = cxt_.map_frame_;
+
+        // Overwrite stamp
+        if (cxt_.stamp_msgs_with_current_time_) {
+          depth_msg.header.stamp = now();
+        } else {
+          depth_msg.header.stamp = msg->header.stamp;
+        }
+
+        // Convert pressure at baro_link to depth at base_link
+        depth_msg.z = barometer_.pressure_to_base_link_z(cxt_, msg->pressure);
+
+        // Measurement uncertainty
+        depth_msg.z_variance = cxt_.z_variance_;
+
+        depth_pub_->publish(depth_msg);
+      });
 
     depth_pub_ = create_publisher<orca_msgs::msg::Depth>("depth", QUEUE_SIZE);
   }

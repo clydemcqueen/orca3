@@ -25,11 +25,11 @@
 
 #include "orca_msgs/msg/barometer.hpp"
 #include "orca_shared/model.hpp"
-#include "orca_shared/monotonic.hpp"
-#include "rclcpp/node.hpp"
+#include "orca_shared/util.hpp"
+#include "rclcpp/rclcpp.hpp"
 #include "ukf/ukf.hpp"
 
-namespace orca_filter
+namespace orca_base
 {
 
 //=============================================================================
@@ -80,39 +80,12 @@ class BaroFilterNode : public rclcpp::Node
   // Measurement noise
   Eigen::MatrixXd R_ = Eigen::MatrixXd::Zero(MEASUREMENT_DIM, MEASUREMENT_DIM);
 
+  // Last barometer message time
+  rclcpp::Time prev_t_;
+
   rclcpp::Subscription<orca_msgs::msg::Barometer>::SharedPtr baro_sub_;
   rclcpp::Publisher<orca_msgs::msg::Barometer>::SharedPtr filtered_baro_pub_;
 
-  // Callback wrapper, guarantees timestamp monotonicity
-  monotonic::Monotonic<BaroFilterNode *, const orca_msgs::msg::Barometer::SharedPtr>
-  baro_cb_{this, &BaroFilterNode::baro_callback};
-
-  // Barometer callback
-  void baro_callback(orca_msgs::msg::Barometer::SharedPtr msg, bool first)
-  {
-    orca_msgs::msg::Barometer filtered_baro_msg = *msg;
-
-    if (first) {
-      // Initialize the state
-      auto x = filter_.x();
-      x(0) = msg->pressure;
-      filter_.set_x(x);
-      RCLCPP_INFO(get_logger(), "first message");
-    } else {
-      // Run the filter
-      filter_.predict(baro_cb_.dt(), u_);
-      z_(0) = msg->pressure;
-      R_(0, 0) = msg->pressure_variance;
-      filter_.update(z_, R_);
-      const auto & x = filter_.x();
-      // std::cout << "p: " << x(0) << ", vp: " << x(1) << ", ap: " << x(2) << std::endl;
-      filtered_baro_msg.pressure = x(0);
-    }
-
-    filtered_baro_pub_->publish(filtered_baro_msg);
-  }
-
-  // Validate parameters
   void validate_parameters()
   {
     // Process noise
@@ -127,7 +100,7 @@ class BaroFilterNode : public rclcpp::Node
     }
   }
 
-  void init_params()
+  void init_parameters()
   {
     // Get parameters, this will immediately call validate_parameters()
 #undef CXT_MACRO_MEMBER
@@ -156,18 +129,38 @@ public:
   {
     (void) baro_sub_;
 
-    init_params();
+    init_parameters();
 
-    baro_sub_ = create_subscription<orca_msgs::msg::Barometer>(
-      "barometer",
-      QUEUE_SIZE,
-      [this](const orca_msgs::msg::Barometer::SharedPtr msg) -> void
-      {this->baro_cb_.call(msg);});
+    baro_sub_ = create_subscription<orca_msgs::msg::Barometer>("barometer", QUEUE_SIZE,
+      [this](const orca_msgs::msg::Barometer::ConstSharedPtr msg)
+      {
+        rclcpp::Time t{msg->header.stamp};
+        orca_msgs::msg::Barometer filtered_baro_msg = *msg;
 
-    // Advertise
+        if (!orca::valid(prev_t_)) {
+          // Initialize the filter
+          auto x = filter_.x();
+          x(0) = msg->pressure;
+          filter_.set_x(x);
+          RCLCPP_INFO(get_logger(), "First barometer message");
+        } else {
+          // Run the filter
+          double dt = (t - prev_t_).seconds();
+          filter_.predict(dt, u_);
+          z_(0) = msg->pressure;
+          R_(0, 0) = msg->pressure_variance;
+          filter_.update(z_, R_);
+          const auto & x = filter_.x();
+          // std::cout << "p: " << x(0) << ", vp: " << x(1) << ", ap: " << x(2) << std::endl;
+          filtered_baro_msg.pressure = x(0);
+        }
+
+        filtered_baro_pub_->publish(filtered_baro_msg);
+        prev_t_ = t;
+      });
+
     filtered_baro_pub_ = create_publisher<orca_msgs::msg::Barometer>(
-      "filtered_barometer",
-      QUEUE_SIZE);
+      "filtered_barometer", QUEUE_SIZE);
 
     // State transition function
     filter_.set_f_fn(
@@ -196,7 +189,7 @@ public:
   ~BaroFilterNode() override = default;
 };
 
-}  // namespace orca_filter
+}  // namespace orca_base
 
 //=============================================================================
 // Main
@@ -211,7 +204,7 @@ int main(int argc, char ** argv)
   rclcpp::init(argc, argv);
 
   // Init node
-  auto node = std::make_shared<orca_filter::BaroFilterNode>();
+  auto node = std::make_shared<orca_base::BaroFilterNode>();
 
   // Spin node
   rclcpp::spin(node);

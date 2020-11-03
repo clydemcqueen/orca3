@@ -73,25 +73,6 @@ ament_target_dependencies(
 ament_export_libraries(${ORCA_SHARED_LIB})
 
 #=============
-# Test node
-#=============
-
-add_executable(
-  test_node
-  src/test/test_node.cpp
-)
-
-ament_target_dependencies(
-  test_node
-  fiducial_vlam_msgs
-  geometry_msgs
-  image_geometry
-  orca_msgs
-  rclcpp
-  ros2_shared
-)
-
-#=============
 # Test
 #=============
 
@@ -104,9 +85,6 @@ endif()
 #=============
 # Install
 #=============
-
-# Install C++ targets
-install(TARGETS test_node DESTINATION lib/${PROJECT_NAME})
 
 # Export include directory
 ament_export_include_directories(include)
