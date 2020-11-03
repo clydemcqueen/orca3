@@ -118,8 +118,6 @@ class DepthNode : public rclcpp::Node
     cxt_.log_info(get_logger());
   }
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "bugprone-lambda-function-name"
   void init_params()
   {
     // Get parameters, this will immediately call validate_parameters()
@@ -142,7 +140,6 @@ class DepthNode : public rclcpp::Node
 #define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_CHECK_CMDLINE_PARAMETER(n, t, d)
     CXT_MACRO_CHECK_CMDLINE_PARAMETERS((*this), DEPTH_NODE_ALL_PARAMS)
   }
-#pragma clang diagnostic pop
 
 public:
   DepthNode()

@@ -127,8 +127,6 @@ class BaroFilterNode : public rclcpp::Node
     }
   }
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "bugprone-lambda-function-name"
   void init_params()
   {
     // Get parameters, this will immediately call validate_parameters()
@@ -151,7 +149,6 @@ class BaroFilterNode : public rclcpp::Node
 #define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_CHECK_CMDLINE_PARAMETER(n, t, d)
     CXT_MACRO_CHECK_CMDLINE_PARAMETERS((*this), BARO_FILTER_NODE_PARAMS)
   }
-#pragma clang diagnostic pop
 
 public:
   BaroFilterNode()

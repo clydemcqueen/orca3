@@ -100,9 +100,6 @@ class BaseController : public rclcpp::Node
     odom_msg_.twist.covariance = covariance;
   }
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "bugprone-lambda-function-name"
-
   void init_parameters()
   {
     // Get parameters, this will immediately call validate_parameters()
@@ -125,8 +122,6 @@ class BaseController : public rclcpp::Node
 #define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_CHECK_CMDLINE_PARAMETER(n, t, d)
     CXT_MACRO_CHECK_CMDLINE_PARAMETERS((*this), BASE_ALL_PARAMS)
   }
-
-#pragma clang diagnostic pop
 
   void publish_odometry(const rclcpp::Time & t, double dt)
   {

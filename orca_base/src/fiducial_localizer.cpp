@@ -118,9 +118,6 @@ class FiducialLocalizer : public rclcpp::Node
   std::unique_ptr<tf2_ros::TransformListener> tf_listener_;
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "bugprone-lambda-function-name"
-
   void init_parameters()
   {
     // Get parameters, this will immediately call validate_parameters()
@@ -143,8 +140,6 @@ class FiducialLocalizer : public rclcpp::Node
 #define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_CHECK_CMDLINE_PARAMETER(n, t, d)
     CXT_MACRO_CHECK_CMDLINE_PARAMETERS((*this), LOCALIZER_ALL_PARAMS)
   }
-
-#pragma clang diagnostic pop
 
   void validate_parameters()
   {
