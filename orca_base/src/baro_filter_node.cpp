@@ -164,7 +164,7 @@ public:
 
     // State transition function
     filter_.set_f_fn(
-      [](const double dt, const Eigen::VectorXd & u, Eigen::Ref<Eigen::VectorXd> x)
+      [](const double dt, const Eigen::VectorXd &, Eigen::Ref<Eigen::VectorXd> x)
       {
         // Ignore u
         // ap is discovered

@@ -219,7 +219,7 @@ public:
       status_msg_.status = orca_msgs::msg::Status::STATUS_ABORT;
     } else {
       thrusters_msg_time_ = msg->header.stamp;
-      for (int i = 0; i < thrusters_.size(); ++i) {
+      for (size_t i = 0; i < thrusters_.size(); ++i) {
         thrusters_[i].effort = orca::pwm_to_effort(thrust_dz_pwm_, msg->thrust[i]);
       }
       status_msg_.status = orca_msgs::msg::Status::STATUS_OK;

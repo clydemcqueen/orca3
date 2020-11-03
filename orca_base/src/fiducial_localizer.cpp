@@ -46,7 +46,7 @@ double closest_visible_marker(const fiducial_vlam_msgs::msg::Map & map,
 {
   auto min_dist = std::numeric_limits<double>::max();
   for (const auto & observation : observations.observations) {
-    for (int j = 0; j < map.ids.size(); ++j) {
+    for (size_t j = 0; j < map.ids.size(); ++j) {
       if (map.ids[j] == observation.id) {
         auto dist = orca::dist(camera_pose.position, map.poses[j].pose.position);
         if (dist < min_dist) {

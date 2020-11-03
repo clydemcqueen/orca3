@@ -72,7 +72,7 @@ int Thruster::effort_to_pwm(const BaseContext & cxt, const orca_msgs::msg::Effor
     total_effort,
     prev_effort - cxt.thruster_accel_limit_,
     prev_effort + cxt.thruster_accel_limit_);
-  if (total_effort < 0 && prev_effort > 0 || total_effort > 0 && prev_effort < 0) {
+  if ((total_effort < 0 && prev_effort > 0) || (total_effort > 0 && prev_effort < 0)) {
     total_effort = 0;
   }
 
