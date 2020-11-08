@@ -24,30 +24,30 @@
 
 #include "gazebo/gazebo.hh"
 #include "gazebo/physics/physics.hh"
+#include "gazebo_ros/node.hpp"
+#include "rclcpp/logger.hpp"
 
-/* A simple buoyancy plugin. Usage:
+/* A simple buoyancy plugin where the surface is at z==0. Usage:
  *
  *    <gazebo>
  *      <plugin name="OrcaBuoyancyPlugin" filename="libOrcaBuoyancyPlugin.so">
+ *        <base_link>base_link</base_link>
+*         <center_of_volume>0 0 0.06</center_of_volume>
  *        <fluid_density>997</fluid_density>
- *        <link name="base_link">
- *          <volume>0.01</volume>
- *          <center_of_volume>0 0 0.06</center_of_volume>
- *          <height>0.254</height>
- *        </link>
+*         <height>0.254</height>
+*         <volume>0.01</volume>
  *      </plugin>
  *    </gazebo>
  *
- *    <fluid_density> Density of fluid.
- *    <center_of_volume> Buoyancy force is applied to the center of volume.
+ *    <center_of_volume> Buoyancy force is applied to the center of volume. Relative to base_link.
+ *    <fluid_density> 997 for freshwater.
+ *    <height> Height of vehicle.
  *    <volume> Total volume in m^3.
- *    <height> Height of vehicle
  *
  * Limitations:
- *    Only 1 link is supported
- *    Volume and center of volume for the link must be provided (it's not calculated)
- *    Assume vehicle density is uniform (affects behavior near the surface)
- *    Ignoring vehicle rotation (affects behavior near the surface)
+ *    Volume and center of volume must be provided (it's not calculated).
+ *    Assumes vehicle density is uniform (affects behavior near the surface).
+ *    Ignores vehicle rotation (affects behavior near the surface).
  *
  * Neutral buoyancy:
  *    mass == fluid_density_ * volume_
@@ -59,86 +59,68 @@ namespace gazebo
 
 class OrcaBuoyancyPlugin : public ModelPlugin
 {
-  event::ConnectionPtr update_connection_;                  // Connection to update event
-  ignition::math::Vector3d gravity_;                        // Gravity vector in world frame
-  physics::LinkPtr base_link_;                              // Pointer to the base link
-
-  double fluid_density_{997};                               // Fluid density of freshwater
-  double volume_{0.01};                                     // base_link_ volume
-  ignition::math::Vector3d center_of_volume_{0, 0, 0};      // base_link_ center of volume
-  double height_{0.25};                                     // base_link_ height
+  physics::LinkPtr base_link_;
+  ignition::math::Vector3d center_of_volume_{0, 0, 0};
+  double fluid_density_{997};
+  double height_{0.25};
+  double volume_{0.01};
+  ignition::math::Vector3d gravity_;  // Gravity vector in world frame
+  event::ConnectionPtr update_connection_;
+  gazebo_ros::Node::SharedPtr node_;  // Hold shared ptr to avoid early destruction of node
+  rclcpp::Logger logger_{rclcpp::get_logger("placeholder")};
 
 public:
-  // Called once when the plugin is loaded
-  void Load(physics::ModelPtr model, sdf::ElementPtr sdf)
+  void Load(physics::ModelPtr model, sdf::ElementPtr sdf) override
   {
     (void) update_connection_;
 
     GZ_ASSERT(model != nullptr, "Model is null");
     GZ_ASSERT(sdf != nullptr, "SDF is null");
 
-    // Get gravity vector
+    node_ = gazebo_ros::Node::Get(sdf);
+    logger_ = node_->get_logger();
     gravity_ = model->GetWorld()->Gravity();
 
-    // Print defaults
-    std::string link_name{"base_link"};
-    std::cout << std::endl;
-    std::cout << "ORCA BUOYANCY PLUGIN PARAMETERS" << std::endl;
-    std::cout << "-----------------------------------------" << std::endl;
-    std::cout << "Default fluid density: " << fluid_density_ << std::endl;
-    std::cout << "Default link name: " << link_name << std::endl;
-    std::cout << "Default volume: " << volume_ << std::endl;
-    std::cout << "Default center of volume: " << center_of_volume_ << std::endl;
-    std::cout << "Default height: " << height_ << std::endl;
+    std::string base_link_name{"base_link"};
 
-    // Get overrides, and print them
+    if (sdf->HasElement("base_link")) {
+      base_link_name = sdf->GetElement("base_link")->Get<std::string>();
+    }
+
+    if (sdf->HasElement("center_of_volume")) {
+      center_of_volume_ = sdf->GetElement("center_of_volume")->Get<ignition::math::Vector3d>();
+    }
+
     if (sdf->HasElement("fluid_density")) {
       fluid_density_ = sdf->GetElement("fluid_density")->Get<double>();
-      std::cout << "Fluid density: " << fluid_density_ << std::endl;
     }
 
-    if (sdf->HasElement("link")) {
-      sdf::ElementPtr linkElem = sdf->GetElement("link");    // Only one link is supported
-
-      if (linkElem->HasAttribute("name")) {
-        linkElem->GetAttribute("name")->Get(link_name);
-        std::cout << "Link name: " << link_name << std::endl;
-      }
-
-      if (linkElem->HasElement("volume")) {
-        volume_ = linkElem->GetElement("volume")->Get<double>();
-        std::cout << "Volume: " << volume_ << std::endl;
-      }
-
-      if (linkElem->HasElement("center_of_volume")) {
-        center_of_volume_ =
-          linkElem->GetElement("center_of_volume")->Get<ignition::math::Vector3d>();
-        std::cout << "Center of volume: " << center_of_volume_ << std::endl;
-      }
-
-      if (linkElem->HasElement("height")) {
-        height_ = linkElem->GetElement("height")->Get<double>();
-        std::cout << "Height: " << height_ << std::endl;
-      }
+    if (sdf->HasElement("height")) {
+      height_ = sdf->GetElement("height")->Get<double>();
     }
 
-    // Get base link
-    base_link_ = model->GetLink(link_name);
+    if (sdf->HasElement("volume")) {
+      volume_ = sdf->GetElement("volume")->Get<double>();
+    }
+
+    RCLCPP_INFO_STREAM(logger_, "base_link: " << base_link_name);
+    RCLCPP_INFO_STREAM(logger_, "center_of_volume: " << center_of_volume_);
+    RCLCPP_INFO_STREAM(logger_, "fluid_density: " << fluid_density_);
+    RCLCPP_INFO_STREAM(logger_, "height: " << height_);
+    RCLCPP_INFO_STREAM(logger_, "volume: " << volume_);
+
+    base_link_ = model->GetLink(base_link_name);
     GZ_ASSERT(base_link_ != nullptr, "Missing link");
+  }
 
-    // Listen for the update event. This event is broadcast every simulation iteration.
-    update_connection_ =
-      event::Events::ConnectWorldUpdateBegin(
-      boost::bind(
-        &OrcaBuoyancyPlugin::OnUpdate, this,
-        _1));
-
-    std::cout << "-----------------------------------------" << std::endl;
-    std::cout << std::endl;
+  void Init() override
+  {
+    update_connection_ = event::Events::ConnectWorldUpdateBegin(
+      [this](const common::UpdateInfo &) {OnUpdate();});
   }
 
   // Called by the world update start event, up to 1kHz
-  void OnUpdate(const common::UpdateInfo & /*info*/)
+  void OnUpdate()
   {
     // Get link pose in the world frame
     ignition::math::Pose3d link_frame = base_link_->WorldPose();

@@ -325,11 +325,10 @@
     -->
     <gazebo>
         <plugin name="OrcaBuoyancyPlugin" filename="libOrcaBuoyancyPlugin.so">
+            <base_link>base_link</base_link>
+            <center_of_volume>0 0 ${VOLUME_Z}</center_of_volume>
             <fluid_density>${FLUID_DENSITY}</fluid_density>
-            <link name="base_link">
-                <center_of_volume>0 0 ${VOLUME_Z}</center_of_volume>
-                <volume>${TOTAL_VOLUME}</volume>
-            </link>
+            <volume>${TOTAL_VOLUME}</volume>
         </plugin>
     </gazebo>
 
@@ -338,11 +337,9 @@
     -->
     <gazebo>
         <plugin name="OrcaDragPlugin" filename="libOrcaDragPlugin.so">
-            <link name="base_link">
-                <center_of_mass>0 0 ${MASS_Z}</center_of_mass>
-                <center_of_volume>0 0 ${VOLUME_Z}</center_of_volume>
-                <angular_drag>4 4 4</angular_drag>
-            </link>
+            <angular_drag>4 4 4</angular_drag>
+            <base_link>base_link</base_link>
+            <center_of_mass>0 0 ${MASS_Z}</center_of_mass>
         </plugin>
     </gazebo>
 
@@ -352,7 +349,7 @@
     -->
     <gazebo>
         <plugin name="OrcaThrusterPlugin" filename="libOrcaThrusterPlugin.so">
-            <link_name>orca::base_link</link_name>
+            <base_link>base_link</base_link>
             <thruster name="front_right"> <!-- name attributes are ignored; the tag order must match the message array order -->
                 <pos_force>${FORWARD_FORCE}</pos_force> <!-- units are N, positive for ccw, negative for cw -->
                 <neg_force>${REVERSE_FORCE}</neg_force> <!-- units are N, positive for ccw, negative for cw -->

@@ -24,26 +24,24 @@
 
 #include "gazebo/gazebo.hh"
 #include "gazebo/physics/physics.hh"
+#include "gazebo_ros/node.hpp"
 #include "orca_shared/model.hpp"
+#include "rclcpp/logger.hpp"
 
 /* A simple drag plugin. Usage:
  *
  *    <gazebo>
  *      <plugin name="OrcaDragPlugin" filename="libOrcaDragPlugin.so">
- *        <link name="base_link">
- *          <center_of_mass>0 0 -0.2</center_of_mass>
- *          <linear_drag>10 20 30</linear_drag>
- *          <angular_drag>5 10 15</angular_drag>
- *        </link>
+ *        <base_link>base_link</base_link>
+ *        <center_of_mass>0 0 -0.2</center_of_mass>
+ *        <linear_drag>10 20 30</linear_drag>
+ *        <angular_drag>5 10 15</angular_drag>
  *      </plugin>
  *    </gazebo>
  *
- *    <center_of_mass> Drag force is applied to the center of mass.
- *    <linear_drag> Linear drag constants. See default calculation.
  *    <angular_drag> Angular drag constants. See default calculation.
- *
- * Limitations:
- *    Tether drag is modeled only in x
+ *    <center_of_mass> Drag force is applied to the center of mass. Relative to base_link.
+ *    <linear_drag> Linear drag constants. See default calculation.
  */
 
 namespace gazebo
@@ -52,77 +50,63 @@ namespace gazebo
 class OrcaDragPlugin : public ModelPlugin
 {
   physics::LinkPtr base_link_;
-
-  // Drag force will be applied to the center_of_mass_ (body frame)
   ignition::math::Vector3d center_of_mass_{0, 0, 0};
-
-  // Drag constants (body frame)
   ignition::math::Vector3d linear_drag_;
   ignition::math::Vector3d angular_drag_;
-
   event::ConnectionPtr update_connection_;
+  gazebo_ros::Node::SharedPtr node_;  // Hold shared ptr to avoid early destruction of node
+  rclcpp::Logger logger_{rclcpp::get_logger("placeholder")};
 
 public:
-  // Called once when the plugin is loaded.
-  void Load(physics::ModelPtr model, sdf::ElementPtr sdf)
+  void Load(physics::ModelPtr model, sdf::ElementPtr sdf) override
   {
     (void) update_connection_;
-
-    std::string link_name{"base_link"};
-
-    // Get default drag constants
-    orca::Model orca_;
-    linear_drag_ = {orca_.drag_const_x(), orca_.drag_const_y(), orca_.drag_const_z()};
-    angular_drag_ = {orca_.drag_const_yaw(), orca_.drag_const_yaw(), orca_.drag_const_yaw()};
-
-    std::cout << std::endl;
-    std::cout << "ORCA DRAG PLUGIN PARAMETERS" << std::endl;
-    std::cout << "-----------------------------------------" << std::endl;
-    std::cout << "Default link name: " << link_name << std::endl;
-    std::cout << "Default center of mass: " << center_of_mass_ << std::endl;
-    std::cout << "Default linear drag: " << linear_drag_ << std::endl;
-    std::cout << "Default angular drag: " << angular_drag_ << std::endl;
 
     GZ_ASSERT(model != nullptr, "Model is null");
     GZ_ASSERT(sdf != nullptr, "SDF is null");
 
-    if (sdf->HasElement("link")) {
-      sdf::ElementPtr linkElem = sdf->GetElement("link");    // Only one link is supported
+    node_ = gazebo_ros::Node::Get(sdf);
+    logger_ = node_->get_logger();
 
-      if (linkElem->HasAttribute("name")) {
-        linkElem->GetAttribute("name")->Get(link_name);
-        std::cout << "Link name: " << link_name << std::endl;
-      }
+    orca::Model cxt;  // Used only for defaults
+    linear_drag_ = {cxt.drag_const_x(), cxt.drag_const_y(), cxt.drag_const_z()};
+    angular_drag_ = {cxt.drag_const_yaw(), cxt.drag_const_yaw(), cxt.drag_const_yaw()};
 
-      if (linkElem->HasElement("center_of_mass")) {
-        center_of_mass_ = linkElem->GetElement("center_of_mass")->Get<ignition::math::Vector3d>();
-        std::cout << "Center of mass: " << center_of_mass_ << std::endl;
-      }
+    std::string base_link_name{"base_link"};
 
-      if (linkElem->HasElement("linear_drag")) {
-        linear_drag_ = linkElem->GetElement("linear_drag")->Get<ignition::math::Vector3d>();
-        std::cout << "Linear drag: " << linear_drag_ << std::endl;
-      }
-
-      if (linkElem->HasElement("angular_drag")) {
-        angular_drag_ = linkElem->GetElement("angular_drag")->Get<ignition::math::Vector3d>();
-        std::cout << "Angular drag: " << angular_drag_ << std::endl;
-      }
+    if (sdf->HasElement("base_link")) {
+      base_link_name = sdf->GetElement("base_link")->Get<std::string>();
     }
 
-    base_link_ = model->GetLink(link_name);
+    if (sdf->HasElement("center_of_mass")) {
+      center_of_mass_ = sdf->GetElement("center_of_mass")->Get<ignition::math::Vector3d>();
+    }
+
+    if (sdf->HasElement("linear_drag")) {
+      linear_drag_ = sdf->GetElement("linear_drag")->Get<ignition::math::Vector3d>();
+    }
+
+    if (sdf->HasElement("angular_drag")) {
+      angular_drag_ = sdf->GetElement("angular_drag")->Get<ignition::math::Vector3d>();
+    }
+
+    RCLCPP_INFO_STREAM(logger_, "base_link: " << base_link_name);
+    RCLCPP_INFO_STREAM(logger_, "center_of_mass: " << center_of_mass_);
+    RCLCPP_INFO_STREAM(logger_, "linear_drag: " << linear_drag_);
+    RCLCPP_INFO_STREAM(logger_, "angular_drag: " << angular_drag_);
+
+    base_link_ = model->GetLink(base_link_name);
     GZ_ASSERT(base_link_ != nullptr, "Missing link");
-
-    // Listen for the update event. This event is broadcast every simulation iteration.
-    update_connection_ =
-      event::Events::ConnectWorldUpdateBegin(boost::bind(&OrcaDragPlugin::OnUpdate, this, _1));
-
-    std::cout << "-----------------------------------------" << std::endl;
-    std::cout << std::endl;
   }
 
-  // Called by the world update start event, up to 1000 times per second.
-  void OnUpdate(const common::UpdateInfo & /*info*/)
+  void Init() override
+  {
+    update_connection_ = event::Events::ConnectWorldUpdateBegin(
+      [this](const common::UpdateInfo &) {OnUpdate();});
+  }
+
+  // Called by the world update start event, up to 1kHz
+  void OnUpdate()
   {
     // Drag calcs work in body frame ("Relative")
 

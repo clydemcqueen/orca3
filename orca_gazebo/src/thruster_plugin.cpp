@@ -25,8 +25,10 @@
 
 #include "gazebo/gazebo.hh"
 #include "gazebo/physics/physics.hh"
+#include "gazebo_ros/conversions/builtin_interfaces.hpp"
 #include "gazebo_ros/node.hpp"
 #include "orca_shared/pwm.hpp"
+#include "orca_shared/util.hpp"
 #include "orca_msgs/msg/thrust.hpp"
 #include "orca_msgs/msg/status.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -35,24 +37,27 @@
  *
  *    <gazebo>
  *      <plugin name="OrcaThrusterPlugin" filename="libOrcaThrusterPlugin.so">
- *        <link_name>base_link</link_name>
- *        <ros_topic>/thrust</ros_topic>
+ *        <base_link>base_link</base_link>
  *        <thrust_dz_pwm>35</thrust_dz_pwm>
  *        <thruster>
  *          <pos_force>50</pos_force>
  *          <neg_force>40</neg_force>
  *          <origin xyz="0.1 0.15 0" rpy="0 ${PI/2} ${PI*3/4}"/>
  *        </thruster>
+ *        <ros>
+ *          remapping>thrust:=my_thrust_topic</remapping>
+ *          remapping>status:=my_status_topic</remapping>
+ *        </ros>
  *      </plugin>
  *    </gazebo>
  *
- * We listen for thrust messages and apply thrust forces to base_link.
+ * Listen for /thrust messages, apply thrust forces to base_link, and publish /status messages.
  *
- * There can the multiple <thruster> tags; the number and order of <thruster> tags must match the number and order
- * of int16s in the orca_msgs::msg::Thrust message. Each int16 indicates ESC pulse width and ranges from
- * 1100 (full reverse) through 1500 (stop) to 1900 (full forward).
+ * TThe number and order of <thruster> tags must match the number and order of integers in the
+ * orca_msgs::msg::Thrust message. Each integer indicates ESC pulse width and ranges from 1100
+ * (full reverse) through 1500 (stop) to 1900 (full forward).
  *
- *    <ros_topic> topic for thrust messages. Default is /thrust.
+ *    <thrust_topic> topic for thrust messages. Default is /thrust.
  *    <pos_force> force (N) with max positive effort (pwm=1900). Default 50.
  *      Use negative if prop is reversed.
  *    <neg_force> force (N) with max negative effort (pwm=1100). Default is 40.
@@ -72,107 +77,57 @@ namespace gazebo
 constexpr double T200_MAX_POS_FORCE = 50;
 constexpr double T200_MAX_NEG_FORCE = 40;
 
-// All-stop if thruster messages stop
-const rclcpp::Duration THRUSTERS_TIMEOUT{RCL_S_TO_NS(1)};
-
-// Periodically publish status messages
-const rclcpp::Duration STATUS_PERIOD{RCL_MS_TO_NS(100)};
-
-bool valid(const rclcpp::Time & t)
+struct Thruster
 {
-  return t.nanoseconds() > 0;
-}
+  // Specified in the SDF, and doesn't change:
+  ignition::math::Vector3d xyz;
+  ignition::math::Vector3d rpy;
+  double pos_force;
+  double neg_force;
 
-constexpr int QUEUE_SIZE = 10;
+  // From the latest ROS message:
+  double effort;    // Range -1.0 to 1.0
+};
 
 class OrcaThrusterPlugin : public ModelPlugin
 {
-  // Pointer to our base_link
   physics::LinkPtr base_link_;
-
-  // Pointer to the Gazebo update event connection
-  event::ConnectionPtr update_connection_;
-
-  // Pointer to the GazeboROS node
-  gazebo_ros::Node::SharedPtr node_;
-
-  // Subscribe to thruster messages
-  rclcpp::Subscription<orca_msgs::msg::Thrust>::SharedPtr thrust_sub_;
-  rclcpp::Time thrusters_msg_time_;
-
-  // Publish status messages
-  rclcpp::Publisher<orca_msgs::msg::Status>::SharedPtr status_pub_;
-  orca_msgs::msg::Status status_msg_;
-
-  // Thruster dead zone
-  uint16_t thrust_dz_pwm_{};
-
-  // Model for each thruster
-  struct Thruster
-  {
-    // Specified in the SDF, and doesn't change:
-    ignition::math::Vector3d xyz;
-    ignition::math::Vector3d rpy;
-    double pos_force;
-    double neg_force;
-
-    // From the latest ROS message:
-    double effort;    // Range -1.0 to 1.0
-  };
-
-  // Our array of thrusters
+  uint16_t thrust_dz_pwm_{35};
   std::vector<Thruster> thrusters_{};
+  const rclcpp::Duration thrust_timeout_{RCL_S_TO_NS(1)};
+  const rclcpp::Duration status_period_{RCL_MS_TO_NS(100)};
+  event::ConnectionPtr update_connection_;
+  gazebo_ros::Node::SharedPtr node_;  // Hold shared ptr to avoid early destruction of node
+  rclcpp::Logger logger_{rclcpp::get_logger("placeholder")};
+  rclcpp::Time thrust_msg_time_;
+  orca_msgs::msg::Status status_msg_;
+  rclcpp::Subscription<orca_msgs::msg::Thrust>::SharedPtr thrust_sub_;
+  rclcpp::Publisher<orca_msgs::msg::Status>::SharedPtr status_pub_;
 
 public:
-  // Called once when the plugin is loaded.
   void Load(physics::ModelPtr model, sdf::ElementPtr sdf) override
   {
     (void) thrust_sub_;
     (void) update_connection_;
 
-    // Get the GazeboROS node
+    GZ_ASSERT(model != nullptr, "Model is null");
+    GZ_ASSERT(sdf != nullptr, "SDF is null");
+
     node_ = gazebo_ros::Node::Get(sdf);
+    logger_ = node_->get_logger();
 
-    // Look for our link name
-    std::string link_name = "base_link";
-    if (sdf->HasElement("link_name")) {
-      link_name = sdf->GetElement("link_name")->Get<std::string>();
+    std::string base_link_name{"base_link"};
+
+    if (sdf->HasElement("base_link")) {
+      base_link_name = sdf->GetElement("base_link")->Get<std::string>();
     }
-    RCLCPP_INFO(node_->get_logger(), "Thrust force will be applied to %s", link_name.c_str());
-    base_link_ = model->GetLink(link_name);
-    GZ_ASSERT(base_link_ != nullptr, "Missing link");
 
-    // Look for our ROS topic
-    std::string ros_topic = "/thrust";
-    if (sdf->HasElement("ros_topic")) {
-      ros_topic = sdf->GetElement("ros_topic")->Get<std::string>();
-    }
-    RCLCPP_INFO(node_->get_logger(), "Listening on %s", ros_topic.c_str());
-
-    // Subscribe to the topic
-    // Note the use of std::placeholders::_1 vs. the included _1 from Boost
-    thrust_sub_ = node_->create_subscription<orca_msgs::msg::Thrust>(
-      ros_topic, QUEUE_SIZE, std::bind(&OrcaThrusterPlugin::OnThrustMsg, this, std::placeholders::_1));
-
-    // Periodically publish driver status messages
-    // TODO(clyde): topic should be param
-    status_pub_ = node_->create_publisher<orca_msgs::msg::Status>("status", QUEUE_SIZE);
-    status_msg_.voltage = 14;
-    status_msg_.low_battery = false;
-    status_msg_.leak_detected = false;
-    status_msg_.status = orca_msgs::msg::Status::STATUS_OK;
-
-    // Look for the thruster deadzone
-    thrust_dz_pwm_ = 35;
     if (sdf->HasElement("thrust_dz_pwm")) {
       thrust_dz_pwm_ = sdf->GetElement("thrust_dz_pwm")->Get<int>();
     }
-    RCLCPP_INFO(node_->get_logger(), "Thruster deadzone %d", thrust_dz_pwm_);
 
-    // Listen to the update event. This event is broadcast every simulation iteration.
-    update_connection_ =
-      event::Events::ConnectWorldUpdateBegin(
-      boost::bind(&OrcaThrusterPlugin::OnUpdate, this, _1));
+    RCLCPP_INFO_STREAM(logger_, "base_link: " << base_link_name);
+    RCLCPP_INFO_STREAM(logger_, "thrust_dz_pwm: " << thrust_dz_pwm_);
 
     // Look for <thruster> tags
     for (sdf::ElementPtr elem = sdf->GetElement("thruster"); elem;
@@ -202,27 +157,49 @@ public:
       }
 
       RCLCPP_INFO(
-        node_->get_logger(), "thruster pos %g neg %g xyz {%g, %g, %g} rpy {%g, %g, %g}",
+        logger_, "Add thruster: pos %g neg %g xyz {%g, %g, %g} rpy {%g, %g, %g}",
         t.pos_force, t.neg_force, t.xyz.X(), t.xyz.Y(), t.xyz.Z(), t.rpy.X(), t.rpy.Y(), t.rpy.Z());
       thrusters_.push_back(t);
     }
+
+    base_link_ = model->GetLink(base_link_name);
+    GZ_ASSERT(base_link_ != nullptr, "Missing link");
+
+    thrust_sub_ = node_->create_subscription<orca_msgs::msg::Thrust>(
+      "thrust", 10, [this](const orca_msgs::msg::Thrust::SharedPtr msg)  // NOLINT
+      {OnThrustMsg(msg);});
+
+    // Periodically publish status messages
+    status_pub_ = node_->create_publisher<orca_msgs::msg::Status>("status", 10);
+    status_msg_.voltage = 14;
+    status_msg_.low_battery = false;
+    status_msg_.leak_detected = false;
+    status_msg_.status = orca_msgs::msg::Status::STATUS_OK;
   }
 
-  // Handle an incoming message from ROS
-  void OnThrustMsg(const orca_msgs::msg::Thrust::SharedPtr msg)
+  void Init() override
   {
-    if (!valid(msg->header.stamp)) {
-      RCLCPP_ERROR(node_->get_logger(), "Invalid timestamp");
-      status_msg_.status = orca_msgs::msg::Status::STATUS_ABORT;
+    update_connection_ = event::Events::ConnectWorldUpdateBegin(
+      [this](const common::UpdateInfo &) {OnUpdate();});
+  }
+
+  void OnThrustMsg(const orca_msgs::msg::Thrust::SharedPtr & msg)
+  {
+    // Messages sent via the ros2 cli might might be malformed.
+    // For a real sub this should abort the dive!
+    if (!orca::valid(msg->header.stamp)) {
+      RCLCPP_ERROR(logger_, "Invalid timestamp");
     } else if (thrusters_.size() != msg->thrust.size()) {
-      RCLCPP_ERROR(node_->get_logger(), "Wrong number of thrusters");
-      status_msg_.status = orca_msgs::msg::Status::STATUS_ABORT;
+      RCLCPP_ERROR(logger_, "Wrong number of thrusters");
     } else {
-      thrusters_msg_time_ = msg->header.stamp;
+      thrust_msg_time_ = msg->header.stamp;
       for (size_t i = 0; i < thrusters_.size(); ++i) {
-        thrusters_[i].effort = orca::pwm_to_effort(thrust_dz_pwm_, msg->thrust[i]);
+        if (msg->thrust[i] > msg->THRUST_FULL_FWD || msg->thrust[i] < msg->THRUST_FULL_REV) {
+          RCLCPP_ERROR(logger_, "PWM value out of range");
+        } else {
+          thrusters_[i].effort = orca::pwm_to_effort(thrust_dz_pwm_, msg->thrust[i]);
+        }
       }
-      status_msg_.status = orca_msgs::msg::Status::STATUS_OK;
     }
   }
 
@@ -234,30 +211,21 @@ public:
     }
   }
 
-  // Called by the world update start event, up to 1000 times per second.
-  void OnUpdate(const common::UpdateInfo & /*info*/)
+  // Called by the world update start event, up to 1kHz
+  void OnUpdate()
   {
-#undef WALL_TIME
-#ifdef WALL_TIME
-    // Hack: use wall time
-    auto wall_time = std::chrono::high_resolution_clock::now();
-    rclcpp::Time update_time{wall_time.time_since_epoch().count(), RCL_ROS_TIME};
-#else
-    // TODO(clyde) get the fine-grained sim time!
     rclcpp::Time update_time = node_->now();
-#endif
 
-    if (valid(thrusters_msg_time_) && update_time - thrusters_msg_time_ > THRUSTERS_TIMEOUT) {
+    if (orca::valid(thrust_msg_time_) && update_time - thrust_msg_time_ > thrust_timeout_) {
       // We were receiving thrust messages, but they stopped.
       // This is normal, but it might also indicate that a node died.
-      // RCLCPP_INFO isn't flushed right away, so use iostream directly.
-      std::cout << "OrcaThrusterPlugin message timeout" << std::endl;
-      thrusters_msg_time_ = rclcpp::Time();
+      RCLCPP_INFO(logger_, "Thrust message timeout");
+      thrust_msg_time_ = rclcpp::Time();
       AllStop();
     }
 
     rclcpp::Time driver_msg_time{status_msg_.header.stamp};
-    if (!valid(driver_msg_time) || update_time - driver_msg_time > STATUS_PERIOD) {
+    if (!orca::valid(driver_msg_time) || update_time - driver_msg_time > status_period_) {
       status_msg_.header.stamp = update_time;
       status_pub_->publish(status_msg_);
     }
