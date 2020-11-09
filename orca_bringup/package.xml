@@ -23,7 +23,6 @@
   <test_depend>ament_cmake_xmllint</test_depend>
 
   <depend>nav2_bringup</depend>
-  <depend>sim_fiducial</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

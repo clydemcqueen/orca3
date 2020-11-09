@@ -31,6 +31,10 @@
   <depend>ros2_shared</depend>
   <depend>rclpy</depend>
 
+  <!-- Required for orca_bringup/launch/sim_launch.py -->
+  <depend>gazebo_ros_pkgs</depend>
+  <depend>sim_fiducial</depend>
+
   <export>
     <build_type>ament_cmake</build_type>
     <gazebo_ros plugin_path="${prefix}/lib" gazebo_media_path="${prefix}"/>
