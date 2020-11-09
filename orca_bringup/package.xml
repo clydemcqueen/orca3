@@ -22,7 +22,7 @@
   <test_depend>ament_cmake_lint_cmake</test_depend>
   <test_depend>ament_cmake_xmllint</test_depend>
 
-  <!-- sim_launch.py uses ArUco models -->
+  <depend>nav2_bringup</depend>
   <depend>sim_fiducial</depend>
 
   <export>
