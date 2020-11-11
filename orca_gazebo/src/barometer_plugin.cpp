@@ -27,7 +27,6 @@
 #include "gazebo/sensors/sensors.hh"
 #include "gazebo_ros/conversions/builtin_interfaces.hpp"
 #include "gazebo_ros/node.hpp"
-#include "orca_gazebo/orca_gazebo_util.hpp"
 #include "orca_msgs/msg/barometer.hpp"
 #include "orca_shared/model.hpp"
 #include "rclcpp/rclcpp.hpp"

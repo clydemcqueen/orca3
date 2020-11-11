@@ -22,8 +22,6 @@ endif()
 find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 
-include_directories(include)
-
 #=============
 # Run build_world.py to generate .yaml (vlam maps) and .world files
 # Use simple.world as the marker file, if this is stale, re-run build_world.py

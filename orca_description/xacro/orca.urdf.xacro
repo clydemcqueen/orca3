@@ -396,18 +396,6 @@
     </gazebo>
 
     <!--
-      The OrcaIMUPlugin (wraps a Gazebo IMU sensor) simulates an IMU sensor such as the Phidgets 1044.
-    -->
-<!--    <gazebo reference="base_link">-->
-<!--        <gravity>true</gravity>-->
-<!--        <sensor name="imu_sensor" type="imu">-->
-<!--            <update_rate>50</update_rate> &lt;!&ndash; Gazebeo max seems to be 50Hz &ndash;&gt;-->
-<!--            <plugin name="OrcaIMUPlugin" filename="libOrcaIMUPlugin.so"/>-->
-<!--            <pose>0 0 0 0 0 0</pose>-->
-<!--        </sensor>-->
-<!--    </gazebo>-->
-
-    <!--
     The camera_controller plugin (wraps a Gazebo camera sensor) simulates a camera driver.
     This xacro macro attaches a camera to ${prefix}_camera_link:
   -->

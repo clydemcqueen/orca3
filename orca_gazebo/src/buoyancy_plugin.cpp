@@ -27,7 +27,7 @@
 #include "gazebo_ros/node.hpp"
 #include "rclcpp/logger.hpp"
 
-/* A simple buoyancy plugin where the surface is at z==0. Usage:
+/* A simple buoyancy plugin for underwater robotics. The surface is at z==0. Usage:
  *
  *    <gazebo>
  *      <plugin name="OrcaBuoyancyPlugin" filename="libOrcaBuoyancyPlugin.so">

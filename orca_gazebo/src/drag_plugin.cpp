@@ -28,7 +28,7 @@
 #include "orca_shared/model.hpp"
 #include "rclcpp/logger.hpp"
 
-/* A simple drag plugin. Usage:
+/* A simple drag plugin for underwater robotics. Usage:
  *
  *    <gazebo>
  *      <plugin name="OrcaDragPlugin" filename="libOrcaDragPlugin.so">

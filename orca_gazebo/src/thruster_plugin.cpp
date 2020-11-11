@@ -33,7 +33,7 @@
 #include "orca_msgs/msg/status.hpp"
 #include "rclcpp/rclcpp.hpp"
 
-/* A simple thruster plugin. Usage:
+/* A simple thruster plugin for underwater robotics. Usage:
  *
  *    <gazebo>
  *      <plugin name="OrcaThrusterPlugin" filename="libOrcaThrusterPlugin.so">
