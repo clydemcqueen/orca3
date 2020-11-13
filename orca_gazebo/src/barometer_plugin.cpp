@@ -28,7 +28,6 @@
 #include "gazebo_ros/conversions/builtin_interfaces.hpp"
 #include "gazebo_ros/node.hpp"
 #include "orca_msgs/msg/barometer.hpp"
-#include "orca_shared/model.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 /* A simple barometer sensor plugin for underwater robotics. Usage:
@@ -60,15 +59,15 @@ namespace gazebo
 class OrcaBarometerPlugin : public SensorPlugin
 {
   double atmospheric_pressure_{101300};
-  double baro_link_to_base_link_z_{0.05};
+  double baro_link_to_base_link_z_{0};
   double fluid_density_{997};
-  double variance_{orca::Model::BARO_STDDEV * orca::Model::BARO_STDDEV};
+  double variance_{40000};
+  std::normal_distribution<double> variance_distribution_;
   event::ConnectionPtr update_connection_;
   gazebo_ros::Node::SharedPtr node_;  // Hold shared ptr to avoid early destruction of node
   rclcpp::Logger logger_{rclcpp::get_logger("placeholder")};
   sensors::AltimeterSensorPtr altimeter_;
   std::default_random_engine variance_generator_;
-  std::normal_distribution<double> variance_distribution_{0, orca::Model::BARO_STDDEV};
   rclcpp::Publisher<orca_msgs::msg::Barometer>::SharedPtr pub_;
 
 public:
@@ -103,6 +102,8 @@ public:
     RCLCPP_INFO_STREAM(logger_, "baro_link_to_base_link_z: " << baro_link_to_base_link_z_);
     RCLCPP_INFO_STREAM(logger_, "fluid_density: " << fluid_density_);
     RCLCPP_INFO_STREAM(logger_, "variance: " << variance_);
+
+    variance_distribution_ = std::normal_distribution<double>{0, sqrt(variance_)};
 
     pub_ = node_->create_publisher<orca_msgs::msg::Barometer>("barometer", 10);
   }

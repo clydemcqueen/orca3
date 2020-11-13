@@ -70,7 +70,7 @@ controller_server:
       yaw_accel: 1.0
       lookahead_dist: 1.0
       transform_tolerance: 1.0
-      move_threshold: 0.05
+      goal_tolerance: 0.05
 
 controller_server_rclcpp_node:
   ros__parameters:

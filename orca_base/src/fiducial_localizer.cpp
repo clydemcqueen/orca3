@@ -59,15 +59,13 @@ double closest_visible_marker(const fiducial_vlam_msgs::msg::Map & map,
 }
 
 #define LOCALIZER_ALL_PARAMS \
-  CXT_MACRO_MEMBER(base_frame_id, std::string, "base_link") \
-  CXT_MACRO_MEMBER(camera_frame_id, std::string, "camera_frame") \
   CXT_MACRO_MEMBER(map_frame_id, std::string, "map") \
   CXT_MACRO_MEMBER(odom_frame_id, std::string, "odom") \
+  CXT_MACRO_MEMBER(camera_frame_id, std::string, "camera_frame") \
   \
   CXT_MACRO_MEMBER(localize_period_ms, int, 50) \
   CXT_MACRO_MEMBER(wait_for_transform_ms, int, 500) \
   CXT_MACRO_MEMBER(transform_expiration_ms, int, 1000) \
-  /* Ignore old camera pose  */ \
   \
   CXT_MACRO_MEMBER(good_pose_distance, double, 2.0) \
 /* End of list */

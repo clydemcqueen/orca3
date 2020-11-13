@@ -44,6 +44,7 @@
 
     <!-- Sensor properties -->
     <xacro:property name="BARO_FREQ" value="20.0"/>
+    <xacro:property name="BARO_VAR" value="40682.89"/>
     <xacro:property name="CAMERA_FREQ" value="1.0"/>
 
     <!-- General constants -->
@@ -391,6 +392,8 @@
             <update_rate>${BARO_FREQ}</update_rate>
             <plugin name="OrcaBarometerPlugin" filename="libOrcaBarometerPlugin.so">
                 <fluid_density>${FLUID_DENSITY}</fluid_density>
+                <baro_link_to_base_link_z_>0.05</baro_link_to_base_link_z_>
+                <variance>${BARO_VAR}</variance>
             </plugin>
         </sensor>
     </gazebo>

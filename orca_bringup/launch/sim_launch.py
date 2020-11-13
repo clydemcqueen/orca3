@@ -59,6 +59,7 @@ def generate_launch_description():
 
     urdf_file = os.path.join(orca_description_dir, 'urdf', 'orca.urdf')
     nav2_params_file = os.path.join(orca_bringup_dir, 'params', 'nav2_params.yaml')
+    rviz_cfg_file = os.path.join(orca_bringup_dir, 'cfg', 'bringup.rviz')
 
     # Select world
     world = World.PING_PONG
@@ -88,10 +89,15 @@ def generate_launch_description():
     return LaunchDescription([
         # Launch Gazebo
         ExecuteProcess(
-            cmd=['gzserver',
+            cmd=['gazebo',
                  '-s', 'libgazebo_ros_init.so',  # Publish /clock
                  '-s', 'libgazebo_ros_factory.so',  # Injection endpoint
                  world_file],
+            output='screen'),
+
+        # Launch Rviz2
+        ExecuteProcess(
+            cmd=['rviz2', '-d', rviz_cfg_file],
             output='screen'),
 
         # Republish ground truth with service QoS for PlotJuggler and rqt

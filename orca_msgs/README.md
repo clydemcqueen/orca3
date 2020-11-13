@@ -1,10 +1,9 @@
 # Orca3 messages
 
-## Messages
-
 | Message | Description | Publisher(s) | Subscriber(s) |
 |-----|--------|------|-----|
-| Barometer | Barometer reading | driver_node | depth_node |
-| Depth | Depth reading | depth_node | base_controller |
-| Status | Driver status, includes battery voltage and leak status | driver_node | |
-| Thrusters | Thruster pwm values | base_controller | driver_node |
+| Barometer | Pressure and temperature | OrcaBarometerPlugin | DepthNode |
+| Depth | ENU depth in meters (+ is above the surface, - is below the surface) | DepthNode | BaseController |
+| Effort | Force and torque divided by maximum force and torque (range \[-1, 1\]) |
+| Status | Hardware status | OrcaThrusterPlugin | rov_node, auv_node |
+| Thrust | Thruster pwm values | BaseController | OrcaThrusterPlugin |

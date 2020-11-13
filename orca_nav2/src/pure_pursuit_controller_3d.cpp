@@ -91,7 +91,7 @@ class PurePursuitController3D: public nav2_core::Controller
   double yaw_accel_{};
   double lookahead_dist_{};
   double transform_tolerance_{};
-  double move_threshold_{};       // Stop motion when we're very close to the goal
+  double goal_tolerance_{};       // Stop motion when we're very close to the goal
   double tick_rate_{};            // Tick rate, used to compute dt
 
   Limiter xy_limiter_;
@@ -173,7 +173,7 @@ class PurePursuitController3D: public nav2_core::Controller
 
 #if 0
     // Useful for debugging, but happens frequently as the sub decelerates
-    if (z_dist < move_threshold_ && xy_dist < move_threshold_) {
+    if (z_dist < goal_tolerance_ && xy_dist < goal_tolerance_) {
       std::cout << "Decelerating / coasting" << std::endl;
       std::cout << "pose_f_odom: " << orca::to_str(pose_f_odom) << std::endl;
       std::cout << "pose_f_map: " << orca::to_str(pose_f_map) << std::endl;
@@ -186,7 +186,7 @@ class PurePursuitController3D: public nav2_core::Controller
     geometry_msgs::msg::Twist cmd_vel;
 
     // Calc linear.z
-    if (z_dist > move_threshold_) {
+    if (z_dist > goal_tolerance_) {
       cmd_vel.linear.z = goal_f_base.pose.position.z > 0 ? z_vel_ : -z_vel_;
 
       // Decelerate
@@ -194,7 +194,7 @@ class PurePursuitController3D: public nav2_core::Controller
     }
 
     // Calc linear.x and angular.z using pure pursuit algorithm
-    if (xy_dist > move_threshold_) {
+    if (xy_dist > goal_tolerance_) {
       if (goal_f_base.pose.position.x > 0) {
         // Goal is ahead of the sub: move forward along the shortest curve
         auto curvature = 2.0 * goal_f_base.pose.position.y / xy_dist_sq;
@@ -244,7 +244,7 @@ public:
     PARAMETER(parent, name, yaw_accel, 0.4)
     PARAMETER(parent, name, lookahead_dist, 1.0)
     PARAMETER(parent, name, transform_tolerance, 1.0)
-    PARAMETER(parent, name, move_threshold, 0.1)
+    PARAMETER(parent, name, goal_tolerance, 0.1)
     PARAMETER(parent, name, tick_rate, 20.0)
 
     xy_limiter_ = Limiter(xy_accel_, 1. / tick_rate_);
