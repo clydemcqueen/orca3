@@ -58,6 +58,7 @@ depth_node:
   ros__parameters:
     use_sim_time: False
     stamp_msgs_with_current_time: True
+    z_variance: 0.00042601
 
     mdl_mass: 9.9
     mdl_volume: 0.01
@@ -85,5 +86,5 @@ fiducial_localizer:
   ros__parameters:
     use_sim_time: False
     camera_frame_id: "forward_camera_frame"
-    localize_period_ms: 50
+    publish_rate: 20
     good_pose_distance: 2.0

@@ -37,7 +37,7 @@ namespace orca_base
 
 #define DEPTH_NODE_PARAMS \
   CXT_MACRO_MEMBER(map_frame, std::string, "map") \
-  CXT_MACRO_MEMBER(z_variance, double, orca::Model::DEPTH_STDDEV * orca::Model::DEPTH_STDDEV) \
+  CXT_MACRO_MEMBER(z_variance, double, 0.0004) \
   CXT_MACRO_MEMBER(stamp_msgs_with_current_time, bool, false) \
 /* End of list */
 

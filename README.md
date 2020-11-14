@@ -87,13 +87,13 @@ error is added to the map->odom transform.
 
 ## Packages
 
-* [`orca_base` Base controller and localization](orca_base/README.md)
-* `orca_bringup` Launch files
-* [`orca_description` URDF file](orca_description/README.md)
-* [`orca_gazebo` Gazebo plugins](orca_gazebo/README.md)
-* [`orca_msgs` Custom messages](orca_msgs/README.md)
-* [`orca_nav2` Nav2 plugins](orca_nav2/README.md)
-* `orca_shared` Dynamics model, shared utilities
+* [`orca_base` Base controller and localization](orca_base)
+* [`orca_bringup` Launch files](orca_bringup)
+* [`orca_description` URDF file](orca_description)
+* [`orca_gazebo` Gazebo plugins](orca_gazebo)
+* [`orca_msgs` Custom messages](orca_msgs)
+* [`orca_nav2` Nav2 plugins](orca_nav2)
+* [`orca_shared` Dynamics model, shared utilities](orca_shared)
 
 ## Future work
 

@@ -63,7 +63,7 @@ double closest_visible_marker(const fiducial_vlam_msgs::msg::Map & map,
   CXT_MACRO_MEMBER(odom_frame_id, std::string, "odom") \
   CXT_MACRO_MEMBER(camera_frame_id, std::string, "camera_frame") \
   \
-  CXT_MACRO_MEMBER(localize_period_ms, int, 50) \
+  CXT_MACRO_MEMBER(publish_rate, int, 20) \
   CXT_MACRO_MEMBER(wait_for_transform_ms, int, 500) \
   CXT_MACRO_MEMBER(transform_expiration_ms, int, 1000) \
   \
@@ -145,7 +145,7 @@ class FiducialLocalizer : public rclcpp::Node
     t_odom_map_.child_frame_id = cxt_.odom_frame_id_;
 
     timer_ = create_wall_timer(
-      std::chrono::milliseconds(cxt_.localize_period_ms_), [this]
+      std::chrono::milliseconds(1000 / cxt_.publish_rate_), [this]
       {
         if (have_initial_pose_) {
           // Adding time to the transform avoids problems and improves rviz2 display
