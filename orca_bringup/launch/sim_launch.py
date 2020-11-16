@@ -24,13 +24,14 @@
 
 """Launch a simulation."""
 
-from enum import Enum
 import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
@@ -41,14 +42,15 @@ from launch_ros.actions import Node
 
 
 # Several worlds to choose from:
-class World(Enum):
-    SMALL_FIELD = 0  # 6 markers arranged in a 2x3 vertical field
-    TWO_WALL = 1  # Two markers on the wall
-    SMALL_RING = 2  # 12 markers arranged in a 12' diameter ring
-    SIX_RING = 3  # 6 markers arranged in a 12' diameter ring
-    MEDIUM_RING = 4  # 12 markers arranged in a 3m diameter ring
-    LARGE_RING = 5  # 4 markers arranged in a 20m diameter ring
-    PING_PONG = 6  # 2 markers far apart facing each other
+worlds = [
+    'ping_pong',  # 2 markers far apart facing each other
+    'small_field',  # 6 markers arranged in a 2x3 vertical field
+    'two_wall',  # Two markers on the wall
+    'small_ring',  # 12 markers arranged in a 12' diameter ring
+    'six_ring',  # 6 markers arranged in a 12' diameter ring
+    'medium_ring',  # 12 markers arranged in a 3m diameter ring
+    'large_ring',  # 4 markers arranged in a 20m diameter ring
+]
 
 
 def generate_launch_description():
@@ -61,44 +63,47 @@ def generate_launch_description():
     nav2_params_file = os.path.join(orca_bringup_dir, 'params', 'nav2_params.yaml')
     rviz_cfg_file = os.path.join(orca_bringup_dir, 'cfg', 'bringup.rviz')
 
-    # Select world
-    world = World.PING_PONG
-
-    if world == World.SMALL_FIELD:
-        world_file = os.path.join(orca_gazebo_dir, 'worlds', 'small_field.world')
-        vlam_map_file = os.path.join(orca_gazebo_dir, 'worlds', 'small_field_map.yaml')
-    elif world == World.TWO_WALL:
-        world_file = os.path.join(orca_gazebo_dir, 'worlds', 'two_wall.world')
-        vlam_map_file = os.path.join(orca_gazebo_dir, 'worlds', 'two_wall_map.yaml')
-    elif world == World.SMALL_RING:
-        world_file = os.path.join(orca_gazebo_dir, 'worlds', 'small_ring.world')
-        vlam_map_file = os.path.join(orca_gazebo_dir, 'worlds', 'small_ring_map.yaml')
-    elif world == World.SIX_RING:
-        world_file = os.path.join(orca_gazebo_dir, 'worlds', 'six_ring.world')
-        vlam_map_file = os.path.join(orca_gazebo_dir, 'worlds', 'six_ring_map.yaml')
-    elif world == World.MEDIUM_RING:
-        world_file = os.path.join(orca_gazebo_dir, 'worlds', 'medium_ring.world')
-        vlam_map_file = os.path.join(orca_gazebo_dir, 'worlds', 'medium_ring_map.yaml')
-    elif world == World.LARGE_RING:
-        world_file = os.path.join(orca_gazebo_dir, 'worlds', 'large_ring.world')
-        vlam_map_file = os.path.join(orca_gazebo_dir, 'worlds', 'large_ring_map.yaml')
-    else: # world == World.PING_PONG:
-        world_file = os.path.join(orca_gazebo_dir, 'worlds', 'ping_pong.world')
-        vlam_map_file = os.path.join(orca_gazebo_dir, 'worlds', 'ping_pong_map.yaml')
-
     return LaunchDescription([
-        # Launch Gazebo
+        # Arguments
+        DeclareLaunchArgument(
+            'use_sim_time',
+            default_value='false',
+            description='Use sim time?'),
+
+        DeclareLaunchArgument(
+            'world',
+            default_value=worlds[0],
+            description='World ' + ', '.join(worlds)),
+
+        DeclareLaunchArgument(
+            "gzclient",
+            default_value="True",
+            description="Launch Gazebo UI?"),
+
+        DeclareLaunchArgument(
+            "rviz",
+            default_value="True",
+            description="Launch rviz?"),
+
+        # Launch gzserver
         ExecuteProcess(
-            cmd=['gazebo',
+            cmd=['gzserver',
                  '-s', 'libgazebo_ros_init.so',  # Publish /clock
                  '-s', 'libgazebo_ros_factory.so',  # Injection endpoint
-                 world_file],
+                 [orca_gazebo_dir, '/worlds/', LaunchConfiguration('world'), '.world']],
             output='screen'),
 
-        # Launch Rviz2
+        # Launch gzclient
+        ExecuteProcess(
+            cmd=['gzclient'],
+            output='screen',
+            condition=IfCondition(LaunchConfiguration('gzclient'))),
+
+        # Launch rviz
         ExecuteProcess(
             cmd=['rviz2', '-d', rviz_cfg_file],
-            output='screen'),
+            output='screen',
+            condition=IfCondition(LaunchConfiguration('rviz'))),
 
         # Republish ground truth with service QoS for PlotJuggler and rqt
         Node(
@@ -119,8 +124,8 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(orca_launch_dir, 'bringup_launch.py')),
             launch_arguments={
-                'use_sim_time': 'false', # now() gives wall time
-                'vlam_map': vlam_map_file,
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+                'vlam_map': [orca_gazebo_dir, '/worlds/', LaunchConfiguration('world'), '_map.yaml'],
                 'nav2_params_file': nav2_params_file,
             }.items()),
     ])
