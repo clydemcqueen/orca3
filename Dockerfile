@@ -18,8 +18,6 @@ RUN apt-get upgrade -y
 RUN apt-get install -y python3-pip
 RUN yes | pip3 install transformations
 
-RUN echo "and some more and more different changes"
-
 WORKDIR /work/orca_ws/src
 
 ARG TARGET_ROS_DISTRO
