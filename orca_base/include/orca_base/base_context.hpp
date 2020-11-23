@@ -24,8 +24,10 @@
 #define ORCA_BASE__BASE_CONTEXT_HPP_
 
 #include <string>
+#include <functional> // TODO temp -- should be included by ros2_shared
 
 #include "orca_shared/model.hpp"
+#include "rclcpp/node_interfaces/node_parameters_interface.hpp" // TODO temp -- should be included by ros2_shared
 
 namespace orca_base
 {
@@ -53,7 +55,7 @@ namespace orca_base
 
 struct BaseContext : orca::Model
 {
-  BASE_PARAMS
+  CXT_MACRO_DEFINE_MEMBERS(BASE_PARAMS)
 };
 
 #define BASE_ALL_PARAMS \

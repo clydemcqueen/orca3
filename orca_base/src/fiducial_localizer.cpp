@@ -75,7 +75,7 @@ double closest_visible_marker(const fiducial_vlam_msgs::msg::Map & map,
 
 struct LocalizerContext
 {
-  LOCALIZER_ALL_PARAMS
+  CXT_MACRO_DEFINE_MEMBERS(LOCALIZER_ALL_PARAMS)
 };
 
 class FiducialLocalizer : public rclcpp::Node
@@ -125,8 +125,8 @@ class FiducialLocalizer : public rclcpp::Node
 
     // Register parameters
 #undef CXT_MACRO_MEMBER
-#define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_PARAMETER_CHANGED(cxt_, n, t)
-    CXT_MACRO_REGISTER_PARAMETERS_CHANGED((*this), LOCALIZER_ALL_PARAMS, validate_parameters)
+#define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_PARAMETER_CHANGED(n, t)
+    CXT_MACRO_REGISTER_PARAMETERS_CHANGED((*this), cxt_, LOCALIZER_ALL_PARAMS, validate_parameters)
 
     // Log parameters
 #undef CXT_MACRO_MEMBER
