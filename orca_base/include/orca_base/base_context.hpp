@@ -53,7 +53,7 @@ namespace orca_base
 
 struct BaseContext : orca::Model
 {
-  BASE_PARAMS
+  CXT_MACRO_DEFINE_MEMBERS(BASE_PARAMS)
 };
 
 #define BASE_ALL_PARAMS \

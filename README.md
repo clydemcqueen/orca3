@@ -35,7 +35,7 @@ Orca3 is simulated in Gazebo. Several Gazebo plugins are provided to support a m
     git clone https://github.com/clydemcqueen/orca3.git
     git clone https://github.com/clydemcqueen/sim_fiducial.git
     git clone https://github.com/clydemcqueen/ukf.git
-    git clone https://github.com/ptrmu/fiducial_vlam.git -b clyde_foxy
+    git clone https://github.com/ptrmu/fiducial_vlam.git
     git clone https://github.com/ptrmu/ros2_shared.git
     cd ~/ros2/orca_ws
     source /opt/ros/foxy/setup.bash

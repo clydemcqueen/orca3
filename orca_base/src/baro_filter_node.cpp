@@ -45,7 +45,7 @@ namespace orca_base
 
 struct BaroFilterContext
 {
-  BARO_FILTER_NODE_PARAMS
+  CXT_MACRO_DEFINE_MEMBERS(BARO_FILTER_NODE_PARAMS)
 };
 
 //=============================================================================
@@ -109,8 +109,8 @@ class BaroFilterNode : public rclcpp::Node
 
     // Register parameters
 #undef CXT_MACRO_MEMBER
-#define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_PARAMETER_CHANGED(cxt_, n, t)
-    CXT_MACRO_REGISTER_PARAMETERS_CHANGED((*this), BARO_FILTER_NODE_PARAMS, validate_parameters)
+#define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_PARAMETER_CHANGED(n, t)
+    CXT_MACRO_REGISTER_PARAMETERS_CHANGED((*this), cxt_, BARO_FILTER_NODE_PARAMS, validate_parameters)
 
     // Log parameters
 #undef CXT_MACRO_MEMBER

@@ -46,7 +46,7 @@ namespace orca_base
 
 struct DepthContext : orca::Model
 {
-  DEPTH_NODE_PARAMS
+  CXT_MACRO_DEFINE_MEMBERS(DEPTH_NODE_PARAMS)
 };
 
 #define DEPTH_NODE_ALL_PARAMS \
@@ -93,8 +93,8 @@ class DepthNode : public rclcpp::Node
 
     // Register parameters
 #undef CXT_MACRO_MEMBER
-#define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_PARAMETER_CHANGED(cxt_, n, t)
-    CXT_MACRO_REGISTER_PARAMETERS_CHANGED((*this), DEPTH_NODE_ALL_PARAMS, validate_parameters)
+#define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_PARAMETER_CHANGED(n, t)
+    CXT_MACRO_REGISTER_PARAMETERS_CHANGED((*this), cxt_, DEPTH_NODE_ALL_PARAMS, validate_parameters)
 
     // Log parameters
 #undef CXT_MACRO_MEMBER
