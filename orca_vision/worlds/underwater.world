@@ -1,0 +1,117 @@
+<?xml version="1.0"?>
+
+<sdf version="1.6">
+  <world name="default">
+
+    <!-- Sun -->
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <!-- Seafloor (surface is at z==0) -->
+    <model name="seafloor">
+      <include>
+        <static>true</static>
+        <uri>model://seafloor</uri>
+      </include>
+      <pose>0 0 -5 0 0 0</pose>
+    </model>
+
+    <!-- Stereo camera model -->
+    <model name="camera_model">
+      <pose>0 0 -2 0 1.570796327 0</pose>
+      <!-- Not static: the motion plugin moves the camera around -->
+      <static>false</static>
+      <link name="camera_link">
+        <!-- Turn gravity off, otherwise the camera moves toward the floor -->
+        <gravity>0</gravity>
+        <inertial> <!-- inertial tag is REQUIRED for Gazebo -->
+          <pose frame=''>0 0 0 0 0 0</pose>
+          <mass>1</mass>
+          <inertia>
+            <ixx>0.1</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.1</iyy>
+            <iyz>0</iyz>
+            <izz>0.1</izz>
+          </inertia>
+        </inertial>
+        <visual name='camera_link_visual'>
+          <pose frame=''>0 0 0 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.02 0.4 0.05</size>
+            </box>
+          </geometry>
+        </visual>
+        <sensor type="multicamera" name="stereo">
+          <pose>0 0 0 0 0 0</pose>
+          <update_rate>5</update_rate>
+          <visualize>true</visualize>
+          <camera name="left">
+            <!-- Left camera frame == camera_link -->
+            <pose>0 0 0 0 0 0</pose>
+            <horizontal_fov>1.4</horizontal_fov>
+            <image>
+              <width>800</width>
+              <height>600</height>
+              <format>R8G8B8</format>
+            </image>
+            <clip>
+              <near>0.02</near>
+              <far>300</far>
+            </clip>
+            <noise>
+              <type>gaussian</type>
+              <!-- Noise is sampled independently per pixel on each frame.
+                   That pixel's noise value is added to each of its color
+                   channels, which at that point lie in the range [0,1]. -->
+              <mean>0.0</mean>
+              <stddev>0.007</stddev>
+            </noise>
+          </camera>
+          <camera name="right">
+            <!-- Right camera frame is 0.4m to the right (-0.4m to the left) of camera_link -->
+            <pose>0 -0.4 0 0 0 0</pose>
+            <horizontal_fov>1.4</horizontal_fov>
+            <image>
+              <width>800</width>
+              <height>600</height>
+              <format>R8G8B8</format>
+            </image>
+            <clip>
+              <near>0.02</near>
+              <far>300</far>
+            </clip>
+            <noise>
+              <type>gaussian</type>
+              <!-- Noise is sampled independently per pixel on each frame.
+                   That pixel's noise value is added to each of its color
+                   channels, which at that point lie in the range [0,1]. -->
+              <mean>0.0</mean>
+              <stddev>0.007</stddev>
+            </noise>
+          </camera>
+          <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+            <!-- Omit camera_name, will default to sensor name -->
+            <!-- Omit frame_name, will default to link name -->
+            <!-- The baseline value is the distance between the 2 cameras. It shows up in the
+                 camera info projection matrix. In theory it can be gleaned by looking at the
+                 pose tags of the 2 cameras above, but in practice we need to set it using the
+                 hack_baseline tag. -->
+            <hack_baseline>0.4</hack_baseline>
+          </plugin>
+        </sensor>
+      </link>
+      <plugin name="MotionPlugin" filename="libMotionPlugin.so">
+        <link name="camera_link">
+          <period>20</period>
+          <linear_vel>0.1 0 0</linear_vel>
+          <angular_vel>0 0 0</angular_vel>
+        </link>
+      </plugin>
+    </model>
+
+  </world>
+</sdf>

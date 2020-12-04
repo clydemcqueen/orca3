@@ -1,4 +1,4 @@
-# Handy script, run `. src/orca3/setup.bash` from the workspace root
+# Handy script, run `. src/orca_vision/setup.bash` from the workspace root
 
 # Clear the decks
 unset AMENT_PREFIX_PATH
@@ -23,14 +23,5 @@ export RCUTILS_CONSOLE_OUTPUT_FORMAT='[{severity}] {name}: {message}'
 # Gazebo
 . /usr/share/gazebo/setup.sh
 
-# Gazebo model path
-export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:$PWD/install/sim_fiducial/share/sim_fiducial/models
+# Gazebo -- orca_vision
 export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:$PWD/install/orca_vision/share/orca_vision/models
-
-# GTSAM
-# export CMAKE_PREFIX_PATH=~/lib/gtsam/install/lib/cmake/GTSAM:$CMAKE_PREFIX_PATH
-# export LD_LIBRARY_PATH=~/lib/gtsam/install/lib/:$LD_LIBRARY_PATH
-
-# OpenCV 4.4
-# export CMAKE_PREFIX_PATH=~/opencv/install/opencv_4_4:$CMAKE_PREFIX_PATH
-# export LD_LIBRARY_PATH=~/opencv/install/opencv_4_4/lib:$LD_LIBRARY_PATH

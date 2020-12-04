@@ -1,0 +1,13 @@
+material Seafloor/Rocks
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+        texture rocks.png
+      }
+    }
+  }
+}
