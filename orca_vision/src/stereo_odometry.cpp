@@ -1,7 +1,7 @@
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "image_geometry/stereo_camera_model.h"
 #include "message_filters/subscriber.h"
-#include "message_filters/sync_policies/approximate_time.h"
+#include "message_filters/sync_policies/exact_time.h"
 #include "opencv2/highgui.hpp"
 #include "orca_shared/util.hpp"
 #include "orca_vision/parameters.hpp"
@@ -18,10 +18,12 @@
 namespace orca_vision
 {
 
-typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image,
-                                                        sensor_msgs::msg::Image,
-                                                        sensor_msgs::msg::CameraInfo,
-                                                        sensor_msgs::msg::CameraInfo> SyncPolicy;
+// Gazebo multi-camera sensor synchronizes cameras, so ExactTime works well
+// For real cameras I may need to use ApproximateTime
+typedef message_filters::sync_policies::ExactTime<sensor_msgs::msg::Image,
+                                                  sensor_msgs::msg::Image,
+                                                  sensor_msgs::msg::CameraInfo,
+                                                  sensor_msgs::msg::CameraInfo> SyncPolicy;
 
 class StereoOdometryNode : public rclcpp::Node
 {
@@ -199,7 +201,7 @@ class StereoOdometryNode : public rclcpp::Node
 
     // Set after toROSMsg()
     msg.header.stamp = stamp;
-    msg.header.frame_id = params_.odom_frame_id_;
+    msg.header.frame_id = params_.lcam_frame_id_;
 
     if (key) {
       if (key_features_pub_->get_subscription_count() > 0) {

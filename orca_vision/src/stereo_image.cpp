@@ -38,11 +38,15 @@ bool Image::initialize(const sensor_msgs::msg::Image::ConstSharedPtr &image)
   image_ = image_ptr->image;
   stamp_ = image_ptr->header.stamp;
 
-  // Detect features
-  // WTA_K == 2, so BFMatcher should use NORM_HAMMING
-  auto detector = cv::ORB::create(params_.detect_num_features_);
   keypoints_.clear();
-  detector->detect(image_, keypoints_);
+  descriptors_.release();
+
+  // Create feature detector
+  auto detector = cv::ORB::create(params_.detect_num_features_);
+
+  // Detect features and compute in 1 call: this is faster for some feature types
+  detector->detectAndCompute(image_, cv::noArray(), keypoints_, descriptors_);
+  STOP_PERF("Image::initialize")
 
   if (keypoints_.size() < (unsigned) params_.detect_min_features_) {
     RCLCPP_WARN(logger_, "Look for %d features, found %d, minimum %d",
@@ -50,11 +54,6 @@ bool Image::initialize(const sensor_msgs::msg::Image::ConstSharedPtr &image)
     return false;
   }
 
-  // Compute descriptors
-  descriptors_.release();
-  detector->compute(image_, keypoints_, descriptors_);
-
-  STOP_PERF("Image::initialize")
   return true;
 }
 

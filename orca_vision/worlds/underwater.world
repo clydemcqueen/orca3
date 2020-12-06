@@ -47,7 +47,7 @@
         </visual>
         <sensor type="multicamera" name="stereo">
           <pose>0 0 0 0 0 0</pose>
-          <update_rate>5</update_rate>
+          <update_rate>30</update_rate>
           <visualize>true</visualize>
           <camera name="left">
             <!-- Left camera frame == camera_link -->
