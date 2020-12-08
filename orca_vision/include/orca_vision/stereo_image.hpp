@@ -1,7 +1,9 @@
 #ifndef STEREO_IMAGE_H
 #define STEREO_IMAGE_H
 
+#include "cv_bridge/cv_bridge.h"
 #include "image_geometry/stereo_camera_model.h"
+#include "orca_msgs/msg/stereo_stats.hpp"
 #include "orca_vision/parameters.hpp"
 #include "rclcpp/time.hpp"
 #include "sensor_msgs/msg/image.hpp"
@@ -30,8 +32,7 @@ class Image
 {
   rclcpp::Logger logger_;
   const Parameters &params_;
-  cv::Mat image_;                         // Image data
-  rclcpp::Time stamp_;                    // Image time
+  cv_bridge::CvImagePtr cvb_image_;       // cv_bridge image object
   std::vector<cv::KeyPoint> keypoints_;   // Feature locations
   cv::Mat descriptors_;                   // Feature descriptions
 
@@ -40,11 +41,11 @@ class Image
   Image(const rclcpp::Logger &logger, const Parameters &params) :
     logger_{logger}, params_{params} {}
 
-  bool initialize(const sensor_msgs::msg::Image::ConstSharedPtr &image);
+  bool initialize(const cv::Ptr<cv::ORB> & detector,
+    const sensor_msgs::msg::Image::ConstSharedPtr & image,
+    orca_msgs::msg::StereoStats & stats, int image_idx);
 
-  const rclcpp::Time &stamp() const { return stamp_; }
-
-  const cv::Mat &image() const { return image_; }
+  const cv::Mat &image() const { return cvb_image_->image; }
 
   const std::vector<cv::KeyPoint> &keypoints() const { return keypoints_; }
 
@@ -74,11 +75,11 @@ class StereoImage
     t_odom_lcam_{tf2::Matrix3x3::getIdentity(), tf2::Vector3()} {}
 
   // Initialize
-  bool initialize(
-    const image_geometry::StereoCameraModel &camera_model,
-    const sensor_msgs::msg::Image::ConstSharedPtr &left_image,
-    const sensor_msgs::msg::Image::ConstSharedPtr &right_image,
-    const cv::DescriptorMatcher &matcher);
+  bool initialize(const cv::Ptr<cv::ORB> & detector,
+    const image_geometry::StereoCameraModel & camera_model,
+    const sensor_msgs::msg::Image::ConstSharedPtr & left_image,
+    const sensor_msgs::msg::Image::ConstSharedPtr & right_image,
+    const cv::DescriptorMatcher & matcher, orca_msgs::msg::StereoStats & stats);
 
   // Getters
   const Image &left() const { return left_; }
@@ -93,10 +94,11 @@ class StereoImage
 
   // Compute and set t_odom_lcam_
   bool compute_transform(
-    const std::shared_ptr<StereoImage> &key_image,
-    const cv::DescriptorMatcher &matcher,
-    std::vector<cv::Point3f> &key_good,
-    std::vector<cv::Point3f> &curr_good);
+    const std::shared_ptr<StereoImage> & key_image,
+    const cv::DescriptorMatcher & matcher,
+    std::vector<cv::Point3f> & key_good,
+    std::vector<cv::Point3f> & curr_good,
+    orca_msgs::msg::StereoStats & stats);
 
   // Bootstrap: set t_odom_lcam_
   void set_t_odom_lcam(const tf2::Transform &t_odom_lcam) { t_odom_lcam_ = t_odom_lcam; }

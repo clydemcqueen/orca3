@@ -6,14 +6,12 @@
 #define START_PERF() \
   auto __start__ = std::chrono::high_resolution_clock::now();
 
-#define STOP_PERF(msg) \
+#define STOP_PERF(field) \
   auto __stop__ = std::chrono::high_resolution_clock::now(); \
-  std::cout << msg << " " \
-            << std::chrono::duration_cast<std::chrono::microseconds>(__stop__ - __start__).count() \
-            << " microseconds" << std::endl;
+  field = std::chrono::duration_cast<std::chrono::microseconds>(__stop__ - __start__).count();
 #else
 #define START_PERF()
-#define STOP_PERF(msg)
+#define STOP_PERF(field)
 #endif
 
 #endif  // PERF_HPP

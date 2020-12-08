@@ -29,6 +29,7 @@ class StereoOdometryNode : public rclcpp::Node
 {
   Parameters params_;
   image_geometry::StereoCameraModel camera_model_;
+  cv::Ptr<cv::ORB> detector_;
 
   std::shared_ptr<StereoImage> prev_image_, key_image_;
   cv::BFMatcher matcher_{cv::NORM_HAMMING, true};
@@ -40,6 +41,7 @@ class StereoOdometryNode : public rclcpp::Node
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr key_features_pub_;
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr curr_features_pub_;
+  rclcpp::Publisher<orca_msgs::msg::StereoStats>::SharedPtr stats_pub_;
 
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
@@ -62,6 +64,7 @@ class StereoOdometryNode : public rclcpp::Node
 
     init_parameters();
 
+    // Create these windows once, params_.debug_windows_ should not be changed
     if (params_.debug_windows_) {
       cv::namedWindow(orca_vision::TIME_WINDOW, cv::WINDOW_AUTOSIZE);
       cv::namedWindow(orca_vision::STEREO_WINDOW, cv::WINDOW_AUTOSIZE);
@@ -69,6 +72,7 @@ class StereoOdometryNode : public rclcpp::Node
 
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
 
+    // Subscribe once, params_.subscribe_best_effort_ should not be changed
     rmw_qos_profile_t qos_profile = params_.subscribe_best_effort_ ?
       rmw_qos_profile_sensor_data :
       rmw_qos_profile_services_default;
@@ -89,6 +93,7 @@ class StereoOdometryNode : public rclcpp::Node
     pose_pub_ = create_publisher<geometry_msgs::msg::PoseStamped>("camera_pose", 10);
     key_features_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>("key", 10);
     curr_features_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>("curr", 10);
+    stats_pub_ = create_publisher<orca_msgs::msg::StereoStats>("stereo_stats", 10);
   }
 
  private:
@@ -116,7 +121,10 @@ class StereoOdometryNode : public rclcpp::Node
     CXT_MACRO_CHECK_CMDLINE_PARAMETERS((*this), STEREO_PARAMS)
   }
 
-  void validate_parameters() {}
+  void validate_parameters()
+  {
+    detector_ = cv::ORB::create(params_.detect_num_features_);
+  }
 
   void image_callback(
     const sensor_msgs::msg::Image::ConstSharedPtr &image_left,
@@ -125,9 +133,14 @@ class StereoOdometryNode : public rclcpp::Node
     const sensor_msgs::msg::CameraInfo::ConstSharedPtr &camera_info_right)
   {
     START_PERF()
+
     builtin_interfaces::msg::Time stamp = image_left->header.stamp;
     static rclcpp::Time prev_stamp{0l, RCL_ROS_TIME};
-    std::cout << "dt=" << (rclcpp::Time(stamp) - prev_stamp).seconds() << std::endl;
+
+    orca_msgs::msg::StereoStats stats_msg;
+    stats_msg.header.stamp = stamp;
+    stats_msg.dt = (rclcpp::Time(stamp) - prev_stamp).seconds();
+
     prev_stamp = stamp;
 
     // Initialize the camera model
@@ -142,7 +155,8 @@ class StereoOdometryNode : public rclcpp::Node
 
     // Analyze the stereo image
     auto curr_image = std::make_shared<StereoImage>(get_logger(), params_);
-    if (!curr_image->initialize(camera_model_, image_left, image_right, matcher_)) {
+    if (!curr_image->initialize(detector_, camera_model_, image_left, image_right, matcher_,
+      stats_msg)) {
       RCLCPP_WARN_STREAM(get_logger(), "Too few stereo features");
     } else {
       if (!prev_image_) {
@@ -156,14 +170,14 @@ class StereoOdometryNode : public rclcpp::Node
 
         // Compute transform from the key image to the current image
         bool good_odometry = curr_image->compute_transform(key_image_, matcher_,
-          key_good, curr_good);
+          key_good, curr_good, stats_msg);
 
         if (!good_odometry && key_image_ != prev_image_) {
           // Promote the previous image to key image, and try again
           RCLCPP_INFO(get_logger(), "Updating key image");
           key_image_ = prev_image_;
           good_odometry = curr_image->compute_transform(key_image_, matcher_,
-            key_good, curr_good);
+            key_good, curr_good, stats_msg);
         }
 
         if (good_odometry) {
@@ -185,7 +199,12 @@ class StereoOdometryNode : public rclcpp::Node
 
     // Always publish odometry
     publish_odometry(stamp);
-    STOP_PERF("StereoOdometry::image_callback")
+    STOP_PERF(stats_msg.time_callback)
+
+    // Publish diagnostic info
+    if (params_.publish_stats_ && stats_pub_->get_subscription_count() > 0) {
+      stats_pub_->publish(stats_msg);
+    }
   }
 
   void publish_features(const builtin_interfaces::msg::Time &stamp,

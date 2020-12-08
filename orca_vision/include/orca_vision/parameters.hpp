@@ -31,7 +31,7 @@ namespace orca_vision
 {
 
 #define STEREO_PARAMS \
-  CXT_MACRO_MEMBER(debug_stats, bool, false) \
+  CXT_MACRO_MEMBER(publish_stats, bool, true) \
   CXT_MACRO_MEMBER(debug_windows, bool, false) \
   \
   CXT_MACRO_MEMBER(subscribe_best_effort, bool, true) \

@@ -5,5 +5,6 @@
 | Barometer | Pressure and temperature | OrcaBarometerPlugin | DepthNode |
 | Depth | ENU depth in meters (+ is above the surface, - is below the surface) | DepthNode | BaseController |
 | Effort | Force and torque divided by maximum force and torque (range \[-1, 1\]) |
-| Status | Hardware status | OrcaThrusterPlugin | rov_node, auv_node |
+| Status | Hardware status | OrcaThrusterPlugin | |
+| StereoStats | Stereo camera diagnostic infomation | StereoOdometry | |
 | Thrust | Thruster pwm values | BaseController | OrcaThrusterPlugin |
