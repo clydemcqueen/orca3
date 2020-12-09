@@ -44,6 +44,8 @@ class Image
   bool detect(const cv::Ptr<cv::ORB> & detector,
     orca_msgs::msg::StereoStats & stats, int image_idx);
 
+  const builtin_interfaces::msg::Time &stamp() const { return cvb_image_->header.stamp; }
+
   const cv::Mat &image() const { return cvb_image_->image; }
 
   const std::vector<cv::KeyPoint> &keypoints() const { return keypoints_; }

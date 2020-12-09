@@ -1,3 +1,7 @@
+#include <atomic>
+#include <queue>
+#include <thread>
+
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "image_geometry/stereo_camera_model.h"
 #include "message_filters/subscriber.h"
@@ -30,6 +34,13 @@ class StereoOdometryNode : public rclcpp::Node
   Parameters params_;
   image_geometry::StereoCameraModel camera_model_;
   cv::Ptr<cv::ORB> detector_;
+
+  // Detect features and publish results on a separate thread
+  std::thread detect_thread_;
+  std::queue<std::shared_ptr<StereoImage>> q_;
+  std::mutex m_;
+  std::condition_variable cv_;
+  bool stop_signal_{};
 
   std::shared_ptr<StereoImage> prev_image_, key_image_;
   cv::BFMatcher matcher_{cv::NORM_HAMMING, true};
@@ -94,6 +105,21 @@ class StereoOdometryNode : public rclcpp::Node
     key_features_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>("key", 10);
     curr_features_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>("curr", 10);
     stats_pub_ = create_publisher<orca_msgs::msg::StereoStats>("stereo_stats", 10);
+
+    detect_thread_ = std::thread([this](){ processor(); });
+  }
+
+  ~StereoOdometryNode() override
+  {
+    std::unique_lock<std::mutex> lock{m_};
+
+    // Tell detect_thread_ to stop work
+    stop_signal_ = true;
+    lock.unlock();
+    cv_.notify_one();
+
+    // Wait
+    detect_thread_.join();
   }
 
  private:
@@ -123,6 +149,7 @@ class StereoOdometryNode : public rclcpp::Node
 
   void validate_parameters()
   {
+    std::unique_lock<std::mutex> lock{m_};
     detector_ = cv::ORB::create(params_.detect_num_features_);
   }
 
@@ -132,29 +159,59 @@ class StereoOdometryNode : public rclcpp::Node
     const sensor_msgs::msg::CameraInfo::ConstSharedPtr &camera_info_left,
     const sensor_msgs::msg::CameraInfo::ConstSharedPtr &camera_info_right)
   {
-    START_PERF()
-
-    builtin_interfaces::msg::Time stamp = image_left->header.stamp;
-    static rclcpp::Time prev_stamp{0l, RCL_ROS_TIME};
-
-    orca_msgs::msg::StereoStats stats_msg;
-    stats_msg.header.stamp = stamp;
-    stats_msg.dt = (rclcpp::Time(stamp) - prev_stamp).seconds();
-
-    prev_stamp = stamp;
+    std::unique_lock<std::mutex> lock{m_};
 
     // Initialize the camera model
     if (!camera_model_.initialized()) {
       if (!camera_model_.fromCameraInfo(camera_info_left, camera_info_right)) {
-        RCLCPP_ERROR(get_logger(), "Can't detect camera model, quitting");
+        RCLCPP_ERROR(get_logger(), "Can't process camera model, quitting");
         exit(-1);
       }
       RCLCPP_INFO(get_logger(), "Camera model initialized, baseline %g cm (must be > 0)",
         camera_model_.baseline() * 100);
     }
 
-    // Analyze the stereo image
-    auto curr_image = std::make_shared<StereoImage>(get_logger(), params_, image_left, image_right);
+    // Add the stereo image to the queue
+    q_.push(std::make_shared<StereoImage>(get_logger(), params_, image_left, image_right));
+
+    // Wake up detect_thread_
+    lock.unlock();
+    cv_.notify_one();
+  }
+
+  // TODO create Processor class
+  void processor()
+  {
+    for (;;) {
+      std::unique_lock<std::mutex> lock{m_};
+
+      while (!stop_signal_ && q_.empty()) {
+        cv_.wait_for(lock, std::chrono::milliseconds(10));
+      }
+
+      if (stop_signal_) {
+        return;
+      }
+
+      auto curr_image = q_.front();
+      q_.pop();
+
+      std::cout << q_.size() << std::endl;
+
+      lock.unlock();
+
+      process(curr_image);
+    }
+  }
+
+  void process(const std::shared_ptr<StereoImage> & curr_image)
+  {
+    START_PERF()
+
+    auto curr_stamp = curr_image->left().stamp();
+    orca_msgs::msg::StereoStats stats_msg;
+    stats_msg.header.stamp = curr_stamp;
+
     if (!curr_image->detect(detector_, camera_model_, matcher_, stats_msg)) {
       RCLCPP_WARN_STREAM(get_logger(), "Too few stereo features");
     } else {
@@ -164,6 +221,8 @@ class StereoOdometryNode : public rclcpp::Node
         curr_image->set_t_odom_lcam(t_odom_lcam_);
         key_image_ = prev_image_ = curr_image;
       } else {
+        stats_msg.dt = (rclcpp::Time(curr_stamp) - prev_image_->left().stamp()).seconds();
+
         std::vector<cv::Point3f> key_good;
         std::vector<cv::Point3f> curr_good;
 
@@ -183,8 +242,8 @@ class StereoOdometryNode : public rclcpp::Node
           // Success!
           t_odom_lcam_ = curr_image->t_odom_lcam();
 
-          publish_features(stamp, key_good, true);
-          publish_features(stamp, curr_good, false);
+          publish_features(curr_stamp, key_good, true);
+          publish_features(curr_stamp, curr_good, false);
 
           // Current image becomes previous image
           prev_image_ = curr_image;
@@ -197,7 +256,8 @@ class StereoOdometryNode : public rclcpp::Node
     }
 
     // Always publish odometry
-    publish_odometry(stamp);
+    publish_odometry(curr_stamp);
+
     STOP_PERF(stats_msg.time_callback)
 
     // Publish diagnostic info
