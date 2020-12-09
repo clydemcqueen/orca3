@@ -146,7 +146,7 @@ class StereoOdometryNode : public rclcpp::Node
     // Initialize the camera model
     if (!camera_model_.initialized()) {
       if (!camera_model_.fromCameraInfo(camera_info_left, camera_info_right)) {
-        RCLCPP_ERROR(get_logger(), "Can't initialize camera model, quitting");
+        RCLCPP_ERROR(get_logger(), "Can't detect camera model, quitting");
         exit(-1);
       }
       RCLCPP_INFO(get_logger(), "Camera model initialized, baseline %g cm (must be > 0)",
@@ -154,9 +154,8 @@ class StereoOdometryNode : public rclcpp::Node
     }
 
     // Analyze the stereo image
-    auto curr_image = std::make_shared<StereoImage>(get_logger(), params_);
-    if (!curr_image->initialize(detector_, camera_model_, image_left, image_right, matcher_,
-      stats_msg)) {
+    auto curr_image = std::make_shared<StereoImage>(get_logger(), params_, image_left, image_right);
+    if (!curr_image->detect(detector_, camera_model_, matcher_, stats_msg)) {
       RCLCPP_WARN_STREAM(get_logger(), "Too few stereo features");
     } else {
       if (!prev_image_) {

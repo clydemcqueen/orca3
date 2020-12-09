@@ -29,20 +29,20 @@ void display_matches(
 // Image
 //=========================
 
-bool Image::initialize(const cv::Ptr<cv::ORB> & detector,
-  const sensor_msgs::msg::Image::ConstSharedPtr & image,
-  orca_msgs::msg::StereoStats & stats, int image_idx)
+Image::Image(const rclcpp::Logger &logger, const Parameters &params,
+  const sensor_msgs::msg::Image::ConstSharedPtr & image) :
+  logger_{logger}, params_{params}
 {
-  START_PERF()
-
   // Convert ROS->cv, RGB->mono, copy
   cvb_image_ = cv_bridge::toCvCopy(image, "mono8");
-  keypoints_.clear();
-  descriptors_.release();
+}
 
+bool Image::detect(const cv::Ptr<cv::ORB> & detector,
+  orca_msgs::msg::StereoStats & stats, int image_idx)
+{
   // Detect features and compute in 1 call: this is faster for some feature types
+  START_PERF()
   detector->detectAndCompute(cvb_image_->image, cv::noArray(), keypoints_, descriptors_);
-
   STOP_PERF(stats.time_image_init[image_idx])
   stats.features[image_idx] = keypoints_.size();
 
@@ -59,16 +59,14 @@ bool Image::initialize(const cv::Ptr<cv::ORB> & detector,
 // StereoImage
 //=========================
 
-bool StereoImage::initialize(const cv::Ptr<cv::ORB> & detector,
+bool StereoImage::detect(const cv::Ptr<cv::ORB> & detector,
   const image_geometry::StereoCameraModel & camera_model,
-  const sensor_msgs::msg::Image::ConstSharedPtr & left_image,
-  const sensor_msgs::msg::Image::ConstSharedPtr & right_image,
   const cv::DescriptorMatcher & matcher, orca_msgs::msg::StereoStats & stats)
 {
   START_PERF()
 
-  if (!left_.initialize(detector, left_image, stats, 0) ||
-    !right_.initialize(detector, right_image, stats, 1)) {
+  if (!left_.detect(detector, stats, 0) ||
+    !right_.detect(detector, stats, 1)) {
     return false;
   }
 

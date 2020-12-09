@@ -38,11 +38,10 @@ class Image
 
  public:
 
-  Image(const rclcpp::Logger &logger, const Parameters &params) :
-    logger_{logger}, params_{params} {}
+  Image(const rclcpp::Logger &logger, const Parameters &params,
+    const sensor_msgs::msg::Image::ConstSharedPtr & image);
 
-  bool initialize(const cv::Ptr<cv::ORB> & detector,
-    const sensor_msgs::msg::Image::ConstSharedPtr & image,
+  bool detect(const cv::Ptr<cv::ORB> & detector,
     orca_msgs::msg::StereoStats & stats, int image_idx);
 
   const cv::Mat &image() const { return cvb_image_->image; }
@@ -67,21 +66,19 @@ class StereoImage
 
  public:
 
-  StereoImage(const rclcpp::Logger &logger, const Parameters &params) :
+  StereoImage(const rclcpp::Logger &logger, const Parameters &params,
+    const sensor_msgs::msg::Image::ConstSharedPtr & left_image,
+    const sensor_msgs::msg::Image::ConstSharedPtr & right_image) :
     logger_{logger},
     params_{params},
-    left_{logger, params},
-    right_{logger, params},
+    left_{logger, params, left_image},
+    right_{logger, params, right_image},
     t_odom_lcam_{tf2::Matrix3x3::getIdentity(), tf2::Vector3()} {}
 
-  // Initialize
-  bool initialize(const cv::Ptr<cv::ORB> & detector,
+  bool detect(const cv::Ptr<cv::ORB> & detector,
     const image_geometry::StereoCameraModel & camera_model,
-    const sensor_msgs::msg::Image::ConstSharedPtr & left_image,
-    const sensor_msgs::msg::Image::ConstSharedPtr & right_image,
     const cv::DescriptorMatcher & matcher, orca_msgs::msg::StereoStats & stats);
 
-  // Getters
   const Image &left() const { return left_; }
 
   const Image &right() const { return right_; }
