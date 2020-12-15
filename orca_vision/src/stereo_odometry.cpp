@@ -114,6 +114,7 @@ public:
     sync_ = std::make_unique<message_filters::Synchronizer<SyncPolicy>>(SyncPolicy(10),
       image_left_sub_, image_right_sub_);
 
+    // TODO use unique_ptrs for callbacks
     sync_->registerCallback(std::bind(&StereoOdometryNode::image_callback, this,
       std::placeholders::_1, std::placeholders::_2));
     sync_->registerDropCallback(std::bind(&StereoOdometryNode::image_drop_callback, this,

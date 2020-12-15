@@ -13,6 +13,14 @@
 namespace orca_vision
 {
 
+class FailedToInitializeCameraModel : public std::exception
+{
+  const char* what() const noexcept override
+  {
+    return "Failed to initialize camera model";
+  }
+};
+
 StereoProcessor::StereoProcessor(
   rclcpp::Node *node,
   const Parameters & params,
@@ -20,12 +28,10 @@ StereoProcessor::StereoProcessor(
   const sensor_msgs::msg::CameraInfo & camera_info_right):
   logger_(node->get_logger()),
   params_(params),
-  matcher_(cv::NORM_HAMMING, true)
+  matcher_(cv::NORM_HAMMING, true) // TODO try FLANN
 {
   if (!camera_model_.fromCameraInfo(camera_info_left, camera_info_right)) {
-    RCLCPP_ERROR(logger_, "Can't initialize camera model");
-    // TODO throw
-    exit(-1);
+    throw FailedToInitializeCameraModel();
   }
 
   RCLCPP_INFO(logger_, "Camera model initialized, baseline %g cm (must be > 0)",
@@ -49,7 +55,6 @@ void StereoProcessor::process(
 {
   START_PERF()
 
-  // TODO make_unique
   auto curr_image = std::make_shared<StereoImage>(logger_, params_, image_left, image_right);
   auto curr_stamp = curr_image->left().stamp();
   orca_msgs::msg::StereoStats stats_msg;

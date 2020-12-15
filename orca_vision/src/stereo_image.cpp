@@ -29,8 +29,8 @@ void display_matches(
 // Image
 //=========================
 
-Image::Image(const rclcpp::Logger &logger, const Parameters &params,
-  const sensor_msgs::msg::Image::ConstSharedPtr & image) :
+Image::Image(const rclcpp::Logger & logger, const Parameters & params,
+  const sensor_msgs::msg::Image::ConstSharedPtr & image):
   logger_{logger}, params_{params}
 {
   // Convert ROS->cv, RGB->mono, copy
@@ -65,10 +65,46 @@ bool StereoImage::detect(const cv::Ptr<cv::ORB> & detector,
 {
   START_PERF()
 
+  // Time ave 60ms, but 5% of the time takes 2X longer. I'm not sure why.
   if (!left_.detect(detector, stats, 0) ||
     !right_.detect(detector, stats, 1)) {
     return false;
   }
+
+#if 0
+  // Experiment: alternate left first and right first
+  // Results: spikes evenly split
+  static bool left_first = true;
+  if (left_first) {
+    if (!right_.detect(detector, stats, 1) ||
+      !left_.detect(detector, stats, 0)) {
+      return false;
+    }
+  } else {
+    if (!left_.detect(detector, stats, 0) ||
+      !right_.detect(detector, stats, 1)) {
+      return false;
+    }
+  }
+  left_first = !left_first;
+#endif
+
+#if 0
+  // Experiment: run in ||
+  // Results: total time around 40ms. Num frames / second stable at around 20 out of 30.
+  // Many spikes affect both left & right at the same time -- so the cost (whatever it is) is paid twice.
+  cv::Ptr<cv::ORB> detector_left = cv::ORB::create(params_.detect_num_features_);
+  cv::Ptr<cv::ORB> detector_right = cv::ORB::create(params_.detect_num_features_);
+
+  auto t1 = std::thread([this, &detector_left, &stats]() {
+    left_.detect(detector_left, stats, 0);
+  });
+  auto t2 = std::thread([this, &detector_right, &stats]() {
+    right_.detect(detector_right, stats, 1);
+  });
+  t1.join();
+  t2.join();
+#endif
 
   // Find matching features
   std::vector<cv::DMatch> candidate_matches;
