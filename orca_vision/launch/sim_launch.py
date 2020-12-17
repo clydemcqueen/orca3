@@ -53,9 +53,20 @@ def generate_launch_description():
             output='screen',
             condition=IfCondition(LaunchConfiguration('gzclient'))),
 
-        # Calc odometry
-        # Node(package='orca_vision', executable='stereo_odometry', output='screen',
-        #      name='odometry_node', parameters=[{
-        #         'sensor_qos': True,
-        #      }]),
+        # Publish static transform
+        ExecuteProcess(
+            cmd=['/opt/ros/foxy/lib/tf2_ros/static_transform_publisher',
+                 '0', '0', '0', '0', '1.570796327', '0',
+                 'base_link', 'camera_link',
+                 '--ros-args', '-p', 'use_sim_time:=true'],
+            output='screen'),
+
+        # Publish odometry
+        Node(package='orca_vision', executable='stereo_odometry', output='screen',
+             name='stereo_odometry_node', parameters=[{
+             }]),
+
+        # Publish path
+        Node(package="orca_vision", executable='pose_to_path', output='screen',
+             name='pose_to_path_node')
     ])

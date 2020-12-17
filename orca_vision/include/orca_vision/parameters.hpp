@@ -38,7 +38,8 @@ namespace orca_vision
   CXT_MACRO_MEMBER(publish_tf, bool, true) \
   \
   CXT_MACRO_MEMBER(odom_frame_id, std::string, "odom") \
-  CXT_MACRO_MEMBER(lcam_frame_id, std::string, "left_camera_frame") \
+  CXT_MACRO_MEMBER(base_frame_id, std::string, "base_link") \
+  CXT_MACRO_MEMBER(lcam_frame_id, std::string, "camera_link") \
   \
   CXT_MACRO_MEMBER(detect_num_features, int, 200) /* Features to detect */ \
   CXT_MACRO_MEMBER(detect_min_features, int, 20) /* Min features to pass each stage */ \

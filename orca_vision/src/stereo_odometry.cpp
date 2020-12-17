@@ -119,6 +119,8 @@ public:
       std::placeholders::_1, std::placeholders::_2));
     sync_->registerDropCallback(std::bind(&StereoOdometryNode::image_drop_callback, this,
       std::placeholders::_1, std::placeholders::_2));
+
+    RCLCPP_INFO(get_logger(), "StereoOdometryNode ready");
   }
 
   ~StereoOdometryNode() override
@@ -228,6 +230,9 @@ private:
 
 int main(int argc, char **argv)
 {
+  // Force flush of the stdout buffer
+  setvbuf(stdout, nullptr, _IONBF, BUFSIZ);
+
   rclcpp::init(argc, argv);
   auto node = std::make_shared<orca_vision::StereoOdometryNode>();
   rclcpp::spin(node);

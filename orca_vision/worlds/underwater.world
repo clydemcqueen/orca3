@@ -14,12 +14,12 @@
         <static>true</static>
         <uri>model://seafloor</uri>
       </include>
-      <pose>0 0 -5 0 0 0</pose>
+      <pose>0 0 -2 0 0 0</pose>
     </model>
 
     <!-- Stereo camera model -->
     <model name="camera_model">
-      <pose>0 0 -2 0 1.570796327 0</pose>
+      <pose>0 0 0 0 1.570796327 0</pose>
       <!-- Not static: the motion plugin moves the camera around -->
       <static>false</static>
       <link name="camera_link">
@@ -106,10 +106,20 @@
       </link>
       <plugin name="MotionPlugin" filename="libMotionPlugin.so">
         <link name="camera_link">
-          <period>20</period>
-          <linear_vel>0.1 0 0</linear_vel>
-          <angular_vel>0 0 0</angular_vel>
+          <period>60</period>
+          <linear_vel>0.1 0.05 0</linear_vel>
+          <angular_vel>0 0 0.1</angular_vel>
         </link>
+      </plugin>
+      <plugin name="p3d_test" filename="libgazebo_ros_p3d.so">
+        <ros>
+          <argument>odom:=ground_truth</argument>
+        </ros>
+        <update_rate>30.0</update_rate>
+        <body_name>camera_link</body_name>
+        <frame_name>odom</frame_name>
+        <xyz_offsets>0 0 0</xyz_offsets>
+        <rpy_offsets>0 0 0</rpy_offsets>
       </plugin>
     </model>
 

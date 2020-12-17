@@ -31,7 +31,10 @@ include_directories(${PCL_COMMON_INCLUDE_DIRS})
 
 # ament_auto_add_executable(altitude src/altitude.cpp)
 
+ament_auto_add_executable(pose_to_path src/pose_to_path.cpp)
+
 ament_auto_add_executable(stereo_odometry
+  src/odometry_publisher.cpp
   src/stereo_image.cpp
   src/stereo_odometry.cpp
   src/stereo_processor.cpp

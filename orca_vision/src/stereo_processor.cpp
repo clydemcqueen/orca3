@@ -28,7 +28,8 @@ StereoProcessor::StereoProcessor(
   const sensor_msgs::msg::CameraInfo & camera_info_right):
   logger_(node->get_logger()),
   params_(params),
-  matcher_(cv::NORM_HAMMING, true) // TODO try FLANN
+  matcher_(cv::NORM_HAMMING, true), // TODO try FLANN
+  odom_pub_(node, params.base_frame_id_, params.lcam_frame_id_)
 {
   if (!camera_model_.fromCameraInfo(camera_info_left, camera_info_right)) {
     throw FailedToInitializeCameraModel();
@@ -42,11 +43,11 @@ StereoProcessor::StereoProcessor(
   // tf2::Transform must be initialized
   t_odom_lcam_ = pose_msg_to_transform(geometry_msgs::msg::Pose{});
 
-  pose_pub_ = node->create_publisher<geometry_msgs::msg::PoseStamped>("camera_pose", 10);
   key_features_pub_ = node->create_publisher<sensor_msgs::msg::PointCloud2>("key", 10);
   curr_features_pub_ = node->create_publisher<sensor_msgs::msg::PointCloud2>("curr", 10);
   stats_pub_ = node->create_publisher<orca_msgs::msg::StereoStats>("stereo_stats", 10);
-  tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(node);
+
+  RCLCPP_INFO(logger_, "StereoProcessor ready");
 }
 
 void StereoProcessor::process(
@@ -146,18 +147,7 @@ void StereoProcessor::publish_odometry(const builtin_interfaces::msg::Time & sta
   pose_msg.header.stamp = stamp;
   pose_msg.header.frame_id = params_.odom_frame_id_;
   pose_msg.pose = orca::transform_to_pose_msg(t_odom_lcam_);
-
-  if (pose_pub_->get_subscription_count() > 0) {
-    pose_pub_->publish(pose_msg);
-  }
-
-  if (params_.publish_tf_) {
-    geometry_msgs::msg::TransformStamped odom_tf;
-    odom_tf.header = pose_msg.header;
-    odom_tf.child_frame_id = params_.lcam_frame_id_;
-    odom_tf.transform = orca::pose_msg_to_transform_msg(pose_msg.pose);
-    tf_broadcaster_->sendTransform(odom_tf);
-  }
+  odom_pub_.publish(pose_msg, params_.publish_tf_);
 }
 
 }  // namespace orca_vision
