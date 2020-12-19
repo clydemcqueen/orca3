@@ -37,8 +37,6 @@ class StereoProcessor
   void publish_features(const builtin_interfaces::msg::Time & stamp,
     const std::vector<cv::Point3f> & points, bool key);
 
-  void publish_odometry(const builtin_interfaces::msg::Time & stamp);
-
 public:
   StereoProcessor(
     rclcpp::Node *node,

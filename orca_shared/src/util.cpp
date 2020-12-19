@@ -160,9 +160,50 @@ geometry_msgs::msg::Transform pose_msg_to_transform_msg(const geometry_msgs::msg
   return transform_to_transform_msg(pose_msg_to_transform(pose));
 }
 
+geometry_msgs::msg::TransformStamped pose_msg_to_transform_msg(
+  const geometry_msgs::msg::PoseStamped & msg, const std::string & child_frame_id)
+{
+  geometry_msgs::msg::TransformStamped result;
+  result.header = msg.header;
+  result.child_frame_id = child_frame_id;
+  result.transform = orca::pose_msg_to_transform_msg(msg.pose);
+  return result;
+}
+
+tf2::Transform transform_msg_to_transform(const geometry_msgs::msg::Transform & msg)
+{
+  tf2::Transform transform;
+  tf2::fromMsg(msg, transform);
+  return transform;
+}
+
+tf2::Transform transform_msg_to_transform(const geometry_msgs::msg::TransformStamped & msg)
+{
+  return transform_msg_to_transform(msg.transform);
+}
+
+geometry_msgs::msg::PoseStamped transform_msg_to_pose_msg(
+  const geometry_msgs::msg::TransformStamped & msg)
+{
+  geometry_msgs::msg::PoseStamped result;
+  result.header = msg.header;
+  result.pose = orca::transform_to_pose_msg(transform_msg_to_transform(msg.transform));
+  return result;
+}
+
 geometry_msgs::msg::Pose invert(const geometry_msgs::msg::Pose & pose)
 {
   return transform_to_pose_msg(pose_msg_to_transform(pose).inverse());
+}
+
+geometry_msgs::msg::PoseStamped invert(
+  const geometry_msgs::msg::PoseStamped & msg, const std::string & frame_id)
+{
+  geometry_msgs::msg::PoseStamped result;
+  result.header.frame_id = frame_id;
+  result.header.stamp = msg.header.stamp;
+  result.pose = orca::invert(msg.pose);
+  return result;
 }
 
 //=====================================================================================
@@ -228,6 +269,22 @@ bool transform_with_tolerance(
   }
   catch (const tf2::TransformException & e) {
     RCLCPP_ERROR(logger, e.what());
+    return false;
+  }
+}
+
+bool do_transform(
+  const std::shared_ptr<tf2_ros::Buffer> & tf,
+  const std::string & frame,
+  const geometry_msgs::msg::PoseStamped & in_pose,
+  geometry_msgs::msg::PoseStamped & out_pose)
+{
+  if (tf->canTransform(frame, in_pose.header.frame_id, tf2::TimePointZero)) {
+    auto transform = tf->lookupTransform(frame, in_pose.header.frame_id, tf2::TimePointZero);
+    tf2::doTransform(in_pose, out_pose, transform);
+    out_pose.header.stamp = in_pose.header.stamp;
+    return true;
+  } else {
     return false;
   }
 }
@@ -361,6 +418,45 @@ std::string str(const std_msgs::msg::Header & v)
   s << std::fixed << std::setprecision(3) << "{" <<
     str(v.stamp) << ", " <<
     v.frame_id <<
+    "}";
+
+  return s.str();
+}
+
+std::string str(const tf2::Matrix3x3 & r)
+{
+  std::stringstream s;
+
+  s << std::fixed << std::setprecision(3) << "{";
+  for (int i = 0; i < 3; ++i) {
+    tf2::Vector3 v = r.getRow(i);
+    s << "[" << v.x() << ", " << v.y() << ", " << v.z() << "]";
+  }
+  s << "}";
+
+  return s.str();
+}
+
+std::string str(const tf2::Transform & t)
+{
+  std::stringstream s;
+
+  s << "{" <<
+    str(t.getBasis()) << ", " <<
+    str(t.getOrigin()) <<
+    "}";
+
+  return s.str();
+}
+
+std::string str(const tf2::Vector3 & v)
+{
+  std::stringstream s;
+
+  s << std::fixed << std::setprecision(3) << "{" <<
+    v.x() << ", " <<
+    v.y() << ", " <<
+    v.z() <<
     "}";
 
   return s.str();

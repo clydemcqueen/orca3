@@ -122,7 +122,17 @@ geometry_msgs::msg::Transform transform_to_transform_msg(const tf2::Transform & 
 
 geometry_msgs::msg::Transform pose_msg_to_transform_msg(const geometry_msgs::msg::Pose & pose);
 
+geometry_msgs::msg::TransformStamped pose_msg_to_transform_msg(const geometry_msgs::msg::PoseStamped & msg, const std::string & child_frame_id);
+
+tf2::Transform transform_msg_to_transform(const geometry_msgs::msg::Transform & msg);
+
+tf2::Transform transform_msg_to_transform(const geometry_msgs::msg::TransformStamped & msg);
+
+geometry_msgs::msg::PoseStamped transform_msg_to_pose_msg(const geometry_msgs::msg::TransformStamped & msg);
+
 geometry_msgs::msg::Pose invert(const geometry_msgs::msg::Pose & pose);
+
+geometry_msgs::msg::PoseStamped invert(const geometry_msgs::msg::PoseStamped & msg, const std::string & frame_id);
 
 //=====================================================================================
 // tf2_ros::Buffer functions
@@ -143,6 +153,12 @@ bool transform_with_tolerance(
   const geometry_msgs::msg::PoseStamped & in_pose,
   geometry_msgs::msg::PoseStamped & out_pose,
   const rclcpp::Duration & tolerance);
+
+bool do_transform(
+  const std::shared_ptr<tf2_ros::Buffer> & tf,
+  const std::string & frame,
+  const geometry_msgs::msg::PoseStamped & in_pose,
+  geometry_msgs::msg::PoseStamped & out_pose);
 
 //=====================================================================================
 // str()
@@ -169,6 +185,12 @@ std::string str(const geometry_msgs::msg::Wrench & v);
 std::string str(const rclcpp::Time & v);
 
 std::string str(const std_msgs::msg::Header & v);
+
+std::string str(const tf2::Matrix3x3 & r);
+
+std::string str(const tf2::Transform & t);
+
+std::string str(const tf2::Vector3 & v);
 
 }  // namespace orca
 

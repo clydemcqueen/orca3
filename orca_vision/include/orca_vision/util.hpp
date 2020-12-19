@@ -24,12 +24,6 @@ T destructive_median(std::vector<T> &v)
 }
 
 //=========================
-// geometry_msgs:: <==> tf2::
-//=========================
-
-tf2::Transform pose_msg_to_transform(const geometry_msgs::msg::Pose & pose);
-
-//=========================
 // cv:: <==> tf2::
 //=========================
 
@@ -41,10 +35,6 @@ void cv_to_tf2(const cv::Mat &m, tf2::Matrix3x3 &r);
 
 void tf2_to_cv(const tf2::Vector3 &t, cv::Mat &m);
 void tf2_to_cv(const tf2::Matrix3x3 &r, cv::Mat &m);
-
-std::string str(const tf2::Vector3 &v);
-std::string str(const tf2::Matrix3x3 &r);
-std::string str(const tf2::Transform &t);
 
 cv::Point3f point3f(const tf2::Vector3 &p);
 tf2::Vector3 vector3(const cv::Point3f &p);

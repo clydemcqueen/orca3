@@ -29,7 +29,7 @@ StereoProcessor::StereoProcessor(
   logger_(node->get_logger()),
   params_(params),
   matcher_(cv::NORM_HAMMING, true), // TODO try FLANN
-  odom_pub_(node, params.base_frame_id_, params.lcam_frame_id_)
+  odom_pub_(node, params.odom_frame_id_, params.base_frame_id_, params.lcam_frame_id_)
 {
   if (!camera_model_.fromCameraInfo(camera_info_left, camera_info_right)) {
     throw FailedToInitializeCameraModel();
@@ -41,7 +41,7 @@ StereoProcessor::StereoProcessor(
   detector_ = cv::ORB::create(params_.detect_num_features_);
 
   // tf2::Transform must be initialized
-  t_odom_lcam_ = pose_msg_to_transform(geometry_msgs::msg::Pose{});
+  t_odom_lcam_ = orca::pose_msg_to_transform(geometry_msgs::msg::Pose{});
 
   key_features_pub_ = node->create_publisher<sensor_msgs::msg::PointCloud2>("key", 10);
   curr_features_pub_ = node->create_publisher<sensor_msgs::msg::PointCloud2>("curr", 10);
@@ -105,7 +105,7 @@ void StereoProcessor::process(
   }
 
   // Always publish odometry
-  publish_odometry(curr_stamp);
+  odom_pub_.publish(curr_stamp, t_odom_lcam_, params_.publish_tf_);
 
   STOP_PERF(stats_msg.time_callback)
 
@@ -139,15 +139,6 @@ void StereoProcessor::publish_features(const builtin_interfaces::msg::Time & sta
       curr_features_pub_->publish(msg);
     }
   }
-}
-
-void StereoProcessor::publish_odometry(const builtin_interfaces::msg::Time & stamp)
-{
-  geometry_msgs::msg::PoseStamped pose_msg;
-  pose_msg.header.stamp = stamp;
-  pose_msg.header.frame_id = params_.odom_frame_id_;
-  pose_msg.pose = orca::transform_to_pose_msg(t_odom_lcam_);
-  odom_pub_.publish(pose_msg, params_.publish_tf_);
 }
 
 }  // namespace orca_vision

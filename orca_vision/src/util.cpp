@@ -10,17 +10,6 @@ namespace orca_vision
 {
 
 //=========================
-// geometry_msgs:: <==> tf2::
-//=========================
-
-tf2::Transform pose_msg_to_transform(const geometry_msgs::msg::Pose & pose)
-{
-  tf2::Transform transform;
-  tf2::fromMsg(pose, transform);
-  return transform;
-}
-
-//=========================
 // cv:: <==> tf2::
 //=========================
 
@@ -61,45 +50,14 @@ void tf2_to_cv(const tf2::Matrix3x3 &r, cv::Mat &m)
   }
 }
 
-std::string str(const tf2::Vector3 &v)
-{
-  std::stringstream s;
-  s.width(7);
-  s.precision(2);
-  s.setf(std::ios_base::fixed);
-  s << "[" << v.x() << ", " << v.y() << ", " << v.z() << "]";
-  return s.str();
-}
-
-std::string str(const tf2::Matrix3x3 &r)
-{
-  std::stringstream s;
-  s.width(7);
-  s.precision(2);
-  s.setf(std::ios_base::fixed);
-  s << "[";
-  for (int i = 0; i < 3; ++i) {
-    tf2::Vector3 v = r.getRow(i);
-    s << "[" << v.x() << ", " << v.y() << ", " << v.z() << "]";
-  }
-  s << "]";
-  return s.str();
-}
-
-std::string str(const tf2::Transform &t)
-{
-  return str(t.getBasis()) + ", " + str(t.getOrigin());
-}
-
 cv::Point3f point3f(const tf2::Vector3 &p)
 {
-  return cv::Point3f(static_cast<float>(p.x()), static_cast<float>(p.y()),
-    static_cast<float>(p.z()));
+  return {static_cast<float>(p.x()), static_cast<float>(p.y()), static_cast<float>(p.z())};
 }
 
 tf2::Vector3 vector3(const cv::Point3f &p)
 {
-  return tf2::Vector3(p.x, p.y, p.z);
+  return {p.x, p.y, p.z};
 }
 
 void test_conversions()

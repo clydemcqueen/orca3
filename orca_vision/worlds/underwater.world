@@ -95,7 +95,10 @@
           </camera>
           <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
             <!-- Omit camera_name, will default to sensor name -->
-            <!-- Omit frame_name, will default to link name -->
+            <!-- Default frame name is the link name (camera_link). Override to distinguish between
+                 the link, which pitches forward pi/4, and the camera frame, which pitches forward
+                 pi/2. Both cameras will use the same frame name -->
+            <frame_name>left_camera_frame</frame_name>
             <!-- The baseline value is the distance between the 2 cameras. It shows up in the
                  camera info projection matrix. In theory it can be gleaned by looking at the
                  pose tags of the 2 cameras above, but in practice we need to set it using the

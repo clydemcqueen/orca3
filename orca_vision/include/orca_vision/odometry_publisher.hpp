@@ -11,6 +11,7 @@ namespace orca_vision
 class OdometryPublisher
 {
   rclcpp::Logger logger_;
+  std::string odom_frame_id_;
   std::string base_frame_id_;
   std::string camera_frame_id_;
 
@@ -22,10 +23,11 @@ class OdometryPublisher
 public:
   OdometryPublisher(
     rclcpp::Node *node,
+    std::string odom_frame_id,
     std::string base_frame_id,
     std::string camera_frame_id);
 
-  void publish(const geometry_msgs::msg::PoseStamped & cf_f_world, bool publish_tf);
+  void publish(const builtin_interfaces::msg::Time & stamp, const tf2::Transform & t_cam0_cam1, bool publish_tf);
 };
 
 }  // namespace orca_vision
