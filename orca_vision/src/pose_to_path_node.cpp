@@ -17,8 +17,8 @@ public:
   {
     (void) pose_sub_;
 
-    path_pub_ = create_publisher<nav_msgs::msg::Path>("camera_path", 10);
-    pose_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>("camera_pose",
+    path_pub_ = create_publisher<nav_msgs::msg::Path>("path", 10);
+    pose_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>("pose",
       10, [this](const geometry_msgs::msg::PoseStamped::ConstSharedPtr msg)
       {
         if (path_pub_->get_subscription_count() > 0) {

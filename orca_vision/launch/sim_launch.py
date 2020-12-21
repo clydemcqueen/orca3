@@ -51,7 +51,7 @@ def generate_launch_description():
 
         DeclareLaunchArgument(
             'rviz',
-            default_value='False',
+            default_value='True',
             description='Launch rviz?'),
 
         DeclareLaunchArgument(
@@ -106,5 +106,8 @@ def generate_launch_description():
 
         # Publish path
         Node(package='orca_vision', executable='pose_to_path', output='screen',
-             name='pose_to_path_node')
+             name='pose_to_path_node', remappings=[
+                ('pose', 'base_pose'),
+                ('path', 'base_path'),
+            ])
     ])
