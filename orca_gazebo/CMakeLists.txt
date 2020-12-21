@@ -60,4 +60,4 @@ install(PROGRAMS
   DESTINATION lib/${PROJECT_NAME}
 )
 
-ament_auto_package(INSTALL_TO_SHARE "${CMAKE_CURRENT_BINARY_DIR}/worlds")
+ament_auto_package(INSTALL_TO_SHARE models "${CMAKE_CURRENT_BINARY_DIR}/worlds")

@@ -2,6 +2,24 @@
 
 <robot name="orca" xmlns:xacro="http://ros.org/wiki/xacro">
 
+  <!-- Simulation modes:
+       SIM_MODE:=hw6           Hardware build 6
+       SIM_MODE:=stereo_test   Test down-facing stereo camera
+       SIM_MODE:=hw7           Hardware build 7, which includes down-facing stereo camera -->
+  <xacro:property name="SIM_MODE" value="$(arg SIM_MODE)"/>
+
+  <orca_simulation_mode>${SIM_MODE}</orca_simulation_mode>
+
+  <!-- Enable / disable Gazebo plugins -->
+  <xacro:property name="BUOYANCY_PLUGIN" value="true"/>
+  <xacro:property name="DRAG_PLUGIN" value="${SIM_MODE != 'stereo_test'}"/>
+  <xacro:property name="THRUSTER_PLUGIN" value="${SIM_MODE != 'stereo_test'}"/>
+  <xacro:property name="BAROMETER_PLUGIN" value="${SIM_MODE != 'stereo_test'}"/>
+  <xacro:property name="FORWARD_CAMERA_PLUGIN" value="${SIM_MODE != 'stereo_test'}"/>
+  <xacro:property name="STEREO_CAMERA_PLUGIN" value="${SIM_MODE == 'stereo_test' or SIM_MODE == 'hw7'}"/>
+  <xacro:property name="MOTION_PLUGIN" value="${SIM_MODE == 'stereo_test'}"/>
+  <xacro:property name="GROUND_TRUTH_PLUGIN" value="true"/>
+
   <!--
       Orca constants
 
@@ -38,6 +56,7 @@
   <xacro:property name="REVERSE_FORCE" value="40"/>
   <xacro:property name="HAS_TETHER" default="false"/>
   <xacro:property name="SURFACE" default="0"/>
+  <xacro:property name="STEREO_BASELINE" default="0.36"/>
 
   <!-- Physics properties -->
   <xacro:property name="FLUID_DENSITY" value="997"/>
@@ -174,14 +193,14 @@
     </visual>
     <!-- Left down-facing camera tube -->
     <visual>
-      <origin xyz="-0.15 0.18 0" rpy="0 0 0"/>
+      <origin xyz="-0.15 ${STEREO_BASELINE/2} 0" rpy="0 0 0"/>
       <geometry>
         <cylinder length="0.135" radius="0.0275"/>
       </geometry>
     </visual>
     <!-- Right down-facing camera tube -->
     <visual>
-      <origin xyz="-0.15 -0.18 0" rpy="0 0 0"/>
+      <origin xyz="-0.15 ${-STEREO_BASELINE/2} 0" rpy="0 0 0"/>
       <geometry>
         <cylinder length="0.135" radius="0.0275"/>
       </geometry>
@@ -262,7 +281,7 @@
   <!-- Left camera frame -->
   <link name="left_camera_frame"/>
 
-  <!-- Attach left_camera_frame to base_link (parsed by filter_node) -->
+  <!-- Attach left_camera_frame to base_link -->
   <joint name="left_camera_frame_joint" type="fixed">
     <origin xyz="-0.15 0.18 -0.0675" rpy="0 ${PI} 0"/>
     <parent link="base_link"/>
@@ -291,7 +310,7 @@
   <!-- Right camera frame -->
   <link name="right_camera_frame"/>
 
-  <!-- Attach right_camera_frame to base_link (parsed by filter_node) -->
+  <!-- Attach right_camera_frame to base_link -->
   <joint name="right_camera_frame_joint" type="fixed">
     <origin xyz="-0.15 -0.18 -0.0675" rpy="0 ${PI} 0"/>
     <parent link="base_link"/>
@@ -320,78 +339,86 @@
 
   <!-- The OrcaBuoyancyPlugin applies a force that counteracts gravity. Buoyancy force is not
        applied if the link is above the surface of the water. -->
-  <gazebo>
-    <plugin name="OrcaBuoyancyPlugin" filename="libOrcaBuoyancyPlugin.so">
-      <base_link>base_link</base_link>
-      <center_of_volume>0 0 ${VOLUME_Z}</center_of_volume>
-      <fluid_density>${FLUID_DENSITY}</fluid_density>
-      <volume>${TOTAL_VOLUME}</volume>
-    </plugin>
-  </gazebo>
+  <xacro:if value="${BUOYANCY_PLUGIN}">
+    <gazebo>
+      <plugin name="OrcaBuoyancyPlugin" filename="libOrcaBuoyancyPlugin.so">
+        <base_link>base_link</base_link>
+        <center_of_volume>0 0 ${VOLUME_Z}</center_of_volume>
+        <fluid_density>${FLUID_DENSITY}</fluid_density>
+        <volume>${TOTAL_VOLUME}</volume>
+      </plugin>
+    </gazebo>
+  </xacro:if>
 
   <!-- The OrcaDragPlugin applies a drag force proportional to velocity^2. -->
-  <gazebo>
-    <plugin name="OrcaDragPlugin" filename="libOrcaDragPlugin.so">
-      <angular_drag>4 4 4</angular_drag>
-      <base_link>base_link</base_link>
-      <center_of_mass>0 0 ${MASS_Z}</center_of_mass>
-    </plugin>
-  </gazebo>
+  <xacro:if value="${DRAG_PLUGIN}">
+    <gazebo>
+      <plugin name="OrcaDragPlugin" filename="libOrcaDragPlugin.so">
+        <angular_drag>4 4 4</angular_drag>
+        <base_link>base_link</base_link>
+        <center_of_mass>0 0 ${MASS_Z}</center_of_mass>
+      </plugin>
+    </gazebo>
+  </xacro:if>
 
   <!-- The OrcaThrusterPlugin turns ROS messages into thrust forces. Each message contains an array
        of thrust efforts [-1.0, 1.0]. The URDF to SDF translation nukes the joints, so joint locations
        must appear here. -->
-  <gazebo>
-    <plugin name="OrcaThrusterPlugin" filename="libOrcaThrusterPlugin.so">
-      <base_link>base_link</base_link>
-      <thruster
-          name="front_right"> <!-- name attributes are ignored; the tag order must match the message array order -->
-        <pos_force>${FORWARD_FORCE}
-        </pos_force> <!-- units are N, positive for ccw, negative for cw -->
-        <neg_force>${REVERSE_FORCE}
-        </neg_force> <!-- units are N, positive for ccw, negative for cw -->
-        <xacro:insert_block name="front_right_origin"/>
-      </thruster>
-      <thruster name="front_left">
-        <pos_force>${FORWARD_FORCE}</pos_force>
-        <neg_force>${REVERSE_FORCE}</neg_force>
-        <xacro:insert_block name="front_left_origin"/>
-      </thruster>
-      <thruster name="rear_right">
-        <pos_force>${-REVERSE_FORCE}</pos_force>
-        <neg_force>${-FORWARD_FORCE}</neg_force>
-        <xacro:insert_block name="rear_right_origin"/>
-      </thruster>
-      <thruster name="rear_left">
-        <pos_force>${-REVERSE_FORCE}</pos_force>
-        <neg_force>${-FORWARD_FORCE}</neg_force>
-        <xacro:insert_block name="rear_left_origin"/>
-      </thruster>
-      <thruster name="vertical_right">
-        <pos_force>${FORWARD_FORCE}</pos_force>
-        <neg_force>${REVERSE_FORCE}</neg_force>
-        <xacro:insert_block name="vertical_right_origin"/>
-      </thruster>
-      <thruster name="vertical_left">
-        <pos_force>${-REVERSE_FORCE}</pos_force>
-        <neg_force>${-FORWARD_FORCE}</neg_force>
-        <xacro:insert_block name="vertical_left_origin"/>
-      </thruster>
-    </plugin>
-  </gazebo>
+  <xacro:if value="${THRUSTER_PLUGIN}">
+    <gazebo>
+      <plugin name="OrcaThrusterPlugin" filename="libOrcaThrusterPlugin.so">
+        <base_link>base_link</base_link>
+        <thruster
+            name="front_right"> <!-- name attributes are ignored; the tag order must match the message array order -->
+          <pos_force>${FORWARD_FORCE}
+          </pos_force> <!-- units are N, positive for ccw, negative for cw -->
+          <neg_force>${REVERSE_FORCE}
+          </neg_force> <!-- units are N, positive for ccw, negative for cw -->
+          <xacro:insert_block name="front_right_origin"/>
+        </thruster>
+        <thruster name="front_left">
+          <pos_force>${FORWARD_FORCE}</pos_force>
+          <neg_force>${REVERSE_FORCE}</neg_force>
+          <xacro:insert_block name="front_left_origin"/>
+        </thruster>
+        <thruster name="rear_right">
+          <pos_force>${-REVERSE_FORCE}</pos_force>
+          <neg_force>${-FORWARD_FORCE}</neg_force>
+          <xacro:insert_block name="rear_right_origin"/>
+        </thruster>
+        <thruster name="rear_left">
+          <pos_force>${-REVERSE_FORCE}</pos_force>
+          <neg_force>${-FORWARD_FORCE}</neg_force>
+          <xacro:insert_block name="rear_left_origin"/>
+        </thruster>
+        <thruster name="vertical_right">
+          <pos_force>${FORWARD_FORCE}</pos_force>
+          <neg_force>${REVERSE_FORCE}</neg_force>
+          <xacro:insert_block name="vertical_right_origin"/>
+        </thruster>
+        <thruster name="vertical_left">
+          <pos_force>${-REVERSE_FORCE}</pos_force>
+          <neg_force>${-FORWARD_FORCE}</neg_force>
+          <xacro:insert_block name="vertical_left_origin"/>
+        </thruster>
+      </plugin>
+    </gazebo>
+  </xacro:if>
 
   <!-- The OrcaBarometerPlugin (wraps a Gazebo altimeter sensor) simulates a barometer sensor such
        as the BlueRobotics Bar30. -->
-  <gazebo reference="baro_link">
-    <sensor name="barometer_sensor" type="altimeter">
-      <update_rate>${BARO_FREQ}</update_rate>
-      <plugin name="OrcaBarometerPlugin" filename="libOrcaBarometerPlugin.so">
-        <fluid_density>${FLUID_DENSITY}</fluid_density>
-        <baro_link_to_base_link_z_>0.05</baro_link_to_base_link_z_>
-        <variance>${BARO_VAR}</variance>
-      </plugin>
-    </sensor>
-  </gazebo>
+  <xacro:if value="${BAROMETER_PLUGIN}">
+    <gazebo reference="baro_link">
+      <sensor name="barometer_sensor" type="altimeter">
+        <update_rate>${BARO_FREQ}</update_rate>
+        <plugin name="OrcaBarometerPlugin" filename="libOrcaBarometerPlugin.so">
+          <fluid_density>${FLUID_DENSITY}</fluid_density>
+          <baro_link_to_base_link_z_>0.05</baro_link_to_base_link_z_>
+          <variance>${BARO_VAR}</variance>
+        </plugin>
+      </sensor>
+    </gazebo>
+  </xacro:if>
 
   <!-- The camera_controller plugin (wraps a Gazebo camera sensor) simulates a camera driver.
        This xacro macro attaches a camera to ${prefix}_camera_link: -->
@@ -438,25 +465,102 @@
   </xacro:macro>
 
   <!-- Forward-facing camera: -->
-  <xacro:camera_plugin prefix="forward" width="1920" height="1080" horizontal_fov="1.4"/>
+  <xacro:if value="${FORWARD_CAMERA_PLUGIN}">
+    <xacro:camera_plugin prefix="forward" width="1920" height="1080" horizontal_fov="1.4"/>
+  </xacro:if>
 
-  <!-- Left down-facing camera: -->
-  <!--    <xacro:camera_plugin prefix="left" width="800" height="600" horizontal_fov="1.4"/>-->
+  <!-- Stereo camera driver, tied to the left_camera_link -->
+  <xacro:if value="${STEREO_CAMERA_PLUGIN}">
+    <gazebo reference="left_camera_link">
+      <sensor type="multicamera" name="stereo">
+        <pose>0 0 0 0 0 0</pose>
+        <update_rate>30</update_rate>
+        <visualize>true</visualize>
+        <camera name="left">
+          <pose>0 0 0 0 0 0</pose>
+          <horizontal_fov>1.4</horizontal_fov>
+          <image>
+            <width>800</width>
+            <height>600</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip>
+            <near>0.02</near>
+            <far>300</far>
+          </clip>
+          <noise>
+            <type>gaussian</type>
+            <!-- Noise is sampled independently per pixel on each frame.
+                 That pixel's noise value is added to each of its color
+                 channels, which at that point lie in the range [0,1]. -->
+            <mean>0.0</mean>
+            <stddev>0.007</stddev>
+          </noise>
+        </camera>
+        <camera name="right">
+          <pose>0 ${-STEREO_BASELINE} 0 0 0 0</pose>
+          <horizontal_fov>1.4</horizontal_fov>
+          <image>
+            <width>800</width>
+            <height>600</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip>
+            <near>0.02</near>
+            <far>300</far>
+          </clip>
+          <noise>
+            <type>gaussian</type>
+            <!-- Noise is sampled independently per pixel on each frame.
+                 That pixel's noise value is added to each of its color
+                 channels, which at that point lie in the range [0,1]. -->
+            <mean>0.0</mean>
+            <stddev>0.007</stddev>
+          </noise>
+        </camera>
+        <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+          <!-- Omit camera_name, will default to sensor name -->
+          <!-- Default frame name is the link name (left_camera_link). Override to distinguish
+               between the link, which pitches forward pi/4, and the camera frame, which pitches
+               forward pi/2. Both cameras will use the same frame name -->
+          <frame_name>left_camera_frame</frame_name>
+          <!-- The baseline value is the distance between the 2 cameras. It shows up in the
+               camera info projection matrix. In theory it can be gleaned by looking at the
+               pose tags of the 2 cameras above, but in practice we need to set it using the
+               hack_baseline tag. -->
+          <hack_baseline>${STEREO_BASELINE}</hack_baseline>
+        </plugin>
+      </sensor>
+    </gazebo>
+  </xacro:if>
 
-  <!-- Right down-facing camera: -->
-  <!--    <xacro:camera_plugin prefix="right" width="800" height="600" horizontal_fov="1.4"/>-->
+  <!-- Report ground truth -->
+  <xacro:if value="${GROUND_TRUTH_PLUGIN}">
+    <gazebo>
+      <plugin name="p3d_test" filename="libgazebo_ros_p3d.so">
+        <ros>
+          <argument>odom:=ground_truth</argument>
+        </ros>
+        <update_rate>30.0</update_rate>
+        <body_name>base_link</body_name>
+        <frame_name>odom</frame_name>
+        <xyz_offsets>0 0 0</xyz_offsets>
+        <rpy_offsets>0 0 0</rpy_offsets>
+      </plugin>
+    </gazebo>
+  </xacro:if>
 
-  <gazebo>
-    <plugin name="p3d_test" filename="libgazebo_ros_p3d.so">
-      <ros>
-        <argument>odom:=ground_truth</argument>
-      </ros>
-      <update_rate>30.0</update_rate>
-      <body_name>base_link</body_name>
-      <frame_name>map</frame_name>
-      <xyz_offsets>0 0 0</xyz_offsets>
-      <rpy_offsets>0 0 0</rpy_offsets>
-    </plugin>
-  </gazebo>
+  <!-- A simple motion plugin for very simple simulations, turn off for normal simulations -->
+  <xacro:if value="${MOTION_PLUGIN}">
+    <gazebo>
+      <plugin name="MotionPlugin" filename="libMotionPlugin.so">
+        <link name="base_link">
+          <period>20</period>
+          <linear_vel>0.1 0.05 0</linear_vel>
+          <angular_vel>0 0 0</angular_vel>
+        </link>
+      </plugin>
+    </gazebo>
+  </xacro:if>
 
 </robot>

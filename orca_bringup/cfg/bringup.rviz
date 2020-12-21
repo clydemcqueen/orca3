@@ -46,7 +46,7 @@ Visualization Manager:
     - Alpha: 1
       Class: rviz_default_plugins/RobotModel
       Collision Enabled: false
-      Description File: /home/clyde/ros2/nav2_ws/install/orca_description/share/orca_description/urdf/orca.urdf
+      Description File: install/orca_description/share/orca_description/urdf/hw6.urdf
       Description Source: File
       Description Topic:
         Depth: 5

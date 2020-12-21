@@ -22,8 +22,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""Run a simulation."""
+"""Simulate stereo odometry."""
 
+import os
+
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess
 from launch.conditions import IfCondition
@@ -32,19 +35,36 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
+    # Use a simpler urdf file: no forward camera, no barometer, no thrust, no drag
+    orca_description_dir = get_package_share_directory('orca_description')
+    urdf_file = os.path.join(orca_description_dir, 'urdf', 'stereo_test.urdf')
+
+    # No fiducial markers
+    orca_gazebo_dir = get_package_share_directory('orca_gazebo')
+    world_file = os.path.join(orca_gazebo_dir, 'worlds', 'empty.world')
 
     return LaunchDescription([
         DeclareLaunchArgument(
-            "gzclient",
-            default_value="False",
-            description="Launch Gazebo UI?"),
+            'gzclient',
+            default_value='False',
+            description='Launch Gazebo UI?'),
+
+        DeclareLaunchArgument(
+            'rviz',
+            default_value='False',
+            description='Launch rviz?'),
+
+        DeclareLaunchArgument(
+            'debug_windows',
+            default_value='True',
+            description='Show opencv debug windows?'),
 
         # Launch gzserver
         ExecuteProcess(
             cmd=['gzserver',
                  '-s', 'libgazebo_ros_init.so',  # Publish /clock
                  '-s', 'libgazebo_ros_factory.so',  # Injection endpoint
-                 'install/orca_vision/share/orca_vision/worlds/underwater.world'],
+                 world_file],
             output='screen'),
 
         # Launch gzclient
@@ -53,20 +73,38 @@ def generate_launch_description():
             output='screen',
             condition=IfCondition(LaunchConfiguration('gzclient'))),
 
-        # Publish static transform
+        # Launch rviz
         ExecuteProcess(
-            cmd=['/opt/ros/foxy/lib/tf2_ros/static_transform_publisher',
-                 '0', '0', '0', '0', '1.570796327', '0',
-                 'base_link', 'camera_link',
-                 '--ros-args', '-p', 'use_sim_time:=true'],
-            output='screen'),
+            cmd=['rviz2'],
+            output='screen',
+            condition=IfCondition(LaunchConfiguration('rviz'))),
+
+        # Inject the urdf file
+        Node(package='sim_fiducial',
+             executable='inject_entity.py',
+             output='screen',
+             arguments=[urdf_file, '0', '0', '0', '0', '0', '0'],
+             parameters=[{'use_sim_time': True}]),
+
+        # Publish static transform
+        Node(
+            package='robot_state_publisher',
+            executable='robot_state_publisher',
+            output='screen',
+            name='robot_state_publisher',
+            arguments=[urdf_file],
+            parameters=[]),
 
         # Publish odometry
         Node(package='orca_vision', executable='stereo_odometry', output='screen',
              name='stereo_odometry_node', parameters=[{
+                'debug_windows': LaunchConfiguration('debug_windows'),
+                'base_frame_id': 'base_link',
+                'lcam_frame_id': 'left_camera_frame',
+                'publish_tf': True,
              }]),
 
         # Publish path
-        Node(package="orca_vision", executable='pose_to_path', output='screen',
+        Node(package='orca_vision', executable='pose_to_path', output='screen',
              name='pose_to_path_node')
     ])

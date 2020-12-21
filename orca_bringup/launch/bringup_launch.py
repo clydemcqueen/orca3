@@ -44,7 +44,7 @@ def generate_launch_description():
     nav2_launch_dir = os.path.join(nav2_bringup_dir, 'launch')
     orca_description_dir = get_package_share_directory('orca_description')
 
-    urdf_file = os.path.join(orca_description_dir, 'urdf', 'orca.urdf')
+    urdf_file = os.path.join(orca_description_dir, 'urdf', 'hw6.urdf')
     teleop_params_file = os.path.join(orca_bringup_dir, 'params', 'xbox_holonomic_3d.yaml')
 
     use_sim_time = LaunchConfiguration('use_sim_time')
