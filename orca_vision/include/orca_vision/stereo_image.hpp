@@ -62,7 +62,7 @@ class StereoImage
   Image left_, right_;                    // Left and right image data
   std::vector<cv::DMatch> matches_;       // List of features found in both left and right
   std::vector<cv::Point3f> matches_3d_;   // Feature locations projected into 3D
-  tf2::Transform t_odom_lcam_;            // Transform odom => left_camera_frame
+  tf2::Transform t_cam0_cam1_;            // Transform: left camera frame at time 0 to now
 
  public:
 
@@ -73,7 +73,7 @@ class StereoImage
     params_{params},
     left_{logger, params, left_image},
     right_{logger, params, right_image},
-    t_odom_lcam_{tf2::Matrix3x3::getIdentity(), tf2::Vector3()} {}
+    t_cam0_cam1_{tf2::Matrix3x3::getIdentity(), tf2::Vector3()} {}
 
   bool detect(const cv::Ptr<cv::ORB> & detector,
     const image_geometry::StereoCameraModel & camera_model,
@@ -87,9 +87,9 @@ class StereoImage
 
   const std::vector<cv::Point3f> &matches_3d() const { return matches_3d_; }
 
-  const tf2::Transform &t_odom_lcam() const { return t_odom_lcam_; }
+  const tf2::Transform &t_cam0_cam1() const { return t_cam0_cam1_; }
 
-  // Compute and set t_odom_lcam_
+  // Compute and set t_cam0_cam1_
   bool compute_transform(
     const std::shared_ptr<StereoImage> & key_image,
     const cv::DescriptorMatcher & matcher,
@@ -97,8 +97,8 @@ class StereoImage
     std::vector<cv::Point3f> & curr_good,
     orca_msgs::msg::StereoStats & stats);
 
-  // Bootstrap: set t_odom_lcam_
-  void set_t_odom_lcam(const tf2::Transform &t_odom_lcam) { t_odom_lcam_ = t_odom_lcam; }
+  // Bootstrap: set t_cam0_cam1_
+  void set_t_cam0_cam1(const tf2::Transform &t_cam0_cam1) { t_cam0_cam1_ = t_cam0_cam1; }
 };
 
 } // namespace orca_vision

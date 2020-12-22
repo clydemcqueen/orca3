@@ -27,8 +27,8 @@ class StereoProcessor
   builtin_interfaces::msg::Time prev_stamp_;
   std::shared_ptr<StereoImage> prev_image_, key_image_;
 
-  // Current camera pose
-  tf2::Transform t_odom_lcam_;
+  // Current camera pose, keep state even if we lose odometry
+  tf2::Transform t_cam0_cam1_;
 
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr curr_features_pub_;
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr key_features_pub_;

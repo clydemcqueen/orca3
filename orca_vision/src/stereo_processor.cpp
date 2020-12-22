@@ -29,6 +29,7 @@ StereoProcessor::StereoProcessor(
   logger_(node->get_logger()),
   params_(params),
   matcher_(cv::NORM_HAMMING, true), // TODO try FLANN
+  t_cam0_cam1_(tf2::Matrix3x3::getIdentity(), tf2::Vector3()),
   odom_pub_(node, params.odom_frame_id_, params.base_frame_id_, params.lcam_frame_id_)
 {
   if (!camera_model_.fromCameraInfo(camera_info_left, camera_info_right)) {
@@ -39,9 +40,6 @@ StereoProcessor::StereoProcessor(
     camera_model_.baseline() * 100);
 
   detector_ = cv::ORB::create(params_.detect_num_features_);
-
-  // tf2::Transform must be initialized
-  t_odom_lcam_ = orca::pose_msg_to_transform(geometry_msgs::msg::Pose{});
 
   key_features_pub_ = node->create_publisher<sensor_msgs::msg::PointCloud2>("key", 10);
   curr_features_pub_ = node->create_publisher<sensor_msgs::msg::PointCloud2>("curr", 10);
@@ -67,7 +65,7 @@ void StereoProcessor::process(
     if (!prev_image_) {
       // Bootstrap
       RCLCPP_INFO(logger_, "Bootstrap");
-      curr_image->set_t_odom_lcam(t_odom_lcam_);
+      curr_image->set_t_cam0_cam1(t_cam0_cam1_);
       key_image_ = prev_image_ = curr_image;
     } else {
       stats_msg.dt = (rclcpp::Time(curr_stamp) - prev_stamp_).seconds();
@@ -89,7 +87,7 @@ void StereoProcessor::process(
 
       if (good_odometry) {
         // Success!
-        t_odom_lcam_ = curr_image->t_odom_lcam();
+        t_cam0_cam1_ = curr_image->t_cam0_cam1();
 
         publish_features(curr_stamp, key_good, true);
         publish_features(curr_stamp, curr_good, false);
@@ -105,7 +103,7 @@ void StereoProcessor::process(
   }
 
   // Always publish odometry
-  odom_pub_.publish(curr_stamp, t_odom_lcam_, params_.publish_tf_);
+  odom_pub_.publish(curr_stamp, t_cam0_cam1_, params_.publish_tf_);
 
   STOP_PERF(stats_msg.time_callback)
 

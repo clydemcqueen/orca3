@@ -241,12 +241,11 @@ bool StereoImage::compute_transform(
   }
 
   // Compute the change in the camera pose
-  tf2::Transform change;
-  rigid_transform(curr_good, key_good, change);
+  tf2::Transform t_prev_curr;
+  rigid_transform(curr_good, key_good, t_prev_curr);
 
-  // Update curr_image.t_odom_lcam_
-  tf2::Transform t_odom_lcam = change * key_image->t_odom_lcam();
-  t_odom_lcam_ = t_odom_lcam;
+  // Update curr_image.t_cam0_cam1_
+  t_cam0_cam1_ = key_image->t_cam0_cam1() * t_prev_curr;
 
   STOP_PERF(stats.time_compute_tf)
   return true;
