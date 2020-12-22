@@ -24,6 +24,7 @@ class StereoProcessor
   cv::BFMatcher matcher_;
 
   // Keep 2 previous frames
+  builtin_interfaces::msg::Time prev_stamp_;
   std::shared_ptr<StereoImage> prev_image_, key_image_;
 
   // Current camera pose
@@ -45,6 +46,7 @@ public:
     const sensor_msgs::msg::CameraInfo & camera_info_right);
 
   void process(
+    const builtin_interfaces::msg::Time & curr_stamp,
     const sensor_msgs::msg::Image::ConstSharedPtr & image_left,
     const sensor_msgs::msg::Image::ConstSharedPtr & image_right);
 };

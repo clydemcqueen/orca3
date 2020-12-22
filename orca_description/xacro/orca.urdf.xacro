@@ -518,7 +518,7 @@
             <stddev>0.007</stddev>
           </noise>
         </camera>
-        <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+        <plugin name="stereo_camera_controller" filename="libgazebo_ros_camera.so">
           <!-- Omit camera_name, will default to sensor name -->
           <!-- Default frame name is the link name (left_camera_link). Override to distinguish
                between the link, which pitches forward pi/4, and the camera frame, which pitches
@@ -555,9 +555,9 @@
     <gazebo>
       <plugin name="MotionPlugin" filename="libMotionPlugin.so">
         <link name="base_link">
-          <period>20</period>
-          <linear_vel>0.1 0.05 0</linear_vel>
-          <angular_vel>0 0 0</angular_vel>
+          <period>30</period>
+          <linear_vel>0.2 0.2 0</linear_vel>
+          <angular_vel>0 0 0.2</angular_vel>
         </link>
       </plugin>
     </gazebo>

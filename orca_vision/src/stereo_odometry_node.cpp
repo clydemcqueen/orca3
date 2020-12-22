@@ -182,7 +182,9 @@ private:
           image_right_ = nullptr;
           lock.unlock();
 
-          processor_->process(image_left, image_right);
+          auto stamp = params_.stamp_msgs_with_current_time_ ?
+            builtin_interfaces::msg::Time(now()) : image_left->header.stamp;
+          processor_->process(stamp, image_left, image_right);
         }
       });
     }

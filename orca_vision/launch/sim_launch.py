@@ -104,10 +104,17 @@ def generate_launch_description():
                 'publish_tf': True,
              }]),
 
-        # Publish path
+        # Publish estimated path
         Node(package='orca_vision', executable='pose_to_path', output='screen',
              name='pose_to_path_node', remappings=[
                 ('pose', 'base_pose'),
                 ('path', 'base_path'),
-            ])
+            ]),
+
+        # Publish ground truth path
+        Node(package='orca_vision', executable='odom_to_path', output='screen',
+             name='odom_to_path_node', remappings=[
+                ('odom', 'ground_truth'),
+                ('path', 'gt_path'),
+            ]),
     ])

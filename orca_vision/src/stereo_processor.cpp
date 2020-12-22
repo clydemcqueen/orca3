@@ -51,13 +51,13 @@ StereoProcessor::StereoProcessor(
 }
 
 void StereoProcessor::process(
+  const builtin_interfaces::msg::Time & curr_stamp,
   const sensor_msgs::msg::Image::ConstSharedPtr & image_left,
   const sensor_msgs::msg::Image::ConstSharedPtr & image_right)
 {
   START_PERF()
 
   auto curr_image = std::make_shared<StereoImage>(logger_, params_, image_left, image_right);
-  auto curr_stamp = curr_image->left().stamp();
   orca_msgs::msg::StereoStats stats_msg;
   stats_msg.header.stamp = curr_stamp;
 
@@ -70,7 +70,7 @@ void StereoProcessor::process(
       curr_image->set_t_odom_lcam(t_odom_lcam_);
       key_image_ = prev_image_ = curr_image;
     } else {
-      stats_msg.dt = (rclcpp::Time(curr_stamp) - prev_image_->left().stamp()).seconds();
+      stats_msg.dt = (rclcpp::Time(curr_stamp) - prev_stamp_).seconds();
 
       std::vector<cv::Point3f> key_good;
       std::vector<cv::Point3f> curr_good;

@@ -81,6 +81,16 @@ base_controller:
     mdl_volume: 0.01
     mdl_fluid_density: 997.0
     mdl_thrust_scale: 1.0
+    publish_tf: False  # Experiment: use stereo odometry for odom->base_link tf
+
+stereo_odometry:
+  ros__parameters:
+    use_sim_time: False
+    debug_windows: True
+    base_frame_id: 'base_link'
+    lcam_frame_id: 'left_camera_frame'
+    publish_tf: True
+    stamp_msgs_with_current_time: True
 
 fiducial_localizer:
   ros__parameters:

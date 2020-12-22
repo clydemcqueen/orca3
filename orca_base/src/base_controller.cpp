@@ -132,15 +132,19 @@ class BaseController : public rclcpp::Node
     odom_msg_.twist.twist = orca::robot_to_world_frame(cmd_vel_, yaw);
     odom_msg_.header.stamp = t;
 
-    // Publish odometry
-    odom_pub_->publish(odom_msg_);
+    if (odom_pub_->get_subscription_count() > 0) {
+      // Publish odometry
+      odom_pub_->publish(odom_msg_);
+    }
 
-    // Publish odom->base_link transform
-    geometry_msgs::msg::TransformStamped t_base_odom;
-    t_base_odom.transform = orca::pose_msg_to_transform_msg(odom_msg_.pose.pose);
-    t_base_odom.header = odom_msg_.header;
-    t_base_odom.child_frame_id = odom_msg_.child_frame_id;
-    tf_broadcaster_->sendTransform(t_base_odom);
+    if (cxt_.publish_tf_) {
+      // Publish odom->base_link transform
+      geometry_msgs::msg::TransformStamped t_base_odom;
+      t_base_odom.transform = orca::pose_msg_to_transform_msg(odom_msg_.pose.pose);
+      t_base_odom.header = odom_msg_.header;
+      t_base_odom.child_frame_id = odom_msg_.child_frame_id;
+      tf_broadcaster_->sendTransform(t_base_odom);
+    }
   }
 
   void publish_thrust(const rclcpp::Time & t, double dt)

@@ -44,7 +44,7 @@ def generate_launch_description():
     nav2_launch_dir = os.path.join(nav2_bringup_dir, 'launch')
     orca_description_dir = get_package_share_directory('orca_description')
 
-    urdf_file = os.path.join(orca_description_dir, 'urdf', 'hw6.urdf')
+    urdf_file = os.path.join(orca_description_dir, 'urdf', 'hw7.urdf')  # TODO choose urdf
     teleop_params_file = os.path.join(orca_bringup_dir, 'params', 'xbox_holonomic_3d.yaml')
 
     use_sim_time = LaunchConfiguration('use_sim_time')
@@ -139,6 +139,14 @@ def generate_launch_description():
             executable='base_controller',
             output='screen',
             name='base_controller',
+            parameters=[configured_orca_params]),
+
+        # Experimental: stereo odometry
+        Node(
+            package='orca_vision',
+            executable='stereo_odometry',
+            output='screen',
+            name='stereo_odometry',
             parameters=[configured_orca_params]),
 
         # Publish a map of ArUco markers

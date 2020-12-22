@@ -35,6 +35,7 @@ namespace orca_vision
   CXT_MACRO_MEMBER(debug_windows, bool, false) \
   \
   CXT_MACRO_MEMBER(subscribe_best_effort, bool, true) \
+  CXT_MACRO_MEMBER(stamp_msgs_with_current_time, bool, false) \
   CXT_MACRO_MEMBER(publish_tf, bool, true) \
   \
   CXT_MACRO_MEMBER(odom_frame_id, std::string, "odom") \

@@ -59,7 +59,7 @@ def generate_launch_description():
     orca_gazebo_dir = get_package_share_directory('orca_gazebo')
     orca_description_dir = get_package_share_directory('orca_description')
 
-    urdf_file = os.path.join(orca_description_dir, 'urdf', 'hw6.urdf')
+    urdf_file = os.path.join(orca_description_dir, 'urdf', 'hw7.urdf')  # TODO choose urdf
     nav2_params_file = os.path.join(orca_bringup_dir, 'params', 'nav2_params.yaml')
     rviz_cfg_file = os.path.join(orca_bringup_dir, 'cfg', 'bringup.rviz')
 

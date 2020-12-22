@@ -33,6 +33,8 @@ include_directories(${PCL_COMMON_INCLUDE_DIRS})
 
 ament_auto_add_executable(pose_to_path src/pose_to_path_node.cpp)
 
+ament_auto_add_executable(odom_to_path src/odom_to_path_node.cpp)
+
 ament_auto_add_executable(stereo_odometry
   src/odometry_publisher.cpp
   src/stereo_image.cpp

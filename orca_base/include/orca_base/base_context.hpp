@@ -35,6 +35,8 @@ namespace orca_base
   CXT_MACRO_MEMBER(odom_frame_id, std::string, "odom") \
   CXT_MACRO_MEMBER(base_frame_id, std::string, "base_link") \
   /* Frame ids  */ \
+  CXT_MACRO_MEMBER(publish_tf, bool, true) \
+  /* Publish odom->base tf */ \
   CXT_MACRO_MEMBER(thruster_xy_limit, double, 0.5) \
   /* Limit fwd/strafe motion, leave room for yaw  */ \
   CXT_MACRO_MEMBER(thruster_accel_limit, double, 1.0) \
