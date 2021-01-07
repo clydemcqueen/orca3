@@ -105,6 +105,26 @@ def generate_launch_description():
             output='screen',
             condition=IfCondition(LaunchConfiguration('rviz'))),
 
+        # Publish estimated path for rviz
+        Node(
+            package='orca_vision',
+            executable='pose_to_path',
+            output='screen',
+            name='pose_to_path_node',
+            parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
+            remappings=[('pose', 'base_pose'), ('path', 'base_path')],
+            condition=IfCondition(LaunchConfiguration('rviz'))),
+
+        # Publish ground truth path for rviz TODO time from gz p3d plugin is bogus
+        Node(
+            package='orca_vision',
+            executable='odom_to_path',
+            output='screen',
+            name='odom_to_path_node',
+            parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
+            remappings=[('odom', 'ground_truth'), ('path', 'gt_path')],
+            condition=IfCondition(LaunchConfiguration('rviz'))),
+
         # Republish ground truth with service QoS for PlotJuggler and rqt
         Node(
             package='orca_gazebo',

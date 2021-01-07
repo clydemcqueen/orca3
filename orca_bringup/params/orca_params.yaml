@@ -86,7 +86,7 @@ base_controller:
 stereo_odometry:
   ros__parameters:
     use_sim_time: False
-    debug_windows: True
+    debug_windows: False
     base_frame_id: 'base_link'
     lcam_frame_id: 'left_camera_frame'
     publish_tf: True

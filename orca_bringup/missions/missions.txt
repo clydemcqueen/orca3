@@ -39,3 +39,8 @@ ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses:
 {header: {frame_id: 'map'}, pose: {position: {y: 2, z: -4}}},\
 {header: {frame_id: 'map'}, pose: {position: {y: -2, z: -2}}},\
 ]}"
+
+# Descend to -2m
+ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses: [\
+{header: {frame_id: 'map'}, pose: {position: {z: -2}}},\
+]}"
