@@ -39,6 +39,27 @@
 namespace orca_base
 {
 
+// Localize (publish tf map->odom) using fiducial_vlam
+
+// Usage:
+// -- Set vloc_node::publish_pose to true
+// -- Set vloc_node::publish_tf to false
+// -- robot_state_publisher should publish tf base_link->left_camera_frame (Note: frame, not link)
+// -- base_controller should publish tf odom->base_link
+// -- OrbSlam2Localizer will compute and publish tf map->odom
+
+// vloc_node will stop publishing poses if it can't find a marker
+// FiducialLocalizer will reject markers that are too far away to generate a good camera pose
+// FiducialLocalizer will continue publishing the latest tf map->odom in these cases
+
+// Transformation naming conventions:
+//    tf_target_source is a tf2::Transform
+//    tm_target_source a geometry_msgs::msg::Transform[Stamped] equal to tf_target_source
+//    source_f_target is a geometry_msgs::msg::Pose[Stamped] equal to tf_target_source
+//    t[f|m]_target_source means "will transform a vector from source frame to target frame"
+//    foo_f_target means "pose of foo in the target frame"
+//    t_a_c == t_a_b * t_b_c
+
 // Return the distance to the closest visible marker
 double closest_visible_marker(const fiducial_vlam_msgs::msg::Map & map,
   const fiducial_vlam_msgs::msg::Observations & observations,
@@ -89,14 +110,8 @@ class FiducialLocalizer : public rclcpp::Node
   // Map of ArUco markers
   fiducial_vlam_msgs::msg::Map fiducial_map_;
 
-  // Transformation naming conventions:
-  //    t_target_source is a transformation from a source frame to a target frame
-  //    xxx_f_target means xxx is expressed in the target frame
-  //
-  // Therefore:
-  //    t_target_source == source_f_target
-  //    t_a_c == t_a_b * t_b_c
-  geometry_msgs::msg::TransformStamped t_odom_map_;
+  // Most recent transform map->odom
+  geometry_msgs::msg::TransformStamped tm_map_odom_;
 
   // Message filter subscriptions
   message_filters::Subscriber<fiducial_vlam_msgs::msg::Observations> obs_sub_;
@@ -141,17 +156,17 @@ class FiducialLocalizer : public rclcpp::Node
 
   void validate_parameters()
   {
-    t_odom_map_.header.frame_id = cxt_.map_frame_id_;
-    t_odom_map_.child_frame_id = cxt_.odom_frame_id_;
+    tm_map_odom_.header.frame_id = cxt_.map_frame_id_;
+    tm_map_odom_.child_frame_id = cxt_.odom_frame_id_;
 
     timer_ = create_wall_timer(
       std::chrono::milliseconds(1000 / cxt_.publish_rate_), [this]
       {
         if (have_initial_pose_) {
           // Adding time to the transform avoids problems and improves rviz2 display
-          t_odom_map_.header.stamp = now() +
+          tm_map_odom_.header.stamp = now() +
             rclcpp::Duration(std::chrono::milliseconds(cxt_.transform_expiration_ms_));
-          tf_broadcaster_->sendTransform(t_odom_map_);
+          tf_broadcaster_->sendTransform(tm_map_odom_);
         }
       });
   }
@@ -201,7 +216,7 @@ class FiducialLocalizer : public rclcpp::Node
     if (orca::transform_with_wait(get_logger(), tf_buffer_, cxt_.odom_frame_id_,
       map_f_camera_stamped, map_f_odom_stamped, cxt_.wait_for_transform_ms_)) {
       geometry_msgs::msg::Pose odom_f_map = orca::invert(map_f_odom_stamped.pose);
-      t_odom_map_.transform = orca::pose_msg_to_transform_msg(odom_f_map);
+      tm_map_odom_.transform = orca::pose_msg_to_transform_msg(odom_f_map);
 
       if (!have_initial_pose_) {
         have_initial_pose_ = true;
