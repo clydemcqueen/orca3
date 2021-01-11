@@ -1,12 +1,39 @@
-# Params for Orca nodes
-
-inject_node:
-  ros__parameters:
-    use_sim_time: False
+# Params for Orca nodes:
 
 robot_state_publisher:
   ros__parameters:
     use_sim_time: False
+
+depth_node:
+  ros__parameters:
+    use_sim_time: False
+    stamp_msgs_with_current_time: True
+    z_variance: 0.00042601
+
+    mdl_mass: 9.9
+    mdl_volume: 0.01
+    mdl_fluid_density: 997.0
+    mdl_thrust_scale: 1.0
+
+joy_node:
+  ros__parameters:
+    use_sim_time: False
+    dev: "/dev/input/js0"
+
+teleop_node:
+  ros__parameters:
+    use_sim_time: False
+
+base_controller:
+  ros__parameters:
+    use_sim_time: False
+    mdl_mass: 9.9
+    mdl_volume: 0.01
+    mdl_fluid_density: 997.0
+    mdl_thrust_scale: 1.0
+    publish_tf: True
+
+# Params for fiducial_vlam nodes:
 
 vmap_main:
   ros__parameters:
@@ -44,6 +71,7 @@ forward_camera/vloc_main:
     publish_image_marked: 1
 
     # Gazebo 11 camera plugin publishes both camera info and images best-effort
+    # May need to be modified for a real camera
     sub_camera_info_best_effort_not_reliable: 1
     sub_image_raw_best_effort_not_reliable: 1
 
@@ -54,47 +82,53 @@ forward_camera/vloc_main:
     # 3 = CORNER_REFINE_APRILTAG (best and slowest)
     corner_refinement_method: 3
 
-depth_node:
-  ros__parameters:
-    use_sim_time: False
-    stamp_msgs_with_current_time: True
-    z_variance: 0.00042601
-
-    mdl_mass: 9.9
-    mdl_volume: 0.01
-    mdl_fluid_density: 997.0
-    mdl_thrust_scale: 1.0
-
-joy_node:
-  ros__parameters:
-    use_sim_time: False
-    dev: "/dev/input/js0"
-
-teleop_node:
-  ros__parameters:
-    use_sim_time: False
-
-base_controller:
-  ros__parameters:
-    use_sim_time: False
-    mdl_mass: 9.9
-    mdl_volume: 0.01
-    mdl_fluid_density: 997.0
-    mdl_thrust_scale: 1.0
-    publish_tf: False  # Experiment: use stereo odometry for odom->base_link tf
-
-stereo_odometry:
-  ros__parameters:
-    use_sim_time: False
-    debug_windows: False
-    base_frame_id: 'base_link'
-    lcam_frame_id: 'left_camera_frame'
-    publish_tf: True
-    stamp_msgs_with_current_time: True
-
 fiducial_localizer:
   ros__parameters:
     use_sim_time: False
     camera_frame_id: "forward_camera_frame"
     publish_rate: 20
     good_pose_distance: 2.0
+
+# Params for orb_slam2 nodes:
+
+orb_slam2_stereo:
+  ros__parameters:
+    use_sim_time: False
+
+    # Gazebo 11 camera plugin publishes both camera info and images best-effort
+    # May need to be modified for real cameras
+    subscribe_best_effort: True
+
+    publish_pointcloud: True
+    publish_pose: True
+    publish_tf: False
+    localize_only: False
+    reset_map: False
+
+    load_map: False
+    map_file: map.bin
+
+    pointcloud_frame_id: map
+    camera_frame_id: camera_frame  # TODO
+    min_num_kf_in_map: 5
+
+    ORBextractor/nFeatures: 1200
+    ORBextractor/scaleFactor: 1.2
+    ORBextractor/nLevels: 8
+    ORBextractor/iniThFAST: 20
+    ORBextractor/minThFAST: 7
+
+    camera_fps: 30
+    # Color order of the images (0: BGR, 1: RGB. It is ignored if images are grayscale)
+    camera_rgb_encoding: True
+
+    # See https://github.com/raulmur/ORB_SLAM2/issues/89 for the author's explanation of these:
+    ThDepth: 40.0
+    depth_map_factor: 1.0
+    camera_baseline: 171.0  # = stereo baseline * fx = 0.36 * 474.89673285067175 = 171.0
+
+orb_slam2_localizer:
+  ros__parameters:
+    use_sim_time: False
+    camera_frame_id: "left_camera_link"  # Note: the link, not the frame
+    publish_rate: 20

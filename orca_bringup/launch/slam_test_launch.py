@@ -38,7 +38,7 @@ def generate_launch_description():
     # Use a simpler urdf file: no forward camera, no barometer, no thrust, no drag
     # Does contain a motion plugin, so the AUV will be pushed around in a repeating pattern
     orca_description_dir = get_package_share_directory('orca_description')
-    urdf_file = os.path.join(orca_description_dir, 'urdf', 'stereo_test.urdf')
+    urdf_file = os.path.join(orca_description_dir, 'urdf', 'slam_test.urdf')
 
     # No fiducial markers
     orca_gazebo_dir = get_package_share_directory('orca_gazebo')
@@ -47,11 +47,11 @@ def generate_launch_description():
     # ORB features vocabulary file
     # This works well in simulation, but I'm sure how it will do in a marine environment
     orb_slam_dir = get_package_share_directory('orb_slam2_ros')
-    voc_file = os.path.join(orb_slam_dir, 'orb_slam2', 'Vocabulary', 'ORBvoc.txt')
+    orb_voc_file = os.path.join(orb_slam_dir, 'orb_slam2', 'Vocabulary', 'ORBvoc.txt')
 
     # Orb-slam2 params
     orca_bringup_dir = get_package_share_directory('orca_bringup')
-    orb_params_file = os.path.join(orca_bringup_dir, 'params', 'orb_stereo_params.yaml')
+    slam_params_file = os.path.join(orca_bringup_dir, 'params', 'slam_test_params.yaml')
 
     return LaunchDescription([
         DeclareLaunchArgument(
@@ -92,11 +92,12 @@ def generate_launch_description():
             output='screen'),
 
         # Inject the urdf file
-        Node(package='sim_fiducial',
-             executable='inject_entity.py',
-             output='screen',
-             arguments=[urdf_file, '0', '0', '0', '0', '0', '0'],
-             parameters=[{'use_sim_time': True}]),
+        Node(
+            package='sim_fiducial',
+            executable='inject_entity.py',
+            output='screen',
+            arguments=[urdf_file, '0', '0', '0', '0', '0', '0'],
+            parameters=[{'use_sim_time': True}]),
 
         # Publish static transforms from the urdf
         Node(
@@ -108,24 +109,28 @@ def generate_launch_description():
             parameters=[{'use_sim_time': True}]),
 
         # Run orb_slam2_ros_stereo
-        Node(package='orb_slam2_ros', executable='orb_slam2_ros_stereo', output='screen',
-             name='orb_slam2_stereo', parameters=[orb_params_file, {
-                'use_sim_time': True,
-                'voc_file': voc_file,
-                'subscribe_best_effort': True,  # Gazebo publishes sensor data 'best effort'
-            }], remappings=[
+        Node(
+            package='orb_slam2_ros',
+            executable='orb_slam2_ros_stereo',
+            output='screen',
+            name='orb_slam2_stereo',
+            parameters=[slam_params_file, {
+                'voc_file': orb_voc_file,
+            }],
+            remappings=[
                 ('/image_left/image_color_rect', '/stereo/left/image_raw'),
                 ('/image_right/image_color_rect', '/stereo/right/image_raw'),
                 ('/camera/camera_info', '/stereo/left/camera_info'),
             ]),
 
         # Run orb_slam2_localizer, a shim that publishes tf map->odom
-        Node(package='orca_base', executable='orb_slam2_localizer', output='screen',
-             name='orb_slam2_localizer', parameters=[{
-                'use_sim_time': True,
-                # 'odom_frame_id': 'base_link',  # Hack to test w/o map->odom tf
-                'camera_frame_id': 'left_camera_link',
-            }], remappings=[
+        Node(
+            package='orca_base',
+            executable='orb_slam2_localizer',
+            output='screen',
+            name='orb_slam2_localizer',
+            parameters=[slam_params_file],
+            remappings=[
                 ('/camera_pose', '/orb_slam2_stereo_node/pose'),
             ]),
     ])

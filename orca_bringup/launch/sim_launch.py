@@ -55,9 +55,10 @@ worlds = [
 
 def generate_launch_description():
     orca_bringup_dir = get_package_share_directory('orca_bringup')
-    orca_launch_dir = os.path.join(orca_bringup_dir, 'launch')
     orca_gazebo_dir = get_package_share_directory('orca_gazebo')
     orca_description_dir = get_package_share_directory('orca_description')
+
+    orca_bringup_launch_dir = os.path.join(orca_bringup_dir, 'launch')
 
     urdf_file = os.path.join(orca_description_dir, 'urdf', 'hw7.urdf')  # TODO choose urdf
     nav2_params_file = os.path.join(orca_bringup_dir, 'params', 'nav2_params.yaml')
@@ -68,7 +69,12 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'use_sim_time',
             default_value='false',
-            description='Use sim time?'),
+            description='Use simulation (Gazebo) clock?'),
+
+        DeclareLaunchArgument(
+            'orb_slam2',
+            default_value='false',
+            description='Use orb_slam2_ros instead of fiducial_vlam?'),
 
         DeclareLaunchArgument(
             'world',
@@ -134,17 +140,19 @@ def generate_launch_description():
 
         # Inject the urdf file
         # Must inject urdf at z=0 to correctly calibrate the altimeter
-        Node(package='sim_fiducial',
-             executable='inject_entity.py',
-             output='screen',
-             arguments=[urdf_file, '0', '0', '0', '0', '0', '0'],
-             parameters=[{'use_sim_time': True}]),
+        Node(
+            package='sim_fiducial',
+            executable='inject_entity.py',
+            output='screen',
+            arguments=[urdf_file, '0', '0', '0', '0', '0', '0'],
+            parameters=[{'use_sim_time': True}]),
 
-        # Bring up all Orca and Nav2 nodes
+        # Bring up all nodes
         IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(os.path.join(orca_launch_dir, 'bringup_launch.py')),
+            PythonLaunchDescriptionSource(os.path.join(orca_bringup_launch_dir, 'bringup.py')),
             launch_arguments={
                 'use_sim_time': LaunchConfiguration('use_sim_time'),
+                'orb_slam2': LaunchConfiguration('orb_slam2'),
                 'vlam_map': [orca_gazebo_dir, '/worlds/', LaunchConfiguration('world'), '_map.yaml'],
                 'nav2_params_file': nav2_params_file,
             }.items()),

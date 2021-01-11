@@ -4,7 +4,7 @@
 
   <!-- Simulation modes:
        SIM_MODE:=hw6           Hardware build 6
-       SIM_MODE:=stereo_test   Test down-facing stereo camera
+       SIM_MODE:=slam_test     Test orb_slam2_ros with down-facing stereo camera
        SIM_MODE:=hw7           Hardware build 7, which includes down-facing stereo camera -->
   <xacro:property name="SIM_MODE" value="$(arg SIM_MODE)"/>
 
@@ -12,12 +12,12 @@
 
   <!-- Enable / disable Gazebo plugins -->
   <xacro:property name="BUOYANCY_PLUGIN" value="true"/>
-  <xacro:property name="DRAG_PLUGIN" value="${SIM_MODE != 'stereo_test'}"/>
-  <xacro:property name="THRUSTER_PLUGIN" value="${SIM_MODE != 'stereo_test'}"/>
-  <xacro:property name="BAROMETER_PLUGIN" value="${SIM_MODE != 'stereo_test'}"/>
-  <xacro:property name="FORWARD_CAMERA_PLUGIN" value="${SIM_MODE != 'stereo_test'}"/>
-  <xacro:property name="STEREO_CAMERA_PLUGIN" value="${SIM_MODE == 'stereo_test' or SIM_MODE == 'hw7'}"/>
-  <xacro:property name="MOTION_PLUGIN" value="${SIM_MODE == 'stereo_test'}"/>
+  <xacro:property name="DRAG_PLUGIN" value="${SIM_MODE != 'slam_test'}"/>
+  <xacro:property name="THRUSTER_PLUGIN" value="${SIM_MODE != 'slam_test'}"/>
+  <xacro:property name="BAROMETER_PLUGIN" value="${SIM_MODE != 'slam_test'}"/>
+  <xacro:property name="FORWARD_CAMERA_PLUGIN" value="${SIM_MODE != 'slam_test'}"/>
+  <xacro:property name="STEREO_CAMERA_PLUGIN" value="${SIM_MODE == 'slam_test' or SIM_MODE == 'hw7'}"/>
+  <xacro:property name="MOTION_PLUGIN" value="${SIM_MODE == 'slam_test'}"/>
   <xacro:property name="GROUND_TRUTH_PLUGIN" value="true"/>
 
   <!--

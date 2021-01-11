@@ -1,5 +1,10 @@
 orb_slam2_stereo:
   ros__parameters:
+    use_sim_time: True
+
+    # Gazebo 11 camera plugin publishes both camera info and images best-effort
+    # May need to be modified for real cameras
+    subscribe_best_effort: True
 
     publish_pointcloud: true
     publish_pose: true
@@ -28,3 +33,9 @@ orb_slam2_stereo:
     ThDepth: 40.0
     depth_map_factor: 1.0
     camera_baseline: 171.0  # = stereo baseline * fx = 0.36 * 474.89673285067175 = 171.0
+
+orb_slam2_localizer:
+  ros__parameters:
+    use_sim_time: True
+    camera_frame_id: "left_camera_link"  # Note: the link, not the frame
+    publish_rate: 20

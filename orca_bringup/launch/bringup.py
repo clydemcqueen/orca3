@@ -22,7 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""Launch Orca and Nav2."""
+"""Bring up all nodes."""
 
 import os
 
@@ -30,6 +30,7 @@ from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable
+from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
@@ -41,8 +42,9 @@ def generate_launch_description():
 
     orca_bringup_dir = get_package_share_directory('orca_bringup')
     nav2_bringup_dir = get_package_share_directory('nav2_bringup')
-    nav2_launch_dir = os.path.join(nav2_bringup_dir, 'launch')
     orca_description_dir = get_package_share_directory('orca_description')
+
+    nav2_bringup_launch_dir = os.path.join(nav2_bringup_dir, 'launch')
 
     urdf_file = os.path.join(orca_description_dir, 'urdf', 'hw7.urdf')  # TODO choose urdf
     teleop_params_file = os.path.join(orca_bringup_dir, 'params', 'xbox_holonomic_3d.yaml')
@@ -54,6 +56,11 @@ def generate_launch_description():
 
     vlam_map_file = LaunchConfiguration('vlam_map')
     nav2_map_file = LaunchConfiguration('nav2_map')
+
+    # ORB features vocabulary file
+    # This works well in simulation, but I'm sure how it will do in a marine environment
+    orb_slam_dir = get_package_share_directory('orb_slam2_ros')
+    orb_voc_file = os.path.join(orb_slam_dir, 'orb_slam2', 'Vocabulary', 'ORBvoc.txt')
 
     # Read the params file and make some global substitutions
     configured_orca_params = RewrittenYaml(
@@ -78,7 +85,12 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'use_sim_time',
             default_value='true',
-            description='Use simulation (Gazebo) clock if true'),
+            description='Use simulation (Gazebo) clock?'),
+
+        DeclareLaunchArgument(
+            'orb_slam2',
+            default_value='false',
+            description='Use orb_slam2_ros instead of fiducial_vlam?'),
 
         DeclareLaunchArgument(
             'vlam_map',
@@ -141,32 +153,26 @@ def generate_launch_description():
             name='base_controller',
             parameters=[configured_orca_params]),
 
-        # Experimental: stereo odometry
-        Node(
-            package='orca_vision',
-            executable='stereo_odometry',
-            output='screen',
-            name='stereo_odometry',
-            parameters=[configured_orca_params]),
-
-        # Publish a map of ArUco markers
+        # fiducial_vlam: publish a map of ArUco markers
         Node(
             package='fiducial_vlam',
             executable='vmap_main',
             output='screen',
             name='vmap_main',
-            parameters=[configured_orca_params]),
+            parameters=[configured_orca_params],
+            condition=UnlessCondition(LaunchConfiguration('orb_slam2'))),
 
-        # Find ArUco markers and publish /camera_pose
+        # fiducial_vlam: find ArUco markers and publish the camera pose
         Node(
             package='fiducial_vlam',
             executable='vloc_main',
             output='screen',
             name='vloc_main',
             namespace=camera_name,
-            parameters=[configured_orca_params]),
+            parameters=[configured_orca_params],
+            condition=UnlessCondition(LaunchConfiguration('orb_slam2'))),
 
-        # Subscribe to /camera_pose and publish /tf map->odom
+        # fiducial_vlam: subscribe to the camera pose and publish /tf map->odom
         Node(
             package='orca_base',
             executable='fiducial_localizer',
@@ -175,7 +181,36 @@ def generate_launch_description():
             parameters=[configured_orca_params],
             remappings=[
                 ('camera_pose', '/' + camera_name + '/camera_pose'),
-            ]),
+            ],
+            condition=UnlessCondition(LaunchConfiguration('orb_slam2'))),
+
+        # orb_slam2: build a map of 3d points, localize against the map, and publish the camera pose
+        Node(
+            package='orb_slam2_ros',
+            executable='orb_slam2_ros_stereo',
+            output='screen',
+            name='orb_slam2_stereo',
+            parameters=[configured_orca_params, {
+                'voc_file': orb_voc_file,
+            }],
+            remappings=[
+                ('/image_left/image_color_rect', '/stereo/left/image_raw'),
+                ('/image_right/image_color_rect', '/stereo/right/image_raw'),
+                ('/camera/camera_info', '/stereo/left/camera_info'),
+            ],
+            condition=IfCondition(LaunchConfiguration('orb_slam2'))),
+
+        # orb_slam2: subscribe to the camera pose and publish /tf map->odom
+        Node(
+            package='orca_base',
+            executable='orb_slam2_localizer',
+            output='screen',
+            name='orb_slam2_localizer',
+            parameters=[configured_orca_params],
+            remappings=[
+                ('/camera_pose', '/orb_slam2_stereo_node/pose'),
+            ],
+            condition=IfCondition(LaunchConfiguration('orb_slam2'))),
 
         # Publish a [likely empty] nav2 map
         Node(
@@ -197,7 +232,7 @@ def generate_launch_description():
 
         # Include the rest of Nav2
         IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(os.path.join(nav2_launch_dir, 'navigation_launch.py')),
+            PythonLaunchDescriptionSource(os.path.join(nav2_bringup_launch_dir, 'navigation_launch.py')),
             launch_arguments={
                 'use_sim_time': use_sim_time,
                 'autostart': 'True',
