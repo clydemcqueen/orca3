@@ -8,12 +8,13 @@ ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses:
 {header: {frame_id: 'map'}, pose: {position: {x: 1, y: -1}}},\
 ]}"
 
-# 3m box
+# 6m box at -2.5m, should cause a loop closure in orb_slam2
 ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses: [\
-{header: {frame_id: 'map'}, pose: {position: {x: 1.5, y: 1.5}}},\
-{header: {frame_id: 'map'}, pose: {position: {x: -1.5, y: 1.5}}},\
-{header: {frame_id: 'map'}, pose: {position: {x: -1.5, y: -1.5}}},\
-{header: {frame_id: 'map'}, pose: {position: {x: 1.5, y: -1.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: 3, y: 3, z: -2.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: -3, y: 3, z: -2.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: -3, y: -3, z: -2.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: 3, y: -3, z: -2.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: 3, y: 3, z: -2.5}}},\
 ]}"
 
 # Aligns with markers on the ping-pong map

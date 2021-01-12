@@ -279,14 +279,14 @@
   </joint>
 
   <!-- Left camera frame -->
-<!--  <link name="left_camera_frame"/>-->
+  <link name="left_camera_frame"/>
 
   <!-- Attach left_camera_frame to base_link -->
-<!--  <joint name="left_camera_frame_joint" type="fixed">-->
-<!--    <origin xyz="-0.15 0.18 -0.0675" rpy="0 ${PI} 0"/>-->
-<!--    <parent link="base_link"/>-->
-<!--    <child link="left_camera_frame"/>-->
-<!--  </joint>-->
+  <joint name="left_camera_frame_joint" type="fixed">
+    <origin xyz="-0.15 0.18 -0.0675" rpy="${PI} 0 ${-PI/2}"/>
+    <parent link="base_link"/>
+    <child link="left_camera_frame"/>
+  </joint>
 
   <!-- Right camera link -->
   <link name="right_camera_link">
@@ -308,14 +308,14 @@
   </joint>
 
   <!-- Right camera frame -->
-<!--  <link name="right_camera_frame"/>-->
+  <link name="right_camera_frame"/>
 
   <!-- Attach right_camera_frame to base_link -->
-<!--  <joint name="right_camera_frame_joint" type="fixed">-->
-<!--    <origin xyz="-0.15 -0.18 -0.0675" rpy="0 ${PI} 0"/>-->
-<!--    <parent link="base_link"/>-->
-<!--    <child link="right_camera_frame"/>-->
-<!--  </joint>-->
+  <joint name="right_camera_frame_joint" type="fixed">
+    <origin xyz="-0.15 -0.18 -0.0675" rpy="${PI} 0 ${-PI/2}"/>
+    <parent link="base_link"/>
+    <child link="right_camera_frame"/>
+  </joint>
 
   <!-- Attach thrusters to the base_link -->
   <xacro:t200 name="front_right">
