@@ -53,6 +53,9 @@ def generate_launch_description():
     orca_bringup_dir = get_package_share_directory('orca_bringup')
     slam_params_file = os.path.join(orca_bringup_dir, 'params', 'slam_test_params.yaml')
 
+    # Rviz config
+    rviz_cfg_file = os.path.join(orca_bringup_dir, 'cfg', 'slam_test_launch.rviz')
+
     return LaunchDescription([
         DeclareLaunchArgument(
             'gzclient',
@@ -80,7 +83,7 @@ def generate_launch_description():
 
         # Launch rviz
         ExecuteProcess(
-            cmd=['rviz2'],
+            cmd=['rviz2', '-d', rviz_cfg_file],
             output='screen',
             condition=IfCondition(LaunchConfiguration('rviz'))),
 

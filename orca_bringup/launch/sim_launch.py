@@ -63,7 +63,7 @@ def generate_launch_description():
 
     urdf_file = os.path.join(orca_description_dir, 'urdf', 'hw7.urdf')  # TODO choose urdf
     nav2_params_file = os.path.join(orca_bringup_dir, 'params', 'nav2_params.yaml')
-    rviz_cfg_file = os.path.join(orca_bringup_dir, 'cfg', 'bringup.rviz')
+    rviz_cfg_file = os.path.join(orca_bringup_dir, 'cfg', 'sim_launch.rviz')
 
     return LaunchDescription([
         # Arguments
