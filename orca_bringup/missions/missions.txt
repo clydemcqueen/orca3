@@ -15,6 +15,10 @@ ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses:
 {header: {frame_id: 'map'}, pose: {position: {x: -3, y: -3, z: -2.5}}},\
 {header: {frame_id: 'map'}, pose: {position: {x: 3, y: -3, z: -2.5}}},\
 {header: {frame_id: 'map'}, pose: {position: {x: 3, y: 3, z: -2.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: -3, y: 3, z: -2.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: -3, y: -3, z: -2.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: 3, y: -3, z: -2.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {x: 3, y: 3, z: -2.5}}},\
 ]}"
 
 # Aligns with markers on the ping-pong map
@@ -44,4 +48,20 @@ ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses:
 # Descend to -2m
 ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses: [\
 {header: {frame_id: 'map'}, pose: {position: {z: -2}}},\
+]}"
+
+# Descend / ascend
+ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses: [\
+{header: {frame_id: 'map'}, pose: {position: {z: -2.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {z: -1.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {z: -2.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {z: -1.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {z: -2.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {z: -1.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {z: -2.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {z: -1.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {z: -2.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {z: -1.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {z: -2.5}}},\
+{header: {frame_id: 'map'}, pose: {position: {z: -1.5}}},\
 ]}"

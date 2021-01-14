@@ -50,6 +50,7 @@ worlds = [
     'six_ring',  # 6 markers arranged in a 12' diameter ring
     'medium_ring',  # 12 markers arranged in a 3m diameter ring
     'large_ring',  # 4 markers arranged in a 20m diameter ring
+    'empty',  # 0 markers
 ]
 
 

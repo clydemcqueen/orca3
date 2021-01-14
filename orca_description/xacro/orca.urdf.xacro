@@ -64,7 +64,9 @@
   <!-- Sensor properties -->
   <xacro:property name="BARO_FREQ" value="20.0"/>
   <xacro:property name="BARO_VAR" value="40682.89"/>
-  <xacro:property name="CAMERA_FREQ" value="1.0"/>
+  <xacro:property name="FWD_CAMERA_FREQ" value="1.0"/> <!-- Hack: slow down updates -->
+  <xacro:property name="DOWN_CAMERA_FREQ" value="30.0"/>
+  <xacro:property name="CAMERA_STD_DEV" value="0.007"/>
 
   <!-- General constants -->
   <xacro:property name="PI" value="3.1415926535897931"/>
@@ -425,7 +427,7 @@
   <xacro:macro name="camera_plugin" params="prefix width height horizontal_fov">
     <gazebo reference="${prefix}_camera_link">
       <sensor type="camera" name="${prefix}_camera">
-        <update_rate>${CAMERA_FREQ}</update_rate>
+        <update_rate>${FWD_CAMERA_FREQ}</update_rate>
         <camera name="head">
           <horizontal_fov>${horizontal_fov}</horizontal_fov>
           <image>
@@ -443,7 +445,7 @@
                  That pixel's noise value is added to each of its color
                  channels, which at that point lie in the range [0,1]. -->
             <mean>0.0</mean>
-            <stddev>0.007</stddev>
+            <stddev>${CAMERA_STD_DEV}</stddev>
           </noise>
         </camera>
         <plugin name="${prefix}_camera_controller" filename="libgazebo_ros_camera.so">
@@ -453,7 +455,7 @@
           <imageTopicName>image_raw</imageTopicName>
           <cameraInfoTopicName>camera_info</cameraInfoTopicName>
           <frameName>${prefix}_camera_link</frameName>
-          <hackBaseline>0.07</hackBaseline>
+          <hackBaseline>0.07</hackBaseline> <!-- Um, not required for mono??? -->
           <distortionK1>0.0</distortionK1>
           <distortionK2>0.0</distortionK2>
           <distortionK3>0.0</distortionK3>
@@ -474,7 +476,7 @@
     <gazebo reference="left_camera_link">
       <sensor type="multicamera" name="stereo">
         <pose>0 0 0 0 0 0</pose>
-        <update_rate>30</update_rate>
+        <update_rate>${DOWN_CAMERA_FREQ}</update_rate>
         <visualize>true</visualize>
         <camera name="left">
           <pose>0 0 0 0 0 0</pose>
@@ -494,7 +496,7 @@
                  That pixel's noise value is added to each of its color
                  channels, which at that point lie in the range [0,1]. -->
             <mean>0.0</mean>
-            <stddev>0.007</stddev>
+            <stddev>${CAMERA_STD_DEV}</stddev>
           </noise>
         </camera>
         <camera name="right">
