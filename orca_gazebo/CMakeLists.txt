@@ -56,7 +56,8 @@ if(BUILD_TESTING)
 endif()
 
 install(PROGRAMS
-  scripts/republish_gt.py
+  scripts/reliable_odom.py
+  scripts/seafloor_marker.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

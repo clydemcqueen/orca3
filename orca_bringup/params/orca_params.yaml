@@ -32,6 +32,8 @@ base_controller:
     mdl_fluid_density: 997.0
     mdl_thrust_scale: 1.0
     publish_tf: True
+    pid_enabled: False  # Turn off depth pid until I fix the coordinate frame bugs
+    hover_thrust: True  # Add hover thrust
 
 # Params for fiducial_vlam nodes:
 

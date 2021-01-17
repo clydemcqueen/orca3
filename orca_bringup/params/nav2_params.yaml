@@ -55,8 +55,8 @@ controller_server:
     # Goal checker parameters
     goal_checker:
       plugin: "orca_nav2::GoalChecker3D"
-      xy_goal_tolerance: 0.1
-      z_goal_tolerance: 0.1
+      xy_goal_tolerance: 0.25
+      z_goal_tolerance: 0.25
       yaw_goal_tolerance: 10.0  # Ignore yaw
 
     # Controller parameters

@@ -22,7 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""Subscribe to /ground_truth sensor QoS and republish /gt service QoS."""
+"""Subscribe to /best_effort and republish /reliable."""
 
 # This is a quick hack around https://github.com/ros-visualization/rqt/issues/187
 
@@ -32,28 +32,30 @@ import rclpy.node
 import rclpy.qos
 
 
-class RepublishNode(rclpy.node.Node):
+# TODO Move to C++ as templated Node, params for QoS, param for overwrite stamp
+class ReliableOdomNode(rclpy.node.Node):
 
     def __init__(self):
-        super().__init__('republish_gt')
+        super().__init__('reliable_odom')
 
         self._sub = self.create_subscription(nav_msgs.msg.Odometry,
-                                             '/ground_truth',
+                                             'best_effort',
                                              self.callback,
                                              rclpy.qos.qos_profile_sensor_data)
 
         self._pub = self.create_publisher(nav_msgs.msg.Odometry,
-                                          '/gt',
+                                          'reliable',
                                           rclpy.qos.qos_profile_services_default)
 
     def callback(self, msg: nav_msgs.msg.Odometry) -> None:
-        msg.header.stamp = self.get_clock().now().to_msg()  # Use wall time, not sim time
+        # Overwrite stamp, allows node to be used with wall clock even during simulations
+        msg.header.stamp = self.get_clock().now().to_msg()
         self._pub.publish(msg)
 
 
 def main(args=None):
     rclpy.init(args=args)
-    node = RepublishNode()
+    node = ReliableOdomNode()
 
     try:
         rclpy.spin(node)

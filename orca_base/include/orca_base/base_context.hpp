@@ -48,6 +48,8 @@ namespace orca_base
   CXT_MACRO_MEMBER(pid_z_kd, double, 0.0) \
   CXT_MACRO_MEMBER(pid_z_i_max, double, 0.1) \
   /* Windup prevention: max acceleration from i term (m/s^2)  */ \
+  CXT_MACRO_MEMBER(hover_thrust, bool, true) \
+  /* Add hover thrust */ \
 /* End of list */
 
 #undef CXT_MACRO_MEMBER

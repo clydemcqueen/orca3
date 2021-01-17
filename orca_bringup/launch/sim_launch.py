@@ -69,8 +69,8 @@ def generate_launch_description():
         # Arguments
         DeclareLaunchArgument(
             'use_sim_time',
-            default_value='false',
-            description='Use simulation (Gazebo) clock?'),
+            default_value='false',  # TODO sim time broken
+            description='Use simulation (Gazebo) clock (BROKEN BROKEN BROKEN)?'),
 
         DeclareLaunchArgument(
             'orb_slam2',
@@ -118,8 +118,13 @@ def generate_launch_description():
             executable='pose_to_path',
             output='screen',
             name='pose_to_path_node',
-            parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
-            remappings=[('pose', 'base_pose'), ('path', 'base_path')],
+            parameters=[{
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+            }],
+            remappings=[
+                ('pose', '/orb_slam2_stereo_node/pose'),
+                ('path', 'base_path'),
+            ],
             condition=IfCondition(LaunchConfiguration('rviz'))),
 
         # Publish ground truth path for rviz TODO time from gz p3d plugin is bogus
@@ -128,16 +133,40 @@ def generate_launch_description():
             executable='odom_to_path',
             output='screen',
             name='odom_to_path_node',
-            parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
-            remappings=[('odom', 'ground_truth'), ('path', 'gt_path')],
+            parameters=[{
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+            }],
+            remappings=[
+                ('odom', 'gt_best_effort'),
+                ('path', 'gt_path'),
+            ],
+            condition=IfCondition(LaunchConfiguration('rviz'))),
+
+        # Publish seafloor marker for rviz
+        Node(
+            package='orca_gazebo',
+            executable='seafloor_marker.py',
+            output='screen',
+            name='seafloor_marker',
+            parameters=[{
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+            }],
             condition=IfCondition(LaunchConfiguration('rviz'))),
 
         # Republish ground truth with service QoS for PlotJuggler and rqt
         Node(
             package='orca_gazebo',
-            executable='republish_gt.py',
+            executable='reliable_odom.py',
             output='screen',
-            name='republish_gt'),
+            name='republish_odom',
+            parameters=[{
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+            }],
+            remappings=[
+                ('best_effort', 'gt_best_effort'),
+                ('reliable', 'gt_reliable'),
+            ],
+        ),
 
         # Inject the urdf file
         # Must inject urdf at z=0 to correctly calibrate the altimeter
@@ -146,7 +175,9 @@ def generate_launch_description():
             executable='inject_entity.py',
             output='screen',
             arguments=[urdf_file, '0', '0', '0', '0', '0', '0'],
-            parameters=[{'use_sim_time': True}]),
+            parameters=[{
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+            }]),
 
         # Bring up all nodes
         IncludeLaunchDescription(

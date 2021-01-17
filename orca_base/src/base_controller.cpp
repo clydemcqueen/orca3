@@ -35,25 +35,6 @@
 namespace orca_base
 {
 
-geometry_msgs::msg::Pose
-calc_odometry(const geometry_msgs::msg::Pose & pose, const geometry_msgs::msg::Twist & v, double dt)
-{
-  geometry_msgs::msg::Pose result;
-  auto yaw = orca::get_yaw(pose.orientation);
-  result.position.x = pose.position.x + (v.linear.x * cos(yaw) + v.linear.y * sin(-yaw)) * dt;
-  result.position.y = pose.position.y + (v.linear.x * sin(yaw) + v.linear.y * cos(-yaw)) * dt;
-  result.position.z = pose.position.z + v.linear.z * dt;
-  yaw = yaw + v.angular.z * dt;
-  orca::set_yaw(result.orientation, yaw);
-
-  if (result.position.z > 0) {
-    // Can't go above the surface
-    result.position.z = 0;
-  }
-
-  return result;
-}
-
 constexpr int QUEUE_SIZE = 10;
 
 class BaseController : public rclcpp::Node
@@ -65,8 +46,8 @@ class BaseController : public rclcpp::Node
   geometry_msgs::msg::Twist cmd_vel_;
   orca_msgs::msg::Depth depth_msg_;
 
-  // Previous odometry
-  nav_msgs::msg::Odometry odom_msg_;
+  // Current pose
+  geometry_msgs::msg::PoseStamped base_f_odom_;
 
   std::unique_ptr<pid::Controller> pid_z_;
 
@@ -84,21 +65,7 @@ class BaseController : public rclcpp::Node
       false, cxt_.pid_z_kp_, cxt_.pid_z_ki_, cxt_.pid_z_kd_,
       cxt_.pid_z_i_max_);
 
-    // Initialize odometry
-    std::array<double, 36> covariance{
-      1, 0, 0, 0, 0, 0,
-      0, 1, 0, 0, 0, 0,
-      0, 0, 1, 0, 0, 0,
-      0, 0, 0, 1, 0, 0,
-      0, 0, 0, 0, 1, 0,
-      0, 0, 0, 0, 0, 1
-    };
-    odom_msg_.header.frame_id = cxt_.odom_frame_id_;
-    odom_msg_.child_frame_id = cxt_.base_frame_id_;
-    odom_msg_.pose.pose = geometry_msgs::msg::Pose{};
-    odom_msg_.pose.covariance = covariance;
-    odom_msg_.twist.twist = geometry_msgs::msg::Twist{};
-    odom_msg_.twist.covariance = covariance;
+    base_f_odom_.header.frame_id = cxt_.odom_frame_id_;
   }
 
   void init_parameters()
@@ -124,45 +91,72 @@ class BaseController : public rclcpp::Node
     CXT_MACRO_CHECK_CMDLINE_PARAMETERS((*this), BASE_ALL_PARAMS)
   }
 
-  void publish_odometry(const rclcpp::Time & t, double dt)
+  void update_odometry(double dt)
   {
-    // Update odometry
-    auto yaw = orca::get_yaw(odom_msg_.pose.pose.orientation);
-    odom_msg_.pose.pose = calc_odometry(odom_msg_.pose.pose, cmd_vel_, dt);
-    odom_msg_.twist.twist = orca::robot_to_world_frame(cmd_vel_, yaw);
-    odom_msg_.header.stamp = t;
+    auto yaw = orca::get_yaw(base_f_odom_.pose.orientation);
+    base_f_odom_.pose.position.x += (cmd_vel_.linear.x * cos(yaw) + cmd_vel_.linear.y * sin(-yaw)) * dt;
+    base_f_odom_.pose.position.y += (cmd_vel_.linear.x * sin(yaw) + cmd_vel_.linear.y * cos(-yaw)) * dt;
+    base_f_odom_.pose.position.z += cmd_vel_.linear.z * dt;
+    yaw += cmd_vel_.angular.z * dt;
+    orca::set_yaw(base_f_odom_.pose.orientation, yaw);
 
-    if (odom_pub_->get_subscription_count() > 0) {
-      // Publish odometry
-      odom_pub_->publish(odom_msg_);
-    }
-
-    if (cxt_.publish_tf_) {
-      // Publish odom->base_link transform
-      geometry_msgs::msg::TransformStamped t_base_odom;
-      t_base_odom.transform = orca::pose_msg_to_transform_msg(odom_msg_.pose.pose);
-      t_base_odom.header = odom_msg_.header;
-      t_base_odom.child_frame_id = odom_msg_.child_frame_id;
-      tf_broadcaster_->sendTransform(t_base_odom);
+    if (base_f_odom_.pose.position.z > 0) {
+      // Can't go above the surface
+      base_f_odom_.pose.position.z = 0;
     }
   }
 
-  void publish_thrust(const rclcpp::Time & t, double dt)
+  void publish_odometry()
   {
-    // TODO(clyde): add z hover
+    if (odom_pub_->get_subscription_count() > 0) {
+      static std::array<double, 36> covariance{
+        1, 0, 0, 0, 0, 0,
+        0, 1, 0, 0, 0, 0,
+        0, 0, 1, 0, 0, 0,
+        0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 1, 0,
+        0, 0, 0, 0, 0, 1
+      };
 
-    // PID control
-    double pid_accel_z = 0;
-    if (cxt_.pid_enabled_) {
-      // TODO(clyde): pose is in the odom frame, run through the t_odom_map transform
-      pid_z_->set_target(odom_msg_.pose.pose.position.z);
-      pid_accel_z = pid_z_->calc(depth_msg_.z, dt);
+      nav_msgs::msg::Odometry odom_msg;
+      odom_msg.header = base_f_odom_.header;
+      odom_msg.child_frame_id = cxt_.base_frame_id_;
+      odom_msg.pose.pose = base_f_odom_.pose;
+      odom_msg.pose.covariance = covariance;
+      odom_msg.twist.twist = orca::robot_to_world_frame(cmd_vel_, orca::get_yaw(base_f_odom_.pose.orientation));
+      odom_msg.twist.covariance = covariance;
+      odom_pub_->publish(odom_msg);
     }
+  }
 
+  void publish_tf()
+  {
+    if (cxt_.publish_tf_) {
+      geometry_msgs::msg::TransformStamped tm_odom_base;
+      tm_odom_base.transform = orca::pose_msg_to_transform_msg(base_f_odom_.pose);
+      tm_odom_base.header = base_f_odom_.header;
+      tm_odom_base.child_frame_id = cxt_.base_frame_id_;
+      tf_broadcaster_->sendTransform(tm_odom_base);
+    }
+  }
+
+  void publish_thrust(double dt)
+  {
     // Velocity to acceleration
     geometry_msgs::msg::Accel drag = cxt_.drag(cmd_vel_);
     geometry_msgs::msg::Accel accel = orca::invert(drag);
-    accel.linear.z += pid_accel_z;
+
+    // Add hover thrust
+    if (cxt_.hover_thrust_) {
+      accel.linear.z += cxt_.hover_accel_z();
+    }
+
+    // Use the latest depth measurement to hold position at odom.position.z
+    if (cxt_.pid_enabled_) {
+      pid_z_->set_target(base_f_odom_.pose.position.z);
+      std::cout << "pid target " << pid_z_->target() << ", calc " << pid_z_->calc(depth_msg_.z, dt) << std::endl;
+      accel.linear.z += pid_z_->calc(depth_msg_.z, dt);
+    }
 
     // Acceleration to effort
     orca_msgs::msg::Effort effort = cxt_.accel_to_effort(accel);
@@ -174,7 +168,7 @@ class BaseController : public rclcpp::Node
     if (saturated) {
       RCLCPP_WARN(get_logger(), "thruster(s) saturated");
     }
-    thrust_msg.header.stamp = t;
+    thrust_msg.header.stamp = base_f_odom_.header.stamp;
     thrust_pub_->publish(thrust_msg);
   }
 
@@ -186,7 +180,6 @@ public:
     (void) cmd_vel_sub_;
     (void) depth_sub_;
 
-    // Broadcaster for odom->base_link
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
 
     init_parameters();
@@ -208,15 +201,14 @@ public:
       {
         depth_msg_ = *msg;
 
-        // Skip 1st message
-        rclcpp::Time prev_t{odom_msg_.header.stamp};
-        odom_msg_.header.stamp = msg->header.stamp;
-        if (orca::valid(prev_t)) {
-          rclcpp::Time t{msg->header.stamp};
-          double dt = (t - prev_t).seconds();
-          publish_odometry(t, dt);
-          publish_thrust(t, dt);
-        }
+        double dt = orca::valid(base_f_odom_.header.stamp) ?
+                    (rclcpp::Time{msg->header.stamp} - rclcpp::Time{base_f_odom_.header.stamp}).seconds() : 0;
+
+        base_f_odom_.header.stamp = msg->header.stamp;
+        update_odometry(dt);
+        publish_odometry();
+        publish_tf();
+        publish_thrust(dt);
       });
 
     RCLCPP_INFO(get_logger(), "base_controller ready");

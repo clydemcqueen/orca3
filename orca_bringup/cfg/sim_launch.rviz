@@ -9,6 +9,9 @@ Panels:
         - /TF1/Frames1
         - /Path1
         - /Path2
+        - /PointCloud21
+        - /PointCloud21/Autocompute Value Bounds1
+        - /Path3
       Splitter Ratio: 0.5
     Tree Height: 1420
   - Class: rviz_common/Selection
@@ -161,12 +164,6 @@ Visualization Manager:
           Value: false
         map:
           Value: true
-        marker_000:
-          Value: true
-        marker_001:
-          Value: true
-        marker_002:
-          Value: true
         odom:
           Value: true
         right_camera_frame:
@@ -192,12 +189,6 @@ Visualization Manager:
       Show Names: false
       Tree:
         map:
-          marker_000:
-            {}
-          marker_001:
-            {}
-          marker_002:
-            {}
           odom:
             base_link:
               baro_link:
@@ -232,7 +223,7 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        "": true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -271,7 +262,7 @@ Visualization Manager:
       Buffer Length: 1
       Class: rviz_default_plugins/Path
       Color: 114; 159; 207
-      Enabled: true
+      Enabled: false
       Head Diameter: 0.30000001192092896
       Head Length: 0.20000000298023224
       Length: 0.30000001192092896
@@ -293,18 +284,18 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /base_path
-      Value: true
+      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 10
-        Min Value: -10
-        Value: true
+        Max Value: -3.3499276638031006
+        Min Value: -3.987825632095337
+        Value: false
       Axis: Z
       Channel Name: intensity
       Class: rviz_default_plugins/PointCloud2
       Color: 255; 255; 255
-      Color Transformer: Intensity
+      Color Transformer: AxisColor
       Decay Time: 0
       Enabled: true
       Invert Rainbow: false
@@ -340,6 +331,45 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /orb_slam2_stereo_node/debug_image
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Marker
+      Namespaces:
+        seafloor: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /seafloor_marker
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz_default_plugins/Path
+      Color: 252; 233; 79
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /gt_path
       Value: true
   Enabled: true
   Global Options:
@@ -384,25 +414,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 12.553409576416016
+      Distance: 20.868173599243164
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.6626058220863342
-        Y: 0.7735766768455505
-        Z: -2.356576442718506
+        X: 0.09267701208591461
+        Y: -0.17163509130477905
+        Z: -2.3732199668884277
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.6302038431167603
+      Pitch: 0.8147968649864197
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz_default_plugins)
-      Yaw: 5.61102294921875
+      Yaw: 5.4778523445129395
     Saved: ~
 Window Geometry:
   Displays:

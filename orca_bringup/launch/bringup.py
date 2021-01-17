@@ -84,7 +84,7 @@ def generate_launch_description():
 
         DeclareLaunchArgument(
             'use_sim_time',
-            default_value='true',
+            default_value='false',
             description='Use simulation (Gazebo) clock?'),
 
         DeclareLaunchArgument(
@@ -143,7 +143,9 @@ def generate_launch_description():
             executable='teleop_node',
             output='screen',
             name='teleop_node',
-            parameters=[teleop_params_file]),
+            parameters=[teleop_params_file, {
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+            }]),
 
         # Subscribe to /cmd_vel and publish /thrusters, /odom and /tf odom->base_link
         Node(
@@ -226,9 +228,11 @@ def generate_launch_description():
             executable='lifecycle_manager',
             name='lifecycle_manager_map_server',
             output='screen',
-            parameters=[{'use_sim_time': use_sim_time},
-                        {'autostart': True},
-                        {'node_names': ['map_server']}]),
+            parameters=[{
+                'use_sim_time': use_sim_time,
+                'autostart': True,
+                'node_names': ['map_server'],
+            }]),
 
         # Include the rest of Nav2
         IncludeLaunchDescription(
