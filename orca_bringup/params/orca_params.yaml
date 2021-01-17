@@ -4,17 +4,6 @@ robot_state_publisher:
   ros__parameters:
     use_sim_time: False
 
-depth_node:
-  ros__parameters:
-    use_sim_time: False
-    stamp_msgs_with_current_time: True
-    z_variance: 0.00042601
-
-    mdl_mass: 9.9
-    mdl_volume: 0.01
-    mdl_fluid_density: 997.0
-    mdl_thrust_scale: 1.0
-
 joy_node:
   ros__parameters:
     use_sim_time: False
@@ -27,6 +16,7 @@ teleop_node:
 base_controller:
   ros__parameters:
     use_sim_time: False
+    stamp_msgs_with_current_time: True
     mdl_mass: 9.9
     mdl_volume: 0.01
     mdl_fluid_density: 997.0

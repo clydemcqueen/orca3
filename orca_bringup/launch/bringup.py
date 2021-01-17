@@ -121,14 +121,6 @@ def generate_launch_description():
             arguments=[urdf_file],
             parameters=[configured_orca_params]),
 
-        # Subscribe to /barometer and publish /depth
-        Node(
-            package='orca_base',
-            executable='depth_node',
-            output='screen',
-            name='depth_node',
-            parameters=[configured_orca_params]),
-
         # Publish /joy
         Node(
             package='joy',

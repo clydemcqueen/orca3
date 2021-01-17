@@ -31,6 +31,8 @@ namespace orca_base
 {
 
 #define BASE_PARAMS \
+  CXT_MACRO_MEMBER(stamp_msgs_with_current_time, bool, false) \
+  \
   CXT_MACRO_MEMBER(map_frame_id, std::string, "map") \
   CXT_MACRO_MEMBER(odom_frame_id, std::string, "odom") \
   CXT_MACRO_MEMBER(base_frame_id, std::string, "base_link") \

@@ -26,7 +26,8 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "orca_base/pid.hpp"
 #include "orca_base/thrusters.hpp"
-#include "orca_msgs/msg/depth.hpp"
+#include "orca_msgs/msg/barometer.hpp"
+#include "orca_shared/baro.hpp"
 #include "orca_shared/model.hpp"
 #include "orca_shared/util.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -37,14 +38,20 @@ namespace orca_base
 
 constexpr int QUEUE_SIZE = 10;
 
+// BaseController subscribes to /cmd_vel and does 2 main things:
+// -- Publish thrust commands to achieve the target velocity
+// -- Estimate and publish the current pose
+//
+// BaseController also uses the barometer sensor to hold the sub at the target odom.z position
+
 class BaseController : public rclcpp::Node
 {
   BaseContext cxt_;
+  orca::Barometer barometer_;
   Thrusters thrusters_;
 
-  // Most recent incoming messages
+  // Most recent incoming velocity message
   geometry_msgs::msg::Twist cmd_vel_;
-  orca_msgs::msg::Depth depth_msg_;
 
   // Current pose
   geometry_msgs::msg::PoseStamped base_f_odom_;
@@ -52,7 +59,7 @@ class BaseController : public rclcpp::Node
   std::unique_ptr<pid::Controller> pid_z_;
 
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
-  rclcpp::Subscription<orca_msgs::msg::Depth>::SharedPtr depth_sub_;
+  rclcpp::Subscription<orca_msgs::msg::Barometer>::SharedPtr baro_sub_;
 
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
   rclcpp::Publisher<orca_msgs::msg::Thrust>::SharedPtr thrust_pub_;
@@ -140,7 +147,7 @@ class BaseController : public rclcpp::Node
     }
   }
 
-  void publish_thrust(double dt)
+  void publish_thrust(double dt, orca_msgs::msg::Barometer::ConstSharedPtr baro_msg)
   {
     // Velocity to acceleration
     geometry_msgs::msg::Accel drag = cxt_.drag(cmd_vel_);
@@ -151,11 +158,11 @@ class BaseController : public rclcpp::Node
       accel.linear.z += cxt_.hover_accel_z();
     }
 
-    // Use the latest depth measurement to hold position at odom.position.z
+    // Hold position at odom.z
     if (cxt_.pid_enabled_) {
       pid_z_->set_target(base_f_odom_.pose.position.z);
-      std::cout << "pid target " << pid_z_->target() << ", calc " << pid_z_->calc(depth_msg_.z, dt) << std::endl;
-      accel.linear.z += pid_z_->calc(depth_msg_.z, dt);
+      auto curr_z = barometer_.pressure_to_base_link_z(cxt_, baro_msg->pressure);
+      accel.linear.z += pid_z_->calc(curr_z, dt);
     }
 
     // Acceleration to effort
@@ -178,7 +185,7 @@ public:
   {
     // Suppress IDE warnings
     (void) cmd_vel_sub_;
-    (void) depth_sub_;
+    (void) baro_sub_;
 
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
 
@@ -194,21 +201,34 @@ public:
         cmd_vel_ = *msg;
       });
 
-    // Depth messages are continuous and reliable, use this to drive the control loop
-    depth_sub_ = create_subscription<orca_msgs::msg::Depth>(
-      "depth", QUEUE_SIZE,
-      [this](orca_msgs::msg::Depth::ConstSharedPtr msg) // NOLINT
+    // Barometer messages are continuous and reliable, use them to drive the control loop
+    baro_sub_ = create_subscription<orca_msgs::msg::Barometer>(
+      "barometer", QUEUE_SIZE,
+      [this](orca_msgs::msg::Barometer::ConstSharedPtr msg) // NOLINT
       {
-        depth_msg_ = *msg;
+        if (!barometer_.initialized()) {
+          // Calibrate the barometer so that baro.z = odom.z = 0 at this pressure
+          // Note that this can only be set once -- parameter changes will not affect PID control
+          barometer_.initialize(cxt_, msg->pressure, 0);
+          RCLCPP_INFO(get_logger(), "baro.z = odom.z = 0 at pressure %g", msg->pressure);
+        }
 
-        double dt = orca::valid(base_f_odom_.header.stamp) ?
-                    (rclcpp::Time{msg->header.stamp} - rclcpp::Time{base_f_odom_.header.stamp}).seconds() : 0;
+        rclcpp::Time prev_t(base_f_odom_.header.stamp);
+        rclcpp::Time curr_t(msg->header.stamp);
 
-        base_f_odom_.header.stamp = msg->header.stamp;
+        // Overwrite stamp, useful if we're running a simulation on wall time
+        if (cxt_.stamp_msgs_with_current_time_) {
+          curr_t = now();
+        }
+
+        base_f_odom_.header.stamp = curr_t;
+
+        double dt = orca::valid(prev_t) ? (curr_t - prev_t).seconds() : 0;
+
         update_odometry(dt);
         publish_odometry();
         publish_tf();
-        publish_thrust(dt);
+        publish_thrust(dt, msg);
       });
 
     RCLCPP_INFO(get_logger(), "base_controller ready");
