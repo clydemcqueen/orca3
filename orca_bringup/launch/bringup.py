@@ -48,6 +48,7 @@ def generate_launch_description():
 
     urdf_file = os.path.join(orca_description_dir, 'urdf', 'hw7.urdf')  # TODO choose urdf
     teleop_params_file = os.path.join(orca_bringup_dir, 'params', 'xbox_holonomic_3d.yaml')
+    nav2_bt_file = os.path.join(orca_bringup_dir, 'behavior_trees', 'orca3_bt.xml')
 
     use_sim_time = LaunchConfiguration('use_sim_time')
 
@@ -233,5 +234,7 @@ def generate_launch_description():
                 'use_sim_time': use_sim_time,
                 'autostart': 'True',
                 'params_file': nav2_params_file,
-                'map_subscribe_transient_local': 'true'}.items()),
+                'map_subscribe_transient_local': 'true',
+                'default_bt_xml_filename': nav2_bt_file,
+            }.items()),
     ])
