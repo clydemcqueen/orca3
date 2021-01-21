@@ -110,8 +110,7 @@ public:
 
   void Init() override
   {
-    update_connection_ = event::Events::ConnectWorldUpdateBegin(
-      [this](const common::UpdateInfo &) {OnUpdate();});
+    update_connection_ = altimeter_->ConnectUpdated([this] {OnUpdate();});
 
     altimeter_->SetActive(true);
   }
