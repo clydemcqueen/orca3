@@ -262,6 +262,14 @@ public:
 
   void deactivate() override {}
 
+  // Pose is base_f_odom, it's 3D, and it comes from /tf via:
+  //   nav2_controller::ControllerServer::getRobotPose
+  //   Using the local_costmap (odom frame), not the global_costmap (map frame)
+  //   nav2_costmap_2d::Costmap2DROS::getRobotPose
+  //   nav2_util::getCurrentPose
+  //
+  // Twist comes from /odom, but it's stripped to 2D in nav2_controller::ControllerServer, so
+  // ignore it.
   geometry_msgs::msg::TwistStamped computeVelocityCommands(
     const geometry_msgs::msg::PoseStamped & pose,
     const geometry_msgs::msg::Twist &) override

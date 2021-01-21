@@ -32,6 +32,13 @@ namespace orca_base
 
 #define BASE_PARAMS \
   CXT_MACRO_MEMBER(stamp_msgs_with_current_time, bool, false) \
+  CXT_MACRO_MEMBER(xy_vel, double, 0.4) \
+  CXT_MACRO_MEMBER(xy_accel, double, 0.2) \
+  CXT_MACRO_MEMBER(z_vel, double, 0.3) \
+  CXT_MACRO_MEMBER(z_accel, double, 0.15) \
+  CXT_MACRO_MEMBER(yaw_vel, double, 1.0) \
+  CXT_MACRO_MEMBER(yaw_accel, double, 1.0) \
+  CXT_MACRO_MEMBER(controller_frequency, double, 20.0) \
   \
   CXT_MACRO_MEMBER(map_frame_id, std::string, "map") \
   CXT_MACRO_MEMBER(odom_frame_id, std::string, "odom") \

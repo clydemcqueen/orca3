@@ -28,7 +28,7 @@
 namespace orca
 {
 
-geometry_msgs::msg::Accel Model::drag(const geometry_msgs::msg::Twist & vel) const
+geometry_msgs::msg::Accel Model::drag_accel(const geometry_msgs::msg::Twist & vel) const
 {
   geometry_msgs::msg::Accel result;
   result.linear.x = drag_accel_x(vel.linear.x);

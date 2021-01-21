@@ -32,7 +32,7 @@ include_directories(include)
 
 ament_auto_add_executable(baro_filter_node src/baro_filter_node.cpp)
 
-ament_auto_add_executable(base_controller src/base_controller.cpp src/pid.cpp src/thrusters.cpp)
+ament_auto_add_executable(base_controller src/base_controller.cpp src/underwater_motion.cpp src/pid.cpp src/thrusters.cpp)
 
 ament_auto_add_executable(depth_node src/depth_node.cpp)
 

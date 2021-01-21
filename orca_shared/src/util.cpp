@@ -88,30 +88,6 @@ void set_yaw(geometry_msgs::msg::Quaternion & q, const double & yaw)
   set_rpy(q, r, p, yaw);
 }
 
-geometry_msgs::msg::Twist invert(const geometry_msgs::msg::Twist & v)
-{
-  geometry_msgs::msg::Twist result;
-  result.linear.x = -v.linear.x;
-  result.linear.y = -v.linear.y;
-  result.linear.z = -v.linear.z;
-  result.angular.x = -v.angular.x;
-  result.angular.y = -v.angular.y;
-  result.angular.z = -v.angular.z;
-  return result;
-}
-
-geometry_msgs::msg::Accel invert(const geometry_msgs::msg::Accel & a)
-{
-  geometry_msgs::msg::Accel result;
-  result.linear.x = -a.linear.x;
-  result.linear.y = -a.linear.y;
-  result.linear.z = -a.linear.z;
-  result.angular.x = -a.angular.x;
-  result.angular.y = -a.angular.y;
-  result.angular.z = -a.angular.z;
-  return result;
-}
-
 geometry_msgs::msg::Twist
 robot_to_world_frame(const geometry_msgs::msg::Twist & vel, const double & yaw_f_world)
 {
@@ -121,6 +97,12 @@ robot_to_world_frame(const geometry_msgs::msg::Twist & vel, const double & yaw_f
   result.linear.z = vel.linear.z;
   result.angular.z = vel.angular.z;
   return result;
+}
+
+bool is_zero(const geometry_msgs::msg::Twist & v)
+{
+  return v.linear.x == 0 && v.linear.y == 0 && v.linear.z == 0 &&
+    v.angular.x == 0 && v.angular.y == 0 && v.angular.z == 0;
 }
 
 //=====================================================================================
@@ -463,3 +445,68 @@ std::string str(const tf2::Vector3 & v)
 }
 
 }  // namespace orca
+
+//=====================================================================================
+// geometry_msgs::msg operators
+//=====================================================================================
+
+namespace geometry_msgs {
+
+namespace msg {
+
+geometry_msgs::msg::Accel operator+(
+  const geometry_msgs::msg::Accel & lhs,
+  const geometry_msgs::msg::Accel & rhs)
+{
+  geometry_msgs::msg::Accel result;
+  result.linear.x = lhs.linear.x + rhs.linear.x;
+  result.linear.y = lhs.linear.y + rhs.linear.y;
+  result.linear.z = lhs.linear.z + rhs.linear.z;
+  result.angular.x = lhs.angular.x + rhs.angular.x;
+  result.angular.y = lhs.angular.y + rhs.angular.y;
+  result.angular.z = lhs.angular.z + rhs.angular.z;
+  return result;
+}
+
+geometry_msgs::msg::Accel operator-(
+  const geometry_msgs::msg::Accel & lhs,
+  const geometry_msgs::msg::Accel & rhs)
+{
+  geometry_msgs::msg::Accel result;
+  result.linear.x = lhs.linear.x - rhs.linear.x;
+  result.linear.y = lhs.linear.y - rhs.linear.y;
+  result.linear.z = lhs.linear.z - rhs.linear.z;
+  result.angular.x = lhs.angular.x - rhs.angular.x;
+  result.angular.y = lhs.angular.y - rhs.angular.y;
+  result.angular.z = lhs.angular.z - rhs.angular.z;
+  return result;
+}
+
+geometry_msgs::msg::Accel operator-(const geometry_msgs::msg::Accel & a)
+{
+  geometry_msgs::msg::Accel result;
+  result.linear.x = -a.linear.x;
+  result.linear.y = -a.linear.y;
+  result.linear.z = -a.linear.z;
+  result.angular.x = -a.angular.x;
+  result.angular.y = -a.angular.y;
+  result.angular.z = -a.angular.z;
+  return result;
+}
+
+geometry_msgs::msg::Twist operator-(const geometry_msgs::msg::Twist & v)
+{
+  geometry_msgs::msg::Twist result;
+  result.linear.x = -v.linear.x;
+  result.linear.y = -v.linear.y;
+  result.linear.z = -v.linear.z;
+  result.angular.x = -v.angular.x;
+  result.angular.y = -v.angular.y;
+  result.angular.z = -v.angular.z;
+  return result;
+}
+
+}  // namespace msg
+
+}  // namespace geometry_msgs
+

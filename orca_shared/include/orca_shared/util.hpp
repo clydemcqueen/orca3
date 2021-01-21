@@ -97,11 +97,9 @@ double get_yaw(const geometry_msgs::msg::Quaternion & q);
 
 void set_yaw(geometry_msgs::msg::Quaternion & q, const double & yaw);
 
-geometry_msgs::msg::Twist invert(const geometry_msgs::msg::Twist & v);
-
-geometry_msgs::msg::Accel invert(const geometry_msgs::msg::Accel & a);
-
 geometry_msgs::msg::Twist robot_to_world_frame(const geometry_msgs::msg::Twist & vel, const double & yaw_f_world);
+
+bool is_zero(const geometry_msgs::msg::Twist & v);
 
 //=====================================================================================
 // Time
@@ -164,6 +162,8 @@ bool do_transform(
 // str()
 //=====================================================================================
 
+#define OSTR(v) std::cout << #v << ": " << orca::str(v) << std::endl;
+
 std::string str(const builtin_interfaces::msg::Time & v);
 
 std::string str(const geometry_msgs::msg::Accel & v);
@@ -193,5 +193,25 @@ std::string str(const tf2::Transform & t);
 std::string str(const tf2::Vector3 & v);
 
 }  // namespace orca
+
+//=====================================================================================
+// geometry_msgs::msg operators
+//=====================================================================================
+
+namespace geometry_msgs {
+
+namespace msg {
+
+geometry_msgs::msg::Accel operator+(const geometry_msgs::msg::Accel & lhs, const geometry_msgs::msg::Accel & rhs);
+
+geometry_msgs::msg::Accel operator-(const geometry_msgs::msg::Accel & lhs, const geometry_msgs::msg::Accel & rhs);
+
+geometry_msgs::msg::Accel operator-(const geometry_msgs::msg::Accel & a);
+
+geometry_msgs::msg::Twist operator-(const geometry_msgs::msg::Twist & v);
+
+}  // namespace msg
+
+}  // namespace geometry_msgs
 
 #endif  // ORCA_SHARED__UTIL_HPP_
