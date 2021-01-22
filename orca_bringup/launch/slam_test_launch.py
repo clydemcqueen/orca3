@@ -128,7 +128,7 @@ def generate_launch_description():
 
         # Run orb_slam2_localizer, a shim that publishes tf map->odom
         Node(
-            package='orca_base',
+            package='orca_localize',
             executable='orb_slam2_localizer',
             output='screen',
             name='orb_slam2_localizer',

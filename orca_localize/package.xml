@@ -2,9 +2,9 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
 
-  <name>orca_vision</name>
-  <version>0.1.0</version>
-  <description>Underwater vision nodes</description>
+  <name>orca_localize</name>
+  <version>0.4.0</version>
+  <description>Orca localizers</description>
 
   <maintainer email="clyde@mcqueen.net">Clyde McQueen</maintainer>
   <license>MIT</license>
@@ -22,26 +22,27 @@
   <test_depend>ament_lint_common</test_depend>
 
   <!-- Ament uses these linters, turn them on/off one by one to debug: -->
-  <!--  <test_depend>ament_cmake_copyright</test_depend>-->
-  <!--  <test_depend>ament_cmake_cppcheck</test_depend>-->
-  <!--  <test_depend>ament_cmake_cpplint</test_depend>-->
-  <!--  <test_depend>ament_cmake_flake8</test_depend>-->
-  <!--  <test_depend>ament_cmake_lint_cmake</test_depend>-->
-  <!--  <test_depend>ament_cmake_pep257</test_depend>-->
-  <!--  <test_depend>ament_cmake_uncrustify</test_depend>-->
-  <!--  <test_depend>ament_cmake_xmllint</test_depend>-->
+<!--  <test_depend>ament_cmake_copyright</test_depend>-->
+<!--  <test_depend>ament_cmake_cppcheck</test_depend>-->
+<!--  <test_depend>ament_cmake_cpplint</test_depend>-->
+<!--  <test_depend>ament_cmake_flake8</test_depend>-->
+<!--  <test_depend>ament_cmake_lint_cmake</test_depend>-->
+<!--  <test_depend>ament_cmake_pep257</test_depend>-->
+<!--  <test_depend>ament_cmake_uncrustify</test_depend>-->
+<!--  <test_depend>ament_cmake_xmllint</test_depend>-->
 
   <depend>cv_bridge</depend>
+  <depend>fiducial_vlam_msgs</depend>
+  <depend>geometry_msgs</depend>
   <depend>image_geometry</depend>
-  <depend>message_filters</depend>
   <depend>nav_msgs</depend>
   <depend>orca_msgs</depend>
   <depend>orca_shared</depend>
-  <depend>pcl_conversions</depend>
   <depend>rclcpp</depend>
   <depend>ros2_shared</depend>
   <depend>sensor_msgs</depend>
-  <depend>tf2_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_geometry_msgs</depend>
   <depend>tf2_ros</depend>
 
   <export>

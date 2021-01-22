@@ -169,7 +169,7 @@ def generate_launch_description():
 
         # fiducial_vlam: subscribe to the camera pose and publish /tf map->odom
         Node(
-            package='orca_base',
+            package='orca_localize',
             executable='fiducial_localizer',
             output='screen',
             name='fiducial_localizer',
@@ -197,7 +197,7 @@ def generate_launch_description():
 
         # orb_slam2: subscribe to the camera pose and publish /tf map->odom
         Node(
-            package='orca_base',
+            package='orca_localize',
             executable='orb_slam2_localizer',
             output='screen',
             name='orb_slam2_localizer',

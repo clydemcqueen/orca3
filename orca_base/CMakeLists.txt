@@ -17,7 +17,6 @@ if($ENV{CLION_IDE})
   find_package(fastrtps_cmake_module REQUIRED)
   set(FastRTPS_INCLUDE_DIR "/opt/ros/foxy/include")
   set(FastRTPS_LIBRARY_RELEASE "/opt/ros/foxy/lib/libfastrtps.so")
-  set(fiducial_vlam_msgs_DIR "${PROJECT_SOURCE_DIR}/../../../install/fiducial_vlam_msgs/share/fiducial_vlam_msgs/cmake")
   set(orca_description_DIR "${PROJECT_SOURCE_DIR}/../../../install/orca_description/share/orca_description/cmake")
   set(orca_msgs_DIR "${PROJECT_SOURCE_DIR}/../../../install/orca_msgs/share/orca_msgs/cmake")
   set(orca_shared_DIR "${PROJECT_SOURCE_DIR}/../../../install/orca_shared/share/orca_shared/cmake")
@@ -36,9 +35,9 @@ ament_auto_add_executable(base_controller src/base_controller.cpp src/underwater
 
 ament_auto_add_executable(depth_node src/depth_node.cpp)
 
-ament_auto_add_executable(fiducial_localizer src/fiducial_localizer.cpp)
+ament_auto_add_executable(pose_to_path src/pose_to_path_node.cpp)
 
-ament_auto_add_executable(orb_slam2_localizer src/orb_slam2_localizer.cpp)
+ament_auto_add_executable(odom_to_path src/odom_to_path_node.cpp)
 
 # Load & run linters listed in package.xml
 if(BUILD_TESTING)

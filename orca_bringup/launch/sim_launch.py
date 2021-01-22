@@ -114,7 +114,7 @@ def generate_launch_description():
 
         # Publish estimated path for rviz
         Node(
-            package='orca_vision',
+            package='orca_base',
             executable='pose_to_path',
             output='screen',
             name='pose_to_path_node',
@@ -129,7 +129,7 @@ def generate_launch_description():
 
         # Publish ground truth path for rviz TODO time from gz p3d plugin is bogus
         Node(
-            package='orca_vision',
+            package='orca_base',
             executable='odom_to_path',
             output='screen',
             name='odom_to_path_node',
