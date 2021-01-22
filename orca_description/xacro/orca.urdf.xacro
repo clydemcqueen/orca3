@@ -66,7 +66,8 @@
   <xacro:property name="BARO_VAR" value="40682.89"/>
   <xacro:property name="FWD_CAMERA_FREQ" value="1.0"/> <!-- Hack: slow down updates -->
   <xacro:property name="DOWN_CAMERA_FREQ" value="30.0"/>
-  <xacro:property name="CAMERA_STD_DEV" value="0.007"/>
+  <xacro:property name="CAMERA_STD_DEV" value="0.07"/>
+  <xacro:property name="CAMERA_FAR_CLIP" value="10"/>
 
   <!-- General constants -->
   <xacro:property name="PI" value="3.1415926535897931"/>
@@ -437,7 +438,7 @@
           </image>
           <clip>
             <near>0.02</near>
-            <far>300</far>
+            <far>${CAMERA_FAR_CLIP}</far>
           </clip>
           <noise>
             <type>gaussian</type>
@@ -488,7 +489,7 @@
           </image>
           <clip>
             <near>0.02</near>
-            <far>300</far>
+            <far>${CAMERA_FAR_CLIP}</far>
           </clip>
           <noise>
             <type>gaussian</type>
@@ -509,7 +510,7 @@
           </image>
           <clip>
             <near>0.02</near>
-            <far>300</far>
+            <far>${CAMERA_FAR_CLIP}</far>
           </clip>
           <noise>
             <type>gaussian</type>
@@ -517,7 +518,7 @@
                  That pixel's noise value is added to each of its color
                  channels, which at that point lie in the range [0,1]. -->
             <mean>0.0</mean>
-            <stddev>0.007</stddev>
+            <stddev>${CAMERA_STD_DEV}</stddev>
           </noise>
         </camera>
         <plugin name="stereo_camera_controller" filename="libgazebo_ros_camera.so">
