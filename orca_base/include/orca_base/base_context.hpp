@@ -39,7 +39,7 @@ namespace orca_base
   CXT_MACRO_MEMBER(yaw_vel, double, 0.4) \
   CXT_MACRO_MEMBER(yaw_accel, double, 0.4) \
   CXT_MACRO_MEMBER(controller_frequency, double, 20.0) \
-  \
+ \
   CXT_MACRO_MEMBER(map_frame_id, std::string, "map") \
   CXT_MACRO_MEMBER(odom_frame_id, std::string, "odom") \
   CXT_MACRO_MEMBER(base_frame_id, std::string, "base_link") \

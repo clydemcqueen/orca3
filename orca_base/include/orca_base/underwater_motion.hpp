@@ -20,8 +20,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef ORCA_BASE__MOTION_CALCULATOR_HPP_
-#define ORCA_BASE__MOTION_CALCULATOR_HPP_
+#ifndef ORCA_BASE__UNDERWATER_MOTION_HPP_
+#define ORCA_BASE__UNDERWATER_MOTION_HPP_
+
+#include <string>
 
 #include "geometry_msgs/msg/accel_stamped.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
@@ -68,15 +70,15 @@ class UnderwaterMotion
 public:
   UnderwaterMotion(const rclcpp::Logger & logger, const BaseContext & cxt);
 
-  const rclcpp::Time & time() { return time_; }
+  const rclcpp::Time & time() {return time_;}
 
-  const geometry_msgs::msg::Pose & pose() { return pose_; }
+  const geometry_msgs::msg::Pose & pose() {return pose_;}
 
-  const geometry_msgs::msg::Twist & vel() { return vel_; }
+  const geometry_msgs::msg::Twist & vel() {return vel_;}
 
-  const geometry_msgs::msg::Accel & accel() { return accel_; }
+  const geometry_msgs::msg::Accel & accel() {return accel_;}
 
-  const geometry_msgs::msg::Wrench & thrust() { return thrust_; }
+  const geometry_msgs::msg::Wrench & thrust() {return thrust_;}
 
   geometry_msgs::msg::PoseStamped pose_stamped();
 
@@ -96,4 +98,4 @@ public:
 
 }  // namespace orca_base
 
-#endif  // ORCA_BASE__MOTION_CALCULATOR_HPP_
+#endif  // ORCA_BASE__UNDERWATER_MOTION_HPP_

@@ -23,6 +23,7 @@
 #include "orca_shared/util.hpp"
 
 #include <iomanip>
+#include <memory>
 #include <string>
 
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
@@ -102,7 +103,7 @@ robot_to_world_frame(const geometry_msgs::msg::Twist & vel, const double & yaw_f
 bool is_zero(const geometry_msgs::msg::Twist & v)
 {
   return v.linear.x == 0 && v.linear.y == 0 && v.linear.z == 0 &&
-    v.angular.x == 0 && v.angular.y == 0 && v.angular.z == 0;
+         v.angular.x == 0 && v.angular.y == 0 && v.angular.z == 0;
 }
 
 //=====================================================================================
@@ -208,8 +209,7 @@ bool transform_with_wait(
   try {
     out_pose = tf->transform(in_pose, frame, std::chrono::milliseconds(wait_ms));
     return true;
-  }
-  catch (const tf2::TransformException & e) {
+  } catch (const tf2::TransformException & e) {
     RCLCPP_ERROR(logger, e.what());
     return false;
   }
@@ -232,15 +232,17 @@ bool transform_with_tolerance(
     // Interpolate
     out_pose = tf->transform(in_pose, frame);
     return true;
-  }
-  catch (const tf2::ExtrapolationException & e) {
+  } catch (const tf2::ExtrapolationException & e) {
     // Use the most recent transform if possible
     auto transform = tf->lookupTransform(frame, in_pose.header.frame_id, tf2::TimePointZero);
     if ((rclcpp::Time(in_pose.header.stamp) - rclcpp::Time(transform.header.stamp)) >
-      tolerance) {
-      RCLCPP_ERROR(logger, "Transform too old when converting from %s to %s",
+      tolerance)
+    {
+      RCLCPP_ERROR(
+        logger, "Transform too old when converting from %s to %s",
         in_pose.header.frame_id.c_str(), frame.c_str());
-      RCLCPP_ERROR(logger, "Data: %s, transform: %ds %uns",
+      RCLCPP_ERROR(
+        logger, "Data: %s, transform: %ds %uns",
         in_pose.header.stamp.sec, in_pose.header.stamp.nanosec,
         transform.header.stamp.sec, transform.header.stamp.nanosec);
       return false;
@@ -248,8 +250,7 @@ bool transform_with_tolerance(
       tf2::doTransform(in_pose, out_pose, transform);
       return true;
     }
-  }
-  catch (const tf2::TransformException & e) {
+  } catch (const tf2::TransformException & e) {
     RCLCPP_ERROR(logger, e.what());
     return false;
   }
@@ -450,9 +451,11 @@ std::string str(const tf2::Vector3 & v)
 // geometry_msgs::msg operators
 //=====================================================================================
 
-namespace geometry_msgs {
+namespace geometry_msgs
+{
 
-namespace msg {
+namespace msg
+{
 
 geometry_msgs::msg::Accel operator+(
   const geometry_msgs::msg::Accel & lhs,
@@ -509,4 +512,3 @@ geometry_msgs::msg::Twist operator-(const geometry_msgs::msg::Twist & v)
 }  // namespace msg
 
 }  // namespace geometry_msgs
-

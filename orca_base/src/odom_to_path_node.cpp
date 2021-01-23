@@ -1,3 +1,27 @@
+// MIT License
+//
+// Copyright (c) 2020 Clyde McQueen
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+#include <memory>
+
 #include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -39,7 +63,8 @@ class OdomToPathNode : public rclcpp::Node
 
     // Log parameters
 #undef CXT_MACRO_MEMBER
-#define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_LOG_PARAMETER(RCLCPP_INFO, get_logger(), params_, n, t, d)
+#define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_LOG_PARAMETER( \
+    RCLCPP_INFO, get_logger(), params_, n, t, d)
     PARAMS
 
     // Check that all command line parameters are defined
@@ -53,9 +78,8 @@ class OdomToPathNode : public rclcpp::Node
   }
 
 public:
-
-  OdomToPathNode():
-    Node{"odom_to_path"}
+  OdomToPathNode()
+  : Node{"odom_to_path"}
   {
     (void) odom_sub_;
 
@@ -70,12 +94,12 @@ public:
     }
 
     path_pub_ = create_publisher<nav_msgs::msg::Path>("path", 10);
-    odom_sub_ = create_subscription<nav_msgs::msg::Odometry>("odom",
-      qos, [this](const nav_msgs::msg::Odometry::ConstSharedPtr msg)  // NOLINT
+    odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
+      "odom", qos, [this](const nav_msgs::msg::Odometry::ConstSharedPtr msg)
       {
         if (path_pub_->get_subscription_count() > 0) {
           path_.header = msg->header;
-          if (path_.poses.size() > (unsigned long)params_.max_poses_) {
+          if (path_.poses.size() > (uint64_t)params_.max_poses_) {
             path_.poses.clear();
           }
           geometry_msgs::msg::PoseStamped pose_stamped;
@@ -88,9 +112,9 @@ public:
   }
 };
 
-} // namespace orca_vision
+}  // namespace orca_vision
 
-int main(int argc, char **argv)
+int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
   auto node = std::make_shared<orca_vision::OdomToPathNode>();

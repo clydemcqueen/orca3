@@ -20,13 +20,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <string>
+
 #include "nav2_core/progress_checker.hpp"
 #include "orca_nav2/param_macro.hpp"
 #include "orca_shared/util.hpp"
 
-namespace orca_nav2 {
+namespace orca_nav2
+{
 
-class ProgressChecker3D: public nav2_core::ProgressChecker
+class ProgressChecker3D : public nav2_core::ProgressChecker
 {
   rclcpp::Clock::SharedPtr clock_;
 

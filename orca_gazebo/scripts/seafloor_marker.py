@@ -24,10 +24,11 @@
 
 """Publish a marker representing the seafloor for rviz2."""
 
-from visualization_msgs.msg import Marker
 import rclpy
 import rclpy.node
 import rclpy.qos
+from visualization_msgs.msg import Marker
+
 
 class SeafloorMarkerNode(rclpy.node.Node):
 

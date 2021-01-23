@@ -60,7 +60,7 @@ orca_msgs::msg::Effort Model::wrench_to_effort(const geometry_msgs::msg::Wrench 
 
 orca_msgs::msg::Effort Model::accel_to_effort(const geometry_msgs::msg::Accel & accel) const
 {
-  return (wrench_to_effort(accel_to_wrench(accel)));
+  return wrench_to_effort(accel_to_wrench(accel));
 }
 
 void Model::log_info(const rclcpp::Logger & logger) const

@@ -12,7 +12,7 @@ ament_auto_find_build_dependencies()
 
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/urdf")
 
-foreach (SIM_MODE IN ITEMS hw6 slam_test hw7)
+foreach(SIM_MODE IN ITEMS hw6 slam_test hw7)
   set(URDF_FILE "${CMAKE_CURRENT_BINARY_DIR}/urdf/${SIM_MODE}.urdf")
   add_custom_command(
     OUTPUT ${URDF_FILE}

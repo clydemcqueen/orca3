@@ -20,6 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <string>
+
 #include "orca_base/underwater_motion.hpp"
 #include "orca_shared/util.hpp"
 
@@ -39,8 +41,8 @@ namespace orca_base
 // -- recovery controllers (spin, wait) interrupt PurePursuitController3D and may cause rapid
 //    acceleration or deceleration. These will be clamped.
 
-UnderwaterMotion::UnderwaterMotion(const rclcpp::Logger & logger, const BaseContext & cxt):
-  logger_{logger}, cxt_{cxt}
+UnderwaterMotion::UnderwaterMotion(const rclcpp::Logger & logger, const BaseContext & cxt)
+: logger_{logger}, cxt_{cxt}
 {
 }
 
@@ -51,11 +53,13 @@ double
 UnderwaterMotion::report_and_clamp(std::string func, std::string name, double v, double minmax)
 {
   if (v > minmax + EPSILON) {
-    RCLCPP_INFO(logger_, "%s: {%s} %g too high, clamp to %g", func.c_str(), name.c_str(), v,
+    RCLCPP_INFO(
+      logger_, "%s: {%s} %g too high, clamp to %g", func.c_str(), name.c_str(), v,
       minmax);
     return minmax;
   } else if (v < -minmax - EPSILON) {
-    RCLCPP_INFO(logger_, "%s: {%s} %g too low, clamp to %g", func.c_str(), name.c_str(), v,
+    RCLCPP_INFO(
+      logger_, "%s: {%s} %g too low, clamp to %g", func.c_str(), name.c_str(), v,
       -minmax);
     return -minmax;
   } else {

@@ -55,7 +55,9 @@ struct Thruster
     vertical{_vertical},
     prev_effort{} {}
 
-  int effort_to_pwm(const BaseContext & cxt, const orca_msgs::msg::Effort & effort, bool & saturated);
+  int effort_to_pwm(
+    const BaseContext & cxt, const orca_msgs::msg::Effort & effort,
+    bool & saturated);
 };
 
 class Thrusters
@@ -65,7 +67,8 @@ class Thrusters
 public:
   Thrusters();
 
-  std::vector<uint16_t> effort_to_thrust(const BaseContext & cxt,
+  std::vector<uint16_t> effort_to_thrust(
+    const BaseContext & cxt,
     const orca_msgs::msg::Effort & effort, bool & saturated);
 };
 

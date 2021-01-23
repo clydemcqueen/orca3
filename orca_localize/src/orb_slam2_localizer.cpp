@@ -61,7 +61,7 @@ namespace orca_base
   CXT_MACRO_MEMBER(odom_frame_id, std::string, "odom") \
   CXT_MACRO_MEMBER(base_frame_id, std::string, "base_link") \
   CXT_MACRO_MEMBER(camera_frame_id, std::string, "camera_link") \
-  \
+ \
   CXT_MACRO_MEMBER(publish_rate, int, 20) \
   CXT_MACRO_MEMBER(transform_expiration_ms, int, 1000) \
 /* End of list */
@@ -123,7 +123,7 @@ class OrbSlam2Localizer : public rclcpp::Node
         if (have_transform_) {
           // Adding time to the transform avoids problems and improves rviz2 display
           tm_map_odom_.header.stamp = now() +
-            rclcpp::Duration(std::chrono::milliseconds(cxt_.transform_expiration_ms_));
+          rclcpp::Duration(std::chrono::milliseconds(cxt_.transform_expiration_ms_));
           tf_broadcaster_->sendTransform(tm_map_odom_);
         }
       });
@@ -131,7 +131,7 @@ class OrbSlam2Localizer : public rclcpp::Node
 
 public:
   OrbSlam2Localizer()
-    : Node("orb_slam2_localizer")
+  : Node("orb_slam2_localizer")
   {
     // Suppress IDE warnings
     (void) camera_pose_sub_;
@@ -146,7 +146,7 @@ public:
 
     camera_pose_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>(
       "camera_pose", 10,
-      [this](geometry_msgs::msg::PoseStamped::ConstSharedPtr msg) // NOLINT
+      [this](geometry_msgs::msg::PoseStamped::ConstSharedPtr msg)
       {
         // Wait for tf odom->camera_link
         // odom->base_link: from base_controller
@@ -158,7 +158,7 @@ public:
             tf2::TimePointZero))
           {
             have_transform_ = true;
-            RCLCPP_INFO(get_logger(), "Found all transforms"); // NOLINT
+            RCLCPP_INFO(get_logger(), "Found all transforms");
           } else {
             return;
           }
@@ -169,7 +169,8 @@ public:
         auto tf_cam0_cam1 = orca::pose_msg_to_transform(msg->pose);
 
         auto tf_base_cam = orca::transform_msg_to_transform(
-          tf_buffer_->lookupTransform(cxt_.base_frame_id_, cxt_.camera_frame_id_, tf2::TimePointZero));
+          tf_buffer_->lookupTransform(
+            cxt_.base_frame_id_, cxt_.camera_frame_id_, tf2::TimePointZero));
 
         // Compute "the current pose of base_link relative to its original pose"
         auto tf_base0_base1 = (tf_base_cam * tf_cam0_cam1) * tf_base_cam.inverse();
@@ -179,10 +180,12 @@ public:
         auto tf_map_base = tf_base0_base1;
 
         auto tf_odom_base = orca::transform_msg_to_transform(
-          tf_buffer_->lookupTransform(cxt_.odom_frame_id_, cxt_.base_frame_id_, tf2::TimePointZero));
+          tf_buffer_->lookupTransform(
+            cxt_.odom_frame_id_, cxt_.base_frame_id_, tf2::TimePointZero));
 
         // Compute and save map->odom
-        tm_map_odom_.transform = orca::transform_to_transform_msg(tf_map_base * tf_odom_base.inverse());
+        tm_map_odom_.transform =
+        orca::transform_to_transform_msg(tf_map_base * tf_odom_base.inverse());
       });
 
     RCLCPP_INFO(get_logger(), "orb_slam2_localizer ready");

@@ -34,9 +34,9 @@ uint16_t effort_to_pwm(const uint16_t thrust_dz_pwm, const double effort)
 
   return clamp(
     static_cast<uint16_t>(orca_msgs::msg::Thrust::THRUST_STOP +
-      (effort > THRUST_STOP ? thrust_dz_pwm : (effort < THRUST_STOP ?
-                                               -thrust_dz_pwm : 0)) +
-      std::round(effort * thrust_range_pwm)),
+    (effort > THRUST_STOP ? thrust_dz_pwm : (effort < THRUST_STOP ?
+    -thrust_dz_pwm : 0)) +
+    std::round(effort * thrust_range_pwm)),
     orca_msgs::msg::Thrust::THRUST_FULL_REV,
     orca_msgs::msg::Thrust::THRUST_FULL_FWD);
 }
@@ -47,9 +47,9 @@ double pwm_to_effort(const uint16_t thrust_dz_pwm, const uint16_t pwm)
 
   return static_cast<double>(
     pwm - orca_msgs::msg::Thrust::THRUST_STOP +
-      (pwm > orca_msgs::msg::Thrust::THRUST_STOP ? -thrust_dz_pwm :
-       (pwm < orca_msgs::msg::Thrust::THRUST_STOP ? thrust_dz_pwm : 0))) /
-    thrust_range_pwm;
+    (pwm > orca_msgs::msg::Thrust::THRUST_STOP ? -thrust_dz_pwm :
+    (pwm < orca_msgs::msg::Thrust::THRUST_STOP ? thrust_dz_pwm : 0))) /
+         thrust_range_pwm;
 }
 
 }  // namespace orca

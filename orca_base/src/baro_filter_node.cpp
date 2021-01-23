@@ -110,7 +110,8 @@ class BaroFilterNode : public rclcpp::Node
     // Register parameters
 #undef CXT_MACRO_MEMBER
 #define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_PARAMETER_CHANGED(n, t)
-    CXT_MACRO_REGISTER_PARAMETERS_CHANGED((*this), cxt_, BARO_FILTER_NODE_PARAMS, validate_parameters)
+    CXT_MACRO_REGISTER_PARAMETERS_CHANGED(
+      (*this), cxt_, BARO_FILTER_NODE_PARAMS, validate_parameters)
 
     // Log parameters
 #undef CXT_MACRO_MEMBER
@@ -131,8 +132,8 @@ public:
 
     init_parameters();
 
-    baro_sub_ = create_subscription<orca_msgs::msg::Barometer>("barometer", QUEUE_SIZE,
-      [this](const orca_msgs::msg::Barometer::ConstSharedPtr msg)
+    baro_sub_ = create_subscription<orca_msgs::msg::Barometer>(
+      "barometer", QUEUE_SIZE, [this](const orca_msgs::msg::Barometer::ConstSharedPtr msg)
       {
         rclcpp::Time t{msg->header.stamp};
         orca_msgs::msg::Barometer filtered_baro_msg = *msg;

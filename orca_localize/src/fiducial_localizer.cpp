@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <limits>
 #include <memory>
 #include <string>
 
@@ -61,7 +62,8 @@ namespace orca_base
 //    t_a_c == t_a_b * t_b_c
 
 // Return the distance to the closest visible marker
-double closest_visible_marker(const fiducial_vlam_msgs::msg::Map & map,
+double closest_visible_marker(
+  const fiducial_vlam_msgs::msg::Map & map,
   const fiducial_vlam_msgs::msg::Observations & observations,
   const geometry_msgs::msg::Pose & camera_pose)
 {
@@ -83,11 +85,11 @@ double closest_visible_marker(const fiducial_vlam_msgs::msg::Map & map,
   CXT_MACRO_MEMBER(map_frame_id, std::string, "map") \
   CXT_MACRO_MEMBER(odom_frame_id, std::string, "odom") \
   CXT_MACRO_MEMBER(camera_frame_id, std::string, "camera_frame") \
-  \
+ \
   CXT_MACRO_MEMBER(publish_rate, int, 20) \
   CXT_MACRO_MEMBER(wait_for_transform_ms, int, 500) \
   CXT_MACRO_MEMBER(transform_expiration_ms, int, 1000) \
-  \
+ \
   CXT_MACRO_MEMBER(good_pose_distance, double, 2.0) \
 /* End of list */
 
@@ -165,7 +167,7 @@ class FiducialLocalizer : public rclcpp::Node
         if (have_initial_pose_) {
           // Adding time to the transform avoids problems and improves rviz2 display
           tm_map_odom_.header.stamp = now() +
-            rclcpp::Duration(std::chrono::milliseconds(cxt_.transform_expiration_ms_));
+          rclcpp::Duration(std::chrono::milliseconds(cxt_.transform_expiration_ms_));
           tf_broadcaster_->sendTransform(tm_map_odom_);
         }
       });
@@ -179,11 +181,10 @@ class FiducialLocalizer : public rclcpp::Node
     if (!can_transform_) {
       // Future: use a message filter
       if (tf_buffer_->canTransform(
-        cxt_.odom_frame_id_, cxt_.camera_frame_id_,
-        tf2::TimePointZero))
+          cxt_.odom_frame_id_, cxt_.camera_frame_id_, tf2::TimePointZero))
       {
         can_transform_ = true;
-        RCLCPP_INFO(get_logger(), "Found all transforms"); // NOLINT
+        RCLCPP_INFO(get_logger(), "Found all transforms");
       } else {
         return;
       }
@@ -202,7 +203,9 @@ class FiducialLocalizer : public rclcpp::Node
     // Reject poses that are too far away from the marker(s)
     // Make an exception for the initial pose
     if (have_initial_pose_) {
-      if (closest_visible_marker(fiducial_map_, *obs_msg, pose_msg->pose.pose) > cxt_.good_pose_distance_) {
+      if (closest_visible_marker(
+          fiducial_map_, *obs_msg, pose_msg->pose.pose) > cxt_.good_pose_distance_)
+      {
         return;
       }
     }
@@ -213,14 +216,16 @@ class FiducialLocalizer : public rclcpp::Node
     map_f_camera_stamped.pose = orca::invert(pose_msg->pose.pose);
 
     geometry_msgs::msg::PoseStamped map_f_odom_stamped;
-    if (orca::transform_with_wait(get_logger(), tf_buffer_, cxt_.odom_frame_id_,
-      map_f_camera_stamped, map_f_odom_stamped, cxt_.wait_for_transform_ms_)) {
+    if (orca::transform_with_wait(
+        get_logger(), tf_buffer_, cxt_.odom_frame_id_,
+        map_f_camera_stamped, map_f_odom_stamped, cxt_.wait_for_transform_ms_))
+    {
       geometry_msgs::msg::Pose odom_f_map = orca::invert(map_f_odom_stamped.pose);
       tm_map_odom_.transform = orca::pose_msg_to_transform_msg(odom_f_map);
 
       if (!have_initial_pose_) {
         have_initial_pose_ = true;
-        RCLCPP_INFO(get_logger(), "Have initial pose, publishing map->odom transform"); // NOLINT
+        RCLCPP_INFO(get_logger(), "Have initial pose, publishing map->odom transform");
       } else {
         RCLCPP_DEBUG(get_logger(), "New map->odom transform");
       }
@@ -248,11 +253,12 @@ public:
     pose_sub_.subscribe(this, "camera_pose");
     fiducial_sync_.reset(new FiducialSync(FiducialPolicy(10), obs_sub_, pose_sub_));
     using namespace std::placeholders;
-    fiducial_sync_->registerCallback(std::bind(&FiducialLocalizer::fiducial_callback, this, _1, _2)); // NOLINT
+    fiducial_sync_->registerCallback(
+      std::bind(&FiducialLocalizer::fiducial_callback, this, _1, _2));
 
     fiducial_map_sub_ = create_subscription<fiducial_vlam_msgs::msg::Map>(
       "fiducial_map", 10,
-      [this](fiducial_vlam_msgs::msg::Map::ConstSharedPtr msg) // NOLINT
+      [this](fiducial_vlam_msgs::msg::Map::ConstSharedPtr msg)
       {
         fiducial_map_ = *msg;
       });
