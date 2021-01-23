@@ -17,4 +17,6 @@ source /opt/ros/$ROS_DISTRO/setup.bash
 # Run in orca_description/urdf directory
 cd src/orca3/orca_description/urdf
 python3 /opt/ros/$ROS_DISTRO/bin/xacro orca.urdf.xacro SIM_MODE:=hw6 > hw6.urdf
+python3 /opt/ros/$ROS_DISTRO/bin/xacro orca.urdf.xacro SIM_MODE:=slam_test > slam_test.urdf
+python3 /opt/ros/$ROS_DISTRO/bin/xacro orca.urdf.xacro SIM_MODE:=hw7 > hw7.urdf
 ~~~

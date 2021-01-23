@@ -8,17 +8,16 @@ four vectored horizontal thrusters. See [orca_gazebo](../orca_gazebo) for more i
 
 The `BaseController` node does the following:
 * subscribe to `/cmd_vel` from the Nav2 system
-* predict motion using a constant acceleration (trapezoidal velocity) model. Roll and pitch are not modeled
-* publish odometry on `/odom`, and broadcast the odom->base_link transform
+* predict motion using a constant acceleration (trapezoidal velocity) model. Roll and pitch are not modeled.
+* publish odometry on `/accel`, `/pose`, `/vel` and `/odom`, and broadcast the odom->base_link transform
 * subscribe to `/barometer` and run a PID controller to hold depth at the target value
-* calculate required thrust forces (see below) and publish `/thrust` messages for the Gazebo simulation
+* calculate required thrust forces and publish `/thrust` messages for the Gazebo simulation
 
 Thrust force includes these components:
-* thrust to effect the target acceleration
-* thrust to counteract drag at the predicted velocity. I've estimated the drag of the BlueROV2 frame, but this is very rough,
+* thrust due to acceleration
+* thrust to counteract the predicted drag. I've estimated the drag of the BlueROV2 frame, but this is very rough,
 and each actual AUV will have different drag properties.
-* static hover thrust to hold depth at the target position
-* output of the depth PID controller
+* thrust to hold depth, this includes a static component based on buoyancy and the output of the PID controller
 
 ### Parameters
 

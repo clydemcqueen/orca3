@@ -3,7 +3,7 @@
 Orca3 is a set of [ROS2](http://www.ros.org/) packages that provide basic AUV (Autonomous Underwater Vehicle)
 functionality for the [BlueRobotics BlueROV2](https://www.bluerobotics.com).
 
-Orca3 includes a `base_controller` node that responds to 3D 4DoF `cmd_vel` messages and generates thrust and odometry.
+Orca3 includes a `base_controller` node that responds to 3D 4DoF `/cmd_vel` messages and generates thrust and odometry.
 The BlueROV2 barometer sensor is used to hover at the target depth.
 See [orca_base](orca_base/README.md) for details.
 
@@ -51,7 +51,7 @@ This will start Gazebo, Rviz2 and a bunch of ROS2 nodes.
 If everything started correctly, you will see Gazebo and Rviz2 GUIs like this:
 
 ![Gazebo GUI](images/gazebo.png)
-![RVIZ2 GUI](images/rviz.png)
+![RVIZ2 vlam GUI](images/rviz_vlam.png)
 
 The surface of the water is at Z=0 and the AUV will be sitting at the surface.
 There's one ArUco marker directly in front of the AUV to provide a good initial pose.
@@ -74,10 +74,9 @@ The AUV will only trust a marker pose if the marker is within 2 meters, so it wi
 between the markers. As the AUV approaches a marker and gets a good pose, the dead-reckoning
 error is added to the map->odom transform.
 
-![Mission](images/mission.png)
+![Mission vlam](images/mission_vlam.png)
 
 ## Simulation with orb_slam2_ros
-
 
 In a terminal run:
 
@@ -90,15 +89,13 @@ source /usr/share/gazebo/setup.sh
 ros2 launch orca_bringup sim_launch.py gzclient:=True rviz:=True slam:=orb world:=empty
 ~~~
 
-This will start Gazebo, Rviz2 and a number of ROS2 nodes.
-If everything started correctly, you will see Gazebo and Rviz2 GUIs like this:
+This Rviz2 configuration is tuned for `orb_slam2_ros`:
 
-TODO gazebo pic
-TODO rviz pic
+![RVIZ2 ORB_SLAM2 GUI](images/rviz_orb.png)
 
 The surface of the water is at Z=0 and the AUV will be sitting at the surface.
-
-TODO
+The world contains a rocky seafloor 4 meters below the surface, indicated by the blue marker in Rviz2.
+The pointcloud shows the ORB features recognized by `orb_slam2_ros`.
 
 Execute a mission by calling the `FollowWaypoints` action in a second terminal:
 
@@ -113,11 +110,24 @@ ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses:
 ]}"
 ~~~ 
 
-This mission will dive to -2.5 meters and move in a 6m x 6m box.
+![Mission ORB_SLAM2](images/mission_orb.png)
 
-TODO
+This mission will dive to -2.5 meters and move in a 6m x 6m square.
+The AUV has a good view of the seafloor, and `orb_slam2_ros` runs at the camera frame rate so the map->odom transform
+is published at 30fps. There is some odometry error which accumulates in the map->odom transform.
+You should notice a loop closure when the square is completed. The adjustment is very small.
 
-![Mission](images/mission.png)
+~~~
+[orb_slam2_ros_stereo-12] Loop detected!
+[orb_slam2_ros_stereo-12] Local Mapping STOP
+[orb_slam2_ros_stereo-12] Local Mapping RELEASEStarting Global Bundle Adjustment
+[orb_slam2_ros_stereo-12] 
+[orb_slam2_ros_stereo-12] Global Bundle Adjustment finished
+[orb_slam2_ros_stereo-12] Updating map ...
+[orb_slam2_ros_stereo-12] Local Mapping STOP
+[orb_slam2_ros_stereo-12] Local Mapping RELEASE
+[orb_slam2_ros_stereo-12] Map updated!
+~~~
 
 ## Packages
 
