@@ -4,7 +4,7 @@
 ros2 launch orca_bringup slam_test_launch.py gzclient:=False rviz:=True
 
 # fiducial_localizer
-ros2 launch orca_bringup sim_launch.py gzclient:=False rviz:=True orb_slam2:=False world:=ping_pong
+ros2 launch orca_bringup sim_launch.py gzclient:=False rviz:=True slam:=vlam world:=ping_pong
 
 # Example mission for fiducial_localizer
 ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses: [\
@@ -15,7 +15,7 @@ ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses:
 ]}"
 
 # orb_slam2_localizer
-ros2 launch orca_bringup sim_launch.py gzclient:=False rviz:=True orb_slam2:=True world:=empty
+ros2 launch orca_bringup sim_launch.py gzclient:=False rviz:=True slam:=orb world:=empty
 
 # Example mission for orb_slam2_localizer
 ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses: [\

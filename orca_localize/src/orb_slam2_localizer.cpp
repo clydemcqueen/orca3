@@ -63,7 +63,6 @@ namespace orca_base
   CXT_MACRO_MEMBER(camera_frame_id, std::string, "camera_link") \
   \
   CXT_MACRO_MEMBER(publish_rate, int, 20) \
-  CXT_MACRO_MEMBER(wait_for_transform_ms, int, 500) \
   CXT_MACRO_MEMBER(transform_expiration_ms, int, 1000) \
 /* End of list */
 

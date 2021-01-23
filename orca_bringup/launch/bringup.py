@@ -30,12 +30,18 @@ from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable
-from launch.conditions import IfCondition, UnlessCondition
+from launch.conditions import IfCondition, LaunchConfigurationEquals, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from nav2_common.launch import RewrittenYaml
 
+
+# SLAM strategies:
+slams = [
+    'vlam',  # fiducial_vlam
+    'orb',  # orb_slam2_ros
+]
 
 def generate_launch_description():
     camera_name = 'forward_camera'
@@ -85,13 +91,13 @@ def generate_launch_description():
 
         DeclareLaunchArgument(
             'use_sim_time',
-            default_value='false',
-            description='Use simulation (Gazebo) clock?'),
+            default_value='False',  # TODO sim time broken
+            description='Use simulation (Gazebo) clock (BROKEN BROKEN BROKEN)?'),
 
         DeclareLaunchArgument(
-            'orb_slam2',
-            default_value='false',
-            description='Use orb_slam2_ros instead of fiducial_vlam?'),
+            'slam',
+            default_value='orb',
+            description='Choose SLAM strategy: ' + ', '.join(slams)),
 
         DeclareLaunchArgument(
             'vlam_map',
@@ -155,7 +161,7 @@ def generate_launch_description():
             output='screen',
             name='vmap_main',
             parameters=[configured_orca_params],
-            condition=UnlessCondition(LaunchConfiguration('orb_slam2'))),
+            condition=LaunchConfigurationEquals('slam', 'vlam')),
 
         # fiducial_vlam: find ArUco markers and publish the camera pose
         Node(
@@ -165,7 +171,7 @@ def generate_launch_description():
             name='vloc_main',
             namespace=camera_name,
             parameters=[configured_orca_params],
-            condition=UnlessCondition(LaunchConfiguration('orb_slam2'))),
+            condition=LaunchConfigurationEquals('slam', 'vlam')),
 
         # fiducial_vlam: subscribe to the camera pose and publish /tf map->odom
         Node(
@@ -177,7 +183,7 @@ def generate_launch_description():
             remappings=[
                 ('camera_pose', '/' + camera_name + '/camera_pose'),
             ],
-            condition=UnlessCondition(LaunchConfiguration('orb_slam2'))),
+            condition=LaunchConfigurationEquals('slam', 'vlam')),
 
         # orb_slam2: build a map of 3d points, localize against the map, and publish the camera pose
         Node(
@@ -193,7 +199,7 @@ def generate_launch_description():
                 ('/image_right/image_color_rect', '/stereo/right/image_raw'),
                 ('/camera/camera_info', '/stereo/left/camera_info'),
             ],
-            condition=IfCondition(LaunchConfiguration('orb_slam2'))),
+            condition=LaunchConfigurationEquals('slam', 'orb')),
 
         # orb_slam2: subscribe to the camera pose and publish /tf map->odom
         Node(
@@ -205,7 +211,7 @@ def generate_launch_description():
             remappings=[
                 ('/camera_pose', '/orb_slam2_stereo_node/pose'),
             ],
-            condition=IfCondition(LaunchConfiguration('orb_slam2'))),
+            condition=LaunchConfigurationEquals('slam', 'orb')),
 
         # Publish a [likely empty] nav2 map
         Node(

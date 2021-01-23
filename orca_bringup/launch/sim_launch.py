@@ -54,6 +54,13 @@ worlds = [
 ]
 
 
+# SLAM strategies:
+slams = [
+    'vlam',  # fiducial_vlam
+    'orb',  # orb_slam2_ros
+]
+
+
 def generate_launch_description():
     orca_bringup_dir = get_package_share_directory('orca_bringup')
     orca_gazebo_dir = get_package_share_directory('orca_gazebo')
@@ -61,7 +68,7 @@ def generate_launch_description():
 
     orca_bringup_launch_dir = os.path.join(orca_bringup_dir, 'launch')
 
-    urdf_file = os.path.join(orca_description_dir, 'urdf', 'hw7.urdf')  # TODO choose urdf
+    urdf_file = os.path.join(orca_description_dir, 'urdf', 'hw7.urdf')
     nav2_params_file = os.path.join(orca_bringup_dir, 'params', 'nav2_params.yaml')
     rviz_cfg_file = os.path.join(orca_bringup_dir, 'cfg', 'sim_launch.rviz')
 
@@ -69,18 +76,18 @@ def generate_launch_description():
         # Arguments
         DeclareLaunchArgument(
             'use_sim_time',
-            default_value='false',  # TODO sim time broken
+            default_value='False',  # TODO sim time broken
             description='Use simulation (Gazebo) clock (BROKEN BROKEN BROKEN)?'),
 
         DeclareLaunchArgument(
-            'orb_slam2',
-            default_value='false',
-            description='Use orb_slam2_ros instead of fiducial_vlam?'),
+            'slam',
+            default_value='orb',
+            description='Choose SLAM strategy: ' + ', '.join(slams)),
 
         DeclareLaunchArgument(
             'world',
             default_value=worlds[0],
-            description='World ' + ', '.join(worlds)),
+            description='Choose world: ' + ', '.join(worlds)),
 
         DeclareLaunchArgument(
             'gzclient',
@@ -97,6 +104,7 @@ def generate_launch_description():
             cmd=['gzserver',
                  '-s', 'libgazebo_ros_init.so',  # Publish /clock
                  '-s', 'libgazebo_ros_factory.so',  # Injection endpoint
+                 # PythonExpression substitution will do a deferred string join:
                  [orca_gazebo_dir, '/worlds/', LaunchConfiguration('world'), '.world']],
             output='screen'),
 
@@ -108,7 +116,8 @@ def generate_launch_description():
 
         # Launch rviz
         ExecuteProcess(
-            cmd=['rviz2', '-d', rviz_cfg_file],
+            cmd=['rviz2', '-d',
+                 [orca_bringup_dir, '/cfg/sim_launch_', LaunchConfiguration('slam'), '.rviz']],
             output='screen',
             condition=IfCondition(LaunchConfiguration('rviz'))),
 
@@ -184,7 +193,7 @@ def generate_launch_description():
             PythonLaunchDescriptionSource(os.path.join(orca_bringup_launch_dir, 'bringup.py')),
             launch_arguments={
                 'use_sim_time': LaunchConfiguration('use_sim_time'),
-                'orb_slam2': LaunchConfiguration('orb_slam2'),
+                'slam': LaunchConfiguration('slam'),
                 'vlam_map': [orca_gazebo_dir, '/worlds/', LaunchConfiguration('world'), '_map.yaml'],
                 'nav2_params_file': nav2_params_file,
             }.items()),
