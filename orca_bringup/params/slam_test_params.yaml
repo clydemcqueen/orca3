@@ -1,0 +1,41 @@
+orb_slam2_stereo:
+  ros__parameters:
+    use_sim_time: True
+
+    # Gazebo 11 camera plugin publishes both camera info and images best-effort
+    # May need to be modified for real cameras
+    subscribe_best_effort: True
+
+    publish_pointcloud: true
+    publish_pose: true
+    publish_tf: false
+    localize_only: false
+    reset_map: false
+
+    load_map: false
+    map_file: map.bin
+
+    pointcloud_frame_id: map
+    camera_frame_id: camera_frame  # TODO
+    min_num_kf_in_map: 5
+
+    ORBextractor/nFeatures: 1200
+    ORBextractor/scaleFactor: 1.2
+    ORBextractor/nLevels: 8
+    ORBextractor/iniThFAST: 20
+    ORBextractor/minThFAST: 7
+
+    camera_fps: 30
+    # Color order of the images (0: BGR, 1: RGB. It is ignored if images are grayscale)
+    camera_rgb_encoding: true
+
+    # See https://github.com/raulmur/ORB_SLAM2/issues/89 for the author's explanation of these:
+    ThDepth: 40.0
+    depth_map_factor: 1.0
+    camera_baseline: 171.0  # = stereo baseline * fx = 0.36 * 474.89673285067175 = 171.0
+
+orb_slam2_localizer:
+  ros__parameters:
+    use_sim_time: True
+    camera_frame_id: "left_camera_link"  # Note: the link, not the frame
+    publish_rate: 20

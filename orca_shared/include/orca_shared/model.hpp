@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Clyde McQueen
+// Copyright (c) 2021 Clyde McQueen
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -243,6 +243,8 @@ struct Model
   // Z acceleration required to hover, in m/s^2
   double hover_accel_z() const {return weight_in_water() / mdl_mass_;}
 
+  double hover_force_z() const {return accel_to_force(hover_accel_z());}
+
   //=====================================================================================
   // Drag in the body frame (x forward, y left, z up)
   // = 0.5 * density * area * velocity^2 * coefficient
@@ -310,9 +312,14 @@ struct Model
   // Combine all 4 DoF
   //=====================================================================================
 
-  geometry_msgs::msg::Accel drag(const geometry_msgs::msg::Twist & vel) const;
+  geometry_msgs::msg::Accel drag_accel(const geometry_msgs::msg::Twist & vel) const;
 
   geometry_msgs::msg::Wrench accel_to_wrench(const geometry_msgs::msg::Accel & accel) const;
+
+  geometry_msgs::msg::Wrench drag_wrench(const geometry_msgs::msg::Twist & vel) const
+  {
+    return accel_to_wrench(drag_accel(vel));
+  }
 
   // Wrench scaled by bollard force, clamped to [-1, 1]
   orca_msgs::msg::Effort wrench_to_effort(const geometry_msgs::msg::Wrench & wrench) const;

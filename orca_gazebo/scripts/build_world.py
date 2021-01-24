@@ -2,7 +2,7 @@
 
 # MIT License
 #
-# Copyright (c) 2020 Clyde McQueen
+# Copyright (c) 2021 Clyde McQueen
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -61,9 +61,19 @@ def build_world(output_dir, name, markers):
       <uri>model://sun</uri>
     </include>
 
+    <!-- Seafloor (surface is at z==0) -->
+    <model name="seafloor">
+      <include>
+        <static>true</static>
+        <uri>model://seafloor</uri>
+      </include>
+      <pose>0 0 -4 0 0 0</pose>
+    </model>
+
 """)
-    for marker in markers:
-        world_file.write(f"""    <model name="marker{marker[0]}">
+    if markers:
+        for marker in markers:
+            world_file.write(f"""    <model name="marker{marker[0]}">
       <include>
         <static>true</static>
         <uri>model://marker_{marker[0]}</uri>
@@ -83,13 +93,14 @@ def build_map(output_dir, name, markers):
 marker_length: 0.1778
 markers:
 """)
-    for marker in markers:
-        # axes='sxyz' is the default in transformations.py, but make it explicit for clarity
-        t_marker_world = xf.euler_matrix(marker[4], marker[5], marker[6], axes='sxyz')
-        t_marker_map = t_marker_world @ t_world_map
-        r_marker_map = xf.euler_from_matrix(t_marker_map, axes='sxyz')
+    if markers:
+        for marker in markers:
+            # axes='sxyz' is the default in transformations.py, but make it explicit for clarity
+            t_marker_world = xf.euler_matrix(marker[4], marker[5], marker[6], axes='sxyz')
+            t_marker_map = t_marker_world @ t_world_map
+            r_marker_map = xf.euler_from_matrix(t_marker_map, axes='sxyz')
 
-        map_file.write(f"""  - id: {marker[0]}
+            map_file.write(f"""  - id: {marker[0]}
     u: 1
     f: 1
     xyz: [{marker[1]}, {marker[2]}, {marker[3]}]
@@ -261,6 +272,7 @@ worlds = [
     ['small_field.world', 'small_field_map.yaml', small_field],
     ['six_ring.world', 'six_ring_map.yaml', six_ring],
     ['ping_pong.world', 'ping_pong_map.yaml', ping_pong],
+    ['empty.world', 'empty_map.yaml', None],
 ]
 
 result_dir = sys.argv[1] if len(sys.argv) > 1 else 'worlds'

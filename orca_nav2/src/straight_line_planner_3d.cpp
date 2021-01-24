@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Clyde McQueen
+// Copyright (c) 2021 Clyde McQueen
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -35,9 +35,10 @@
 #include "orca_nav2/param_macro.hpp"
 #include "rclcpp/rclcpp.hpp"
 
-namespace orca_nav2 {
+namespace orca_nav2
+{
 
-class StraightLinePlanner3D: public nav2_core::GlobalPlanner
+class StraightLinePlanner3D : public nav2_core::GlobalPlanner
 {
   rclcpp::Clock::SharedPtr clock_;
   rclcpp::Logger logger_{rclcpp::get_logger("placeholder_will_be_set_in_configure")};
@@ -102,8 +103,8 @@ public:
       planning_dist_);
 
     int num_xy_poses = static_cast<int>(std::hypot(
-      goal.pose.position.x - start.pose.position.x,
-      goal.pose.position.y - start.pose.position.y) /
+        goal.pose.position.x - start.pose.position.x,
+        goal.pose.position.y - start.pose.position.y) /
       planning_dist_);
 
     double x_increment = (goal.pose.position.x - start.pose.position.x) / num_xy_poses;

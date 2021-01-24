@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Clyde McQueen
+// Copyright (c) 2021 Clyde McQueen
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,10 +23,15 @@
 // Simple ROS2 parameter macro that declares, gets and logs a parameter
 // Inspired by https://github.com/ptrmu/ros2_shared
 
+#ifndef ORCA_NAV2__PARAM_MACRO_HPP_
+#define ORCA_NAV2__PARAM_MACRO_HPP_
+
 #include "nav2_util/node_utils.hpp"
 
 #define PARAMETER(node, prefix, param, default) \
   nav2_util::declare_parameter_if_not_declared( \
     node, prefix + "." + #param, rclcpp::ParameterValue(default)); \
-  node->get_parameter(prefix + "." + #param, param##_); \
-  std::cout << prefix << "." << #param << " = " << param##_ << std::endl;
+  node->get_parameter(prefix + "." + #param, param ## _); \
+  std::cout << prefix << "." << #param << " = " << param ## _ << std::endl;
+
+#endif  // ORCA_NAV2__PARAM_MACRO_HPP_

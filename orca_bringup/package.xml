@@ -3,7 +3,7 @@
 <package format="3">
 
   <name>orca_bringup</name>
-  <version>0.4.0</version>
+  <version>0.5.0</version>
   <description>Launch scripts</description>
 
   <maintainer email="clyde@mcqueen.net">Clyde McQueen</maintainer>

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Clyde McQueen
+// Copyright (c) 2021 Clyde McQueen
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -55,7 +55,9 @@ struct Thruster
     vertical{_vertical},
     prev_effort{} {}
 
-  int effort_to_pwm(const BaseContext & cxt, const orca_msgs::msg::Effort & effort, bool & saturated);
+  int effort_to_pwm(
+    const BaseContext & cxt, const orca_msgs::msg::Effort & effort,
+    bool & saturated);
 };
 
 class Thrusters
@@ -65,7 +67,8 @@ class Thrusters
 public:
   Thrusters();
 
-  std::vector<uint16_t> effort_to_thrust(const BaseContext & cxt,
+  std::vector<uint16_t> effort_to_thrust(
+    const BaseContext & cxt,
     const orca_msgs::msg::Effort & effort, bool & saturated);
 };
 

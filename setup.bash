@@ -18,15 +18,14 @@ unset PYTHONPATH
 
 # Force logging to stdout, not stderr
 export RCUTILS_LOGGING_USE_STDOUT=1
+export RCUTILS_CONSOLE_OUTPUT_FORMAT='[{severity}] {name}: {message}'
 
 # Gazebo
 . /usr/share/gazebo/setup.sh
 
-# Gazebo -- Orca3
+# Gazebo model path
 export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:$PWD/install/sim_fiducial/share/sim_fiducial/models
-
-# Gazebo -- Turtlebot3
-export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:$PWD/install/turtlebot3_gazebo/share/turtlebot3_gazebo/models
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:$PWD/install/orca_gazebo/share/orca_gazebo/models
 
 # GTSAM
 # export CMAKE_PREFIX_PATH=~/lib/gtsam/install/lib/cmake/GTSAM:$CMAKE_PREFIX_PATH

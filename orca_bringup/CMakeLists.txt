@@ -11,4 +11,4 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-ament_auto_package(INSTALL_TO_SHARE cfg launch params worlds)
+ament_auto_package(INSTALL_TO_SHARE behavior_trees cfg launch params worlds)

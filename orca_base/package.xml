@@ -3,7 +3,7 @@
 <package format="3">
 
   <name>orca_base</name>
-  <version>0.4.0</version>
+  <version>0.5.0</version>
   <description>Orca controller</description>
 
   <maintainer email="clyde@mcqueen.net">Clyde McQueen</maintainer>
@@ -31,19 +31,12 @@
 <!--  <test_depend>ament_cmake_uncrustify</test_depend>-->
 <!--  <test_depend>ament_cmake_xmllint</test_depend>-->
 
-  <depend>cv_bridge</depend>
-  <depend>fiducial_vlam_msgs</depend>
   <depend>geometry_msgs</depend>
-  <depend>image_geometry</depend>
   <depend>nav_msgs</depend>
-  <depend>orca_description</depend>
   <depend>orca_msgs</depend>
   <depend>orca_shared</depend>
   <depend>rclcpp</depend>
-  <depend>rclcpp_action</depend>
-  <depend>rclpy</depend>
   <depend>ros2_shared</depend>
-  <depend>sensor_msgs</depend>
   <depend>tf2</depend>
   <depend>tf2_geometry_msgs</depend>
   <depend>tf2_ros</depend>

@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Clyde McQueen
+// Copyright (c) 2021 Clyde McQueen
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,7 @@
 namespace orca
 {
 
-geometry_msgs::msg::Accel Model::drag(const geometry_msgs::msg::Twist & vel) const
+geometry_msgs::msg::Accel Model::drag_accel(const geometry_msgs::msg::Twist & vel) const
 {
   geometry_msgs::msg::Accel result;
   result.linear.x = drag_accel_x(vel.linear.x);
@@ -60,7 +60,7 @@ orca_msgs::msg::Effort Model::wrench_to_effort(const geometry_msgs::msg::Wrench 
 
 orca_msgs::msg::Effort Model::accel_to_effort(const geometry_msgs::msg::Accel & accel) const
 {
-  return (wrench_to_effort(accel_to_wrench(accel)));
+  return wrench_to_effort(accel_to_wrench(accel));
 }
 
 void Model::log_info(const rclcpp::Logger & logger) const

@@ -2,7 +2,7 @@
 
 # MIT License
 #
-# Copyright (c) 2020 Clyde McQueen
+# Copyright (c) 2021 Clyde McQueen
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -50,46 +50,61 @@ worlds = [
     'six_ring',  # 6 markers arranged in a 12' diameter ring
     'medium_ring',  # 12 markers arranged in a 3m diameter ring
     'large_ring',  # 4 markers arranged in a 20m diameter ring
+    'empty',  # 0 markers
+]
+
+
+# SLAM strategies:
+slams = [
+    'vlam',  # fiducial_vlam
+    'orb',  # orb_slam2_ros
 ]
 
 
 def generate_launch_description():
     orca_bringup_dir = get_package_share_directory('orca_bringup')
-    orca_launch_dir = os.path.join(orca_bringup_dir, 'launch')
     orca_gazebo_dir = get_package_share_directory('orca_gazebo')
     orca_description_dir = get_package_share_directory('orca_description')
 
-    urdf_file = os.path.join(orca_description_dir, 'urdf', 'orca.urdf')
+    orca_bringup_launch_dir = os.path.join(orca_bringup_dir, 'launch')
+
+    urdf_file = os.path.join(orca_description_dir, 'urdf', 'hw7.urdf')
     nav2_params_file = os.path.join(orca_bringup_dir, 'params', 'nav2_params.yaml')
-    rviz_cfg_file = os.path.join(orca_bringup_dir, 'cfg', 'bringup.rviz')
+    rviz_cfg_file = os.path.join(orca_bringup_dir, 'cfg', 'sim_launch.rviz')
 
     return LaunchDescription([
         # Arguments
         DeclareLaunchArgument(
             'use_sim_time',
-            default_value='false',
-            description='Use sim time?'),
+            default_value='False',  # TODO sim time broken
+            description='Use simulation (Gazebo) clock (BROKEN BROKEN BROKEN)?'),
+
+        DeclareLaunchArgument(
+            'slam',
+            default_value='orb',
+            description='Choose SLAM strategy: ' + ', '.join(slams)),
 
         DeclareLaunchArgument(
             'world',
             default_value=worlds[0],
-            description='World ' + ', '.join(worlds)),
+            description='Choose world: ' + ', '.join(worlds)),
 
         DeclareLaunchArgument(
-            "gzclient",
-            default_value="True",
-            description="Launch Gazebo UI?"),
+            'gzclient',
+            default_value='True',
+            description='Launch Gazebo UI?'),
 
         DeclareLaunchArgument(
-            "rviz",
-            default_value="True",
-            description="Launch rviz?"),
+            'rviz',
+            default_value='True',
+            description='Launch rviz?'),
 
         # Launch gzserver
         ExecuteProcess(
             cmd=['gzserver',
                  '-s', 'libgazebo_ros_init.so',  # Publish /clock
                  '-s', 'libgazebo_ros_factory.so',  # Injection endpoint
+                 # PythonExpression substitution will do a deferred string join:
                  [orca_gazebo_dir, '/worlds/', LaunchConfiguration('world'), '.world']],
             output='screen'),
 
@@ -101,30 +116,84 @@ def generate_launch_description():
 
         # Launch rviz
         ExecuteProcess(
-            cmd=['rviz2', '-d', rviz_cfg_file],
+            cmd=['rviz2', '-d',
+                 [orca_bringup_dir, '/cfg/sim_launch_', LaunchConfiguration('slam'), '.rviz']],
             output='screen',
+            condition=IfCondition(LaunchConfiguration('rviz'))),
+
+        # Publish estimated path for rviz
+        Node(
+            package='orca_base',
+            executable='pose_to_path',
+            output='screen',
+            name='pose_to_path_node',
+            parameters=[{
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+            }],
+            remappings=[
+                ('pose', '/orb_slam2_stereo_node/pose'),
+                ('path', 'base_path'),
+            ],
+            condition=IfCondition(LaunchConfiguration('rviz'))),
+
+        # Publish ground truth path for rviz TODO time from gz p3d plugin is bogus
+        Node(
+            package='orca_base',
+            executable='odom_to_path',
+            output='screen',
+            name='odom_to_path_node',
+            parameters=[{
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+            }],
+            remappings=[
+                ('odom', 'gt_best_effort'),
+                ('path', 'gt_path'),
+            ],
+            condition=IfCondition(LaunchConfiguration('rviz'))),
+
+        # Publish seafloor marker for rviz
+        Node(
+            package='orca_gazebo',
+            executable='seafloor_marker.py',
+            output='screen',
+            name='seafloor_marker',
+            parameters=[{
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+            }],
             condition=IfCondition(LaunchConfiguration('rviz'))),
 
         # Republish ground truth with service QoS for PlotJuggler and rqt
         Node(
             package='orca_gazebo',
-            executable='republish_gt.py',
+            executable='reliable_odom.py',
             output='screen',
-            name='republish_gt'),
+            name='republish_odom',
+            parameters=[{
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+            }],
+            remappings=[
+                ('best_effort', 'gt_best_effort'),
+                ('reliable', 'gt_reliable'),
+            ],
+        ),
 
         # Inject the urdf file
         # Must inject urdf at z=0 to correctly calibrate the altimeter
-        Node(package='sim_fiducial',
-             executable='inject_entity.py',
-             output='screen',
-             arguments=[urdf_file, '0', '0', '0', '0', '0', '0'],
-             parameters=[{'use_sim_time': True}]),
+        Node(
+            package='sim_fiducial',
+            executable='inject_entity.py',
+            output='screen',
+            arguments=[urdf_file, '0', '0', '0', '0', '0', '0'],
+            parameters=[{
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+            }]),
 
-        # Bring up all Orca and Nav2 nodes
+        # Bring up all nodes
         IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(os.path.join(orca_launch_dir, 'bringup_launch.py')),
+            PythonLaunchDescriptionSource(os.path.join(orca_bringup_launch_dir, 'bringup.py')),
             launch_arguments={
                 'use_sim_time': LaunchConfiguration('use_sim_time'),
+                'slam': LaunchConfiguration('slam'),
                 'vlam_map': [orca_gazebo_dir, '/worlds/', LaunchConfiguration('world'), '_map.yaml'],
                 'nav2_params_file': nav2_params_file,
             }.items()),

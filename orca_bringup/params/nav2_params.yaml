@@ -6,7 +6,7 @@ bt_navigator:
     global_frame: map
     robot_base_frame: base_link
     odom_topic: /odom
-    default_bt_xml_filename: "navigate_w_replanning_and_recovery.xml"
+    default_bt_xml_filename: "navigate_w_replanning_and_recovery.xml"  # Overridden by launch file
     plugin_lib_names:
       - nav2_compute_path_to_pose_action_bt_node
       - nav2_follow_path_action_bt_node
@@ -55,27 +55,31 @@ controller_server:
     # Goal checker parameters
     goal_checker:
       plugin: "orca_nav2::GoalChecker3D"
-      xy_goal_tolerance: 0.1
-      z_goal_tolerance: 0.1
+      xy_goal_tolerance: 0.25
+      z_goal_tolerance: 0.25
       yaw_goal_tolerance: 10.0  # Ignore yaw
 
     # Controller parameters
     FollowPath:
       plugin: "orca_nav2::PurePursuitController3D"
+      lookahead_dist: 1.0
+      transform_tolerance: 1.0
+      goal_tolerance: 0.05
+
+      # Should match orca_params.yaml::base_controller
       xy_vel: 0.4
       xy_accel: 0.2
       z_vel: 0.3
       z_accel: 0.15
       yaw_vel: 1.0
       yaw_accel: 1.0
-      lookahead_dist: 1.0
-      transform_tolerance: 1.0
-      goal_tolerance: 0.05
 
 controller_server_rclcpp_node:
   ros__parameters:
     use_sim_time: False
 
+# The local costmap is always empty
+# This configuration can probably be simplified, e.g., there's no laser scanner
 local_costmap:
   local_costmap:
     ros__parameters:
@@ -119,6 +123,7 @@ local_costmap:
     ros__parameters:
       use_sim_time: False
 
+# The global costmap is always empty
 global_costmap:
   global_costmap:
     ros__parameters:

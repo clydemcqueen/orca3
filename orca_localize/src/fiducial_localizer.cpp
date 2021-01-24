@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Clyde McQueen
+// Copyright (c) 2021 Clyde McQueen
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <limits>
 #include <memory>
 #include <string>
 
@@ -39,8 +40,30 @@
 namespace orca_base
 {
 
+// Localize (publish tf map->odom) using fiducial_vlam
+
+// Usage:
+// -- Set vloc_node::publish_pose to true
+// -- Set vloc_node::publish_tf to false
+// -- robot_state_publisher should publish tf base_link->left_camera_frame (Note: frame, not link)
+// -- base_controller should publish tf odom->base_link
+// -- OrbSlam2Localizer will compute and publish tf map->odom
+
+// vloc_node will stop publishing poses if it can't find a marker
+// FiducialLocalizer will reject markers that are too far away to generate a good camera pose
+// FiducialLocalizer will continue publishing the latest tf map->odom in these cases
+
+// Transformation naming conventions:
+//    tf_target_source is a tf2::Transform
+//    tm_target_source a geometry_msgs::msg::Transform[Stamped] equal to tf_target_source
+//    source_f_target is a geometry_msgs::msg::Pose[Stamped] equal to tf_target_source
+//    t[f|m]_target_source means "will transform a vector from source frame to target frame"
+//    foo_f_target means "pose of foo in the target frame"
+//    t_a_c == t_a_b * t_b_c
+
 // Return the distance to the closest visible marker
-double closest_visible_marker(const fiducial_vlam_msgs::msg::Map & map,
+double closest_visible_marker(
+  const fiducial_vlam_msgs::msg::Map & map,
   const fiducial_vlam_msgs::msg::Observations & observations,
   const geometry_msgs::msg::Pose & camera_pose)
 {
@@ -62,11 +85,11 @@ double closest_visible_marker(const fiducial_vlam_msgs::msg::Map & map,
   CXT_MACRO_MEMBER(map_frame_id, std::string, "map") \
   CXT_MACRO_MEMBER(odom_frame_id, std::string, "odom") \
   CXT_MACRO_MEMBER(camera_frame_id, std::string, "camera_frame") \
-  \
+ \
   CXT_MACRO_MEMBER(publish_rate, int, 20) \
   CXT_MACRO_MEMBER(wait_for_transform_ms, int, 500) \
   CXT_MACRO_MEMBER(transform_expiration_ms, int, 1000) \
-  \
+ \
   CXT_MACRO_MEMBER(good_pose_distance, double, 2.0) \
 /* End of list */
 
@@ -89,14 +112,8 @@ class FiducialLocalizer : public rclcpp::Node
   // Map of ArUco markers
   fiducial_vlam_msgs::msg::Map fiducial_map_;
 
-  // Transformation naming conventions:
-  //    t_target_source is a transformation from a source frame to a target frame
-  //    xxx_f_target means xxx is expressed in the target frame
-  //
-  // Therefore:
-  //    t_target_source == source_f_target
-  //    t_a_c == t_a_b * t_b_c
-  geometry_msgs::msg::TransformStamped t_odom_map_;
+  // Most recent transform map->odom
+  geometry_msgs::msg::TransformStamped tm_map_odom_;
 
   // Message filter subscriptions
   message_filters::Subscriber<fiducial_vlam_msgs::msg::Observations> obs_sub_;
@@ -141,17 +158,17 @@ class FiducialLocalizer : public rclcpp::Node
 
   void validate_parameters()
   {
-    t_odom_map_.header.frame_id = cxt_.map_frame_id_;
-    t_odom_map_.child_frame_id = cxt_.odom_frame_id_;
+    tm_map_odom_.header.frame_id = cxt_.map_frame_id_;
+    tm_map_odom_.child_frame_id = cxt_.odom_frame_id_;
 
     timer_ = create_wall_timer(
       std::chrono::milliseconds(1000 / cxt_.publish_rate_), [this]
       {
         if (have_initial_pose_) {
           // Adding time to the transform avoids problems and improves rviz2 display
-          t_odom_map_.header.stamp = now() +
-            rclcpp::Duration(std::chrono::milliseconds(cxt_.transform_expiration_ms_));
-          tf_broadcaster_->sendTransform(t_odom_map_);
+          tm_map_odom_.header.stamp = now() +
+          rclcpp::Duration(std::chrono::milliseconds(cxt_.transform_expiration_ms_));
+          tf_broadcaster_->sendTransform(tm_map_odom_);
         }
       });
   }
@@ -164,11 +181,10 @@ class FiducialLocalizer : public rclcpp::Node
     if (!can_transform_) {
       // Future: use a message filter
       if (tf_buffer_->canTransform(
-        cxt_.odom_frame_id_, cxt_.camera_frame_id_,
-        tf2::TimePointZero))
+          cxt_.odom_frame_id_, cxt_.camera_frame_id_, tf2::TimePointZero))
       {
         can_transform_ = true;
-        RCLCPP_INFO(get_logger(), "Found all transforms"); // NOLINT
+        RCLCPP_INFO(get_logger(), "Found all transforms");
       } else {
         return;
       }
@@ -187,7 +203,9 @@ class FiducialLocalizer : public rclcpp::Node
     // Reject poses that are too far away from the marker(s)
     // Make an exception for the initial pose
     if (have_initial_pose_) {
-      if (closest_visible_marker(fiducial_map_, *obs_msg, pose_msg->pose.pose) > cxt_.good_pose_distance_) {
+      if (closest_visible_marker(
+          fiducial_map_, *obs_msg, pose_msg->pose.pose) > cxt_.good_pose_distance_)
+      {
         return;
       }
     }
@@ -198,16 +216,18 @@ class FiducialLocalizer : public rclcpp::Node
     map_f_camera_stamped.pose = orca::invert(pose_msg->pose.pose);
 
     geometry_msgs::msg::PoseStamped map_f_odom_stamped;
-    if (orca::transform_with_wait(get_logger(), tf_buffer_, cxt_.odom_frame_id_,
-      map_f_camera_stamped, map_f_odom_stamped, cxt_.wait_for_transform_ms_)) {
+    if (orca::transform_with_wait(
+        get_logger(), tf_buffer_, cxt_.odom_frame_id_,
+        map_f_camera_stamped, map_f_odom_stamped, cxt_.wait_for_transform_ms_))
+    {
       geometry_msgs::msg::Pose odom_f_map = orca::invert(map_f_odom_stamped.pose);
-      t_odom_map_.transform = orca::pose_msg_to_transform_msg(odom_f_map);
+      tm_map_odom_.transform = orca::pose_msg_to_transform_msg(odom_f_map);
 
       if (!have_initial_pose_) {
         have_initial_pose_ = true;
-        RCLCPP_INFO(get_logger(), "Have initial pose, publishing map->odom transform"); // NOLINT
+        RCLCPP_INFO(get_logger(), "Have initial pose, publishing map->odom transform");
       } else {
-        RCLCPP_INFO(get_logger(), "New map->odom transform");
+        RCLCPP_DEBUG(get_logger(), "New map->odom transform");
       }
     }
   }
@@ -233,11 +253,12 @@ public:
     pose_sub_.subscribe(this, "camera_pose");
     fiducial_sync_.reset(new FiducialSync(FiducialPolicy(10), obs_sub_, pose_sub_));
     using namespace std::placeholders;
-    fiducial_sync_->registerCallback(std::bind(&FiducialLocalizer::fiducial_callback, this, _1, _2)); // NOLINT
+    fiducial_sync_->registerCallback(
+      std::bind(&FiducialLocalizer::fiducial_callback, this, _1, _2));
 
     fiducial_map_sub_ = create_subscription<fiducial_vlam_msgs::msg::Map>(
       "fiducial_map", 10,
-      [this](fiducial_vlam_msgs::msg::Map::ConstSharedPtr msg) // NOLINT
+      [this](fiducial_vlam_msgs::msg::Map::ConstSharedPtr msg)
       {
         fiducial_map_ = *msg;
       });

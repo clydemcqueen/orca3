@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Clyde McQueen
+// Copyright (c) 2021 Clyde McQueen
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,7 @@
 #define ORCA_SHARED__UTIL_HPP_
 
 #include <cmath>
+#include <memory>
 #include <string>
 
 #include "geometry_msgs/msg/accel.hpp"
@@ -91,17 +92,17 @@ double dist(const geometry_msgs::msg::Point & p1, const geometry_msgs::msg::Poin
 
 void get_rpy(const geometry_msgs::msg::Quaternion & q, double & r, double & p, double & y);
 
-void set_rpy(geometry_msgs::msg::Quaternion & q, const double & r, const double & p, const double & y);
+void set_rpy(
+  geometry_msgs::msg::Quaternion & q, const double & r, const double & p, const double & y);
 
 double get_yaw(const geometry_msgs::msg::Quaternion & q);
 
 void set_yaw(geometry_msgs::msg::Quaternion & q, const double & yaw);
 
-geometry_msgs::msg::Twist invert(const geometry_msgs::msg::Twist & v);
+geometry_msgs::msg::Twist robot_to_world_frame(
+  const geometry_msgs::msg::Twist & vel, const double & yaw_f_world);
 
-geometry_msgs::msg::Accel invert(const geometry_msgs::msg::Accel & a);
-
-geometry_msgs::msg::Twist robot_to_world_frame(const geometry_msgs::msg::Twist & vel, const double & yaw_f_world);
+bool is_zero(const geometry_msgs::msg::Twist & v);
 
 //=====================================================================================
 // Time
@@ -122,7 +123,22 @@ geometry_msgs::msg::Transform transform_to_transform_msg(const tf2::Transform & 
 
 geometry_msgs::msg::Transform pose_msg_to_transform_msg(const geometry_msgs::msg::Pose & pose);
 
+geometry_msgs::msg::TransformStamped pose_msg_to_transform_msg(
+  const geometry_msgs::msg::PoseStamped & msg,
+  const std::string & child_frame_id);
+
+tf2::Transform transform_msg_to_transform(const geometry_msgs::msg::Transform & msg);
+
+tf2::Transform transform_msg_to_transform(const geometry_msgs::msg::TransformStamped & msg);
+
+geometry_msgs::msg::PoseStamped transform_msg_to_pose_msg(
+  const geometry_msgs::msg::TransformStamped & msg);
+
 geometry_msgs::msg::Pose invert(const geometry_msgs::msg::Pose & pose);
+
+geometry_msgs::msg::PoseStamped invert(
+  const geometry_msgs::msg::PoseStamped & msg,
+  const std::string & frame_id);
 
 //=====================================================================================
 // tf2_ros::Buffer functions
@@ -144,9 +160,17 @@ bool transform_with_tolerance(
   geometry_msgs::msg::PoseStamped & out_pose,
   const rclcpp::Duration & tolerance);
 
+bool do_transform(
+  const std::shared_ptr<tf2_ros::Buffer> & tf,
+  const std::string & frame,
+  const geometry_msgs::msg::PoseStamped & in_pose,
+  geometry_msgs::msg::PoseStamped & out_pose);
+
 //=====================================================================================
 // str()
 //=====================================================================================
+
+#define OSTR(v) std::cout << #v << ": " << orca::str(v) << std::endl;
 
 std::string str(const builtin_interfaces::msg::Time & v);
 
@@ -170,6 +194,36 @@ std::string str(const rclcpp::Time & v);
 
 std::string str(const std_msgs::msg::Header & v);
 
+std::string str(const tf2::Matrix3x3 & r);
+
+std::string str(const tf2::Transform & t);
+
+std::string str(const tf2::Vector3 & v);
+
 }  // namespace orca
+
+//=====================================================================================
+// geometry_msgs::msg operators
+//=====================================================================================
+
+namespace geometry_msgs
+{
+
+namespace msg
+{
+
+geometry_msgs::msg::Accel operator+(
+  const geometry_msgs::msg::Accel & lhs, const geometry_msgs::msg::Accel & rhs);
+
+geometry_msgs::msg::Accel operator-(
+  const geometry_msgs::msg::Accel & lhs, const geometry_msgs::msg::Accel & rhs);
+
+geometry_msgs::msg::Accel operator-(const geometry_msgs::msg::Accel & a);
+
+geometry_msgs::msg::Twist operator-(const geometry_msgs::msg::Twist & v);
+
+}  // namespace msg
+
+}  // namespace geometry_msgs
 
 #endif  // ORCA_SHARED__UTIL_HPP_

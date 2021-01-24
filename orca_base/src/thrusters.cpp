@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Clyde McQueen
+// Copyright (c) 2021 Clyde McQueen
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,6 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <vector>
+
 #include "orca_base/thrusters.hpp"
 #include "orca_shared/pwm.hpp"
 #include "orca_shared/util.hpp"
@@ -27,7 +29,9 @@
 namespace orca_base
 {
 
-int Thruster::effort_to_pwm(const BaseContext & cxt, const orca_msgs::msg::Effort & effort, bool & saturated)
+int Thruster::effort_to_pwm(
+  const BaseContext & cxt, const orca_msgs::msg::Effort & effort,
+  bool & saturated)
 {
   double combined_effort = effort.force.x * forward + effort.force.y * strafe;
 
@@ -93,7 +97,10 @@ Thrusters::Thrusters()
   thrusters_.emplace_back("t200_link_vertical_left", true, 0.0, 0.0, 0.0, -1.0);
 }
 
-std::vector<uint16_t> Thrusters::effort_to_thrust(const BaseContext & cxt, const orca_msgs::msg::Effort & effort, bool & saturated)
+std::vector<uint16_t> Thrusters::effort_to_thrust(
+  const BaseContext & cxt,
+  const orca_msgs::msg::Effort & effort,
+  bool & saturated)
 {
   std::vector<uint16_t> result;
   saturated = false;

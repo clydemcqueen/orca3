@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Clyde McQueen
+// Copyright (c) 2021 Clyde McQueen
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,8 @@
 // https://navigation.ros.org/plugin_tutorials/docs/writing_new_nav2controller_plugin.html
 
 #include <algorithm>
+#include <limits>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -34,9 +36,10 @@
 #include "rclcpp/rclcpp.hpp"
 #include "pluginlib/class_loader.hpp"
 
-namespace orca_nav2 {
+namespace orca_nav2
+{
 
-constexpr bool sign(const double & v) { return v > 0; }
+constexpr bool sign(const double & v) {return v > 0;}
 
 class Limiter
 {
@@ -76,7 +79,7 @@ public:
   }
 };
 
-class PurePursuitController3D: public nav2_core::Controller
+class PurePursuitController3D : public nav2_core::Controller
 {
   rclcpp::Logger logger_{rclcpp::get_logger("placeholder_will_be_set_in_configure")};
   std::shared_ptr<tf2_ros::Buffer> tf_;
@@ -147,9 +150,11 @@ class PurePursuitController3D: public nav2_core::Controller
   {
     // Transform pose odom -> map
     geometry_msgs::msg::PoseStamped pose_f_map;
-    if (!orca::transform_with_tolerance(logger_, tf_, plan_.header.frame_id,
-      pose_f_odom, pose_f_map,
-      transform_tolerance_d_)) {
+    if (!orca::transform_with_tolerance(
+        logger_, tf_, plan_.header.frame_id,
+        pose_f_odom, pose_f_map,
+        transform_tolerance_d_))
+    {
       return geometry_msgs::msg::Twist{};
     }
 
@@ -161,9 +166,11 @@ class PurePursuitController3D: public nav2_core::Controller
 
     // Transform goal map -> base
     geometry_msgs::msg::PoseStamped goal_f_base;
-    if (!orca::transform_with_tolerance(logger_, tf_, base_frame_id_,
-      goal_f_map, goal_f_base,
-      transform_tolerance_d_)) {
+    if (!orca::transform_with_tolerance(
+        logger_, tf_, base_frame_id_,
+        goal_f_map, goal_f_base,
+        transform_tolerance_d_))
+    {
       return geometry_msgs::msg::Twist{};
     }
 
@@ -262,6 +269,14 @@ public:
 
   void deactivate() override {}
 
+  // Pose is base_f_odom, it's 3D, and it comes from /tf via:
+  //   nav2_controller::ControllerServer::getRobotPose
+  //   Using the local_costmap (odom frame), not the global_costmap (map frame)
+  //   nav2_costmap_2d::Costmap2DROS::getRobotPose
+  //   nav2_util::getCurrentPose
+  //
+  // Twist comes from /odom, but it's stripped to 2D in nav2_controller::ControllerServer, so
+  // ignore it.
   geometry_msgs::msg::TwistStamped computeVelocityCommands(
     const geometry_msgs::msg::PoseStamped & pose,
     const geometry_msgs::msg::Twist &) override
@@ -291,7 +306,6 @@ public:
     }
     plan_ = plan;
   }
-
 };
 
 }  // namespace orca_nav2

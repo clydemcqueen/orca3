@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Clyde McQueen
+// Copyright (c) 2021 Clyde McQueen
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,13 +20,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <string>
+
 #include "angles/angles.h"
 #include "nav2_core/goal_checker.hpp"
 #include "orca_nav2/param_macro.hpp"
 
-namespace orca_nav2 {
+namespace orca_nav2
+{
 
-class GoalChecker3D: public nav2_core::GoalChecker
+class GoalChecker3D : public nav2_core::GoalChecker
 {
   double xy_goal_tolerance_{};
   double z_goal_tolerance_{};

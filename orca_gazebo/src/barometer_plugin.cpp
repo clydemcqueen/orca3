@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2020 Clyde McQueen
+// Copyright (c) 2021 Clyde McQueen
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -110,8 +110,7 @@ public:
 
   void Init() override
   {
-    update_connection_ = event::Events::ConnectWorldUpdateBegin(
-      [this](const common::UpdateInfo &) {OnUpdate();});
+    update_connection_ = altimeter_->ConnectUpdated([this] {OnUpdate();});
 
     altimeter_->SetActive(true);
   }
