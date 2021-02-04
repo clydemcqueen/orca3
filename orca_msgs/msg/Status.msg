@@ -1,5 +1,7 @@
 std_msgs/Header header
 
+float64 thrust_msg_lag
+int32 cpu_temp
 float64 voltage
 bool low_battery
 

@@ -1,0 +1,10 @@
+[Unit]
+Description=Orca right camera
+
+[Service]
+Type=forking
+User=pi
+ExecStart=/home/ubuntu/ros2/orca3_ws/install/orca_driver/lib/orca_driver/start_rcam.sh
+
+[Install]
+WantedBy=multi-user.target

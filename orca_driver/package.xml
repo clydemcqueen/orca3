@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+
+  <name>orca_driver</name>
+  <version>0.5.0</version>
+  <description>Orca driver</description>
+
+  <maintainer email="clyde@mcqueen.net">Clyde McQueen</maintainer>
+  <license>MIT</license>
+
+  <url type="repository">https://github.com/clydemcqueen/orca3.git</url>
+  <url type="bugtracker">https://github.com/clydemcqueen/orca3/issues</url>
+
+  <author>Clyde McQueen</author>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+
+  <!-- This recursively depends on a set of common linters -->
+  <test_depend>ament_lint_common</test_depend>
+
+  <depend>br_ms5837</depend>
+  <depend>orca_msgs</depend>
+  <depend>rclcpp</depend>
+  <depend>rclpy</depend>
+  <depend>ros2_shared</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+
+</package>

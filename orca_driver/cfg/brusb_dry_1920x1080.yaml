@@ -1,0 +1,20 @@
+image_width: 1920
+image_height: 1080
+camera_name: forward_camera
+camera_matrix:
+  rows: 3
+  cols: 3
+  data: [1041.482343, 0.000000, 1028.461742, 0.000000, 1040.575457, 558.582608, 0.000000, 0.000000, 1.000000]
+distortion_model: plumb_bob
+distortion_coefficients:
+  rows: 1
+  cols: 5
+  data: [0.008547, -0.006032, 0.000450, 0.000662, 0.000000]
+rectification_matrix:
+  rows: 3
+  cols: 3
+  data: [1.000000, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000, 0.000000, 0.000000, 1.000000]
+projection_matrix:
+  rows: 3
+  cols: 4
+  data: [1044.289917, 0.000000, 1030.517941, 0.000000, 0.000000, 1044.619019, 559.189248, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000]
