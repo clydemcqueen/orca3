@@ -4,7 +4,8 @@ Description=Orca left camera
 [Service]
 Type=forking
 User=pi
-ExecStart=/home/ubuntu/ros2/orca3_ws/install/orca_driver/lib/orca_driver/start_lcam.sh
+# No need to build orca3:
+ExecStart=/home/pi/orca3/orca_driver/scripts/start_lcam.sh
 
 [Install]
 WantedBy=multi-user.target
