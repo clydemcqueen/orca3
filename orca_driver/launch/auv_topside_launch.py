@@ -181,13 +181,13 @@ def generate_launch_description():
 
     all_entities = [
         # Publish static joints
-        Node(package='robot_state_publisher', node_executable='robot_state_publisher',
+        Node(package='robot_state_publisher', executable='robot_state_publisher',
              output='log',
              arguments=[urdf_path]),
 
         # Decode h264 stream
-        Node(package='image_transport', node_executable='republish', output='screen',
-             node_name='republish_node', node_namespace=camera_name, arguments=[
+        Node(package='image_transport', executable='republish', output='screen',
+             name='republish_node', namespace=camera_name, arguments=[
                 'h264',  # Input
                 'raw'  # Output
              ], remappings=[
@@ -202,38 +202,38 @@ def generate_launch_description():
              ]),
 
         # Joystick driver, generates joy messages
-        Node(package='joy', node_executable='joy_node', output='screen',
-             node_name='joy_node', parameters=[{
+        Node(package='joy', executable='joy_node', output='screen',
+             name='joy_node', parameters=[{
                 'dev': '/dev/input/js0'  # Update as required
              }]),
 
         # Barometer filter
-        Node(package='orca_filter', node_executable='baro_filter_node', output='screen',
+        Node(package='orca_filter', executable='baro_filter_node', output='screen',
              parameters=[{
                 'ukf_Q': True,
              }]),
 
         # ROV controller, uses joystick to control the sub
-        Node(package='orca_base', node_executable='rov_node', output='screen',
-             node_name='rov_node', parameters=[rov_node_params], remappings=[
+        Node(package='orca_base', executable='rov_node', output='screen',
+             name='rov_node', parameters=[rov_node_params], remappings=[
                 ('barometer', 'filtered_barometer'),
                 ('control', 'rov_control'),  # Send control messages to auv_node
              ]),
 
         # Depth node, turns /barometer messages into /depth messages
-        Node(package='orca_filter', node_executable='depth_node', output='screen',
-             node_name='depth_node', parameters=[model_params], remappings=[
+        Node(package='orca_filter', executable='depth_node', output='screen',
+             name='depth_node', parameters=[model_params], remappings=[
                 ('barometer', 'filtered_barometer'),
                 ('fp', '/' + camera_name + '/fp'),
              ]),
 
         # Publish, and possibly build, a map
-        Node(package='fiducial_vlam', node_executable='vmap_main', output='screen',
-             node_name='vmap_node', parameters=[vmap_node_params]),
+        Node(package='fiducial_vlam', executable='vmap_main', output='screen',
+             name='vmap_node', parameters=[vmap_node_params]),
 
         # Localize against the map
-        Node(package='fiducial_vlam', node_executable='vloc_main', output='screen',
-             node_name='vloc_node', node_namespace=camera_name, parameters=[{
+        Node(package='fiducial_vlam', executable='vloc_main', output='screen',
+             name='vloc_node', namespace=camera_name, parameters=[{
                 'psl_camera_frame_id': camera_frame,
 
                 # Localize, don't calibrate
@@ -266,32 +266,32 @@ def generate_launch_description():
              ]),
 
         # FP node, generate fiducial poses from observations and poses
-        Node(package='orca_filter', node_executable='fp_node', output='screen',
-             node_name='fp_node', node_namespace=camera_name, parameters=[fp_node_params]),
+        Node(package='orca_filter', executable='fp_node', output='screen',
+             name='fp_node', namespace=camera_name, parameters=[fp_node_params]),
 
         # Annotate image for diagnostics
-        Node(package='orca_base', node_executable='annotate_image_node', output='screen',
-             node_name='annotate_image_node', node_namespace=camera_name, remappings=[
+        Node(package='orca_base', executable='annotate_image_node', output='screen',
+             name='annotate_image_node', namespace=camera_name, remappings=[
                 ('image_raw', 'repub_raw'),
              ]),
     ]
 
     if filter_poses:
         all_entities.append(
-            Node(package='orca_filter', node_executable='pose_filter_node', output='screen',
-                 node_name='pose_filter_node', parameters=[pose_filter_node_params], remappings=[
+            Node(package='orca_filter', executable='pose_filter_node', output='screen',
+                 name='pose_filter_node', parameters=[pose_filter_node_params], remappings=[
                     ('fcam_fp', '/' + camera_name + '/fp'),
                  ]))
         all_entities.append(
-            Node(package='orca_base', node_executable='auv_node', output='screen',
-                 node_name='auv_node', parameters=[auv_node_params], remappings=[
+            Node(package='orca_base', executable='auv_node', output='screen',
+                 name='auv_node', parameters=[auv_node_params], remappings=[
                     ('filtered_fp', 'filtered_fp'),
                     ('barometer', 'filtered_barometer'),
                  ]))
     else:
         all_entities.append(
-            Node(package='orca_base', node_executable='auv_node', output='screen',
-                 node_name='auv_node', parameters=[auv_node_params], remappings=[
+            Node(package='orca_base', executable='auv_node', output='screen',
+                 name='auv_node', parameters=[auv_node_params], remappings=[
                     ('filtered_fp', '/' + camera_name + '/fp'),
                     ('barometer', 'filtered_barometer'),
                  ]))

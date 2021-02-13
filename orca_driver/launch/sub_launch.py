@@ -44,17 +44,17 @@ def generate_launch_description():
     camera_info_path = os.path.join(orca_driver_path, 'cfg', 'brusb_wet_' + size + '.ini')
 
     return LaunchDescription([
-        Node(package='orca_driver', node_executable='barometer_node', output='screen',
-             node_name='barometer_node'),
+        Node(package='orca_driver', executable='barometer_node', output='screen',
+             name='barometer_node'),
 
-        Node(package='orca_driver', node_executable='driver_node', output='screen',
-             node_name='driver_node',
+        Node(package='orca_driver', executable='driver_node', output='screen',
+             name='driver_node',
              parameters=[{
                  'thruster_4_reverse': True,  # Thruster 4 on my BlueROV2 is reversed
              }]),
 
-        Node(package='h264_image_transport', node_executable='h264_cam_node', output='screen',
-             node_name='h264_cam_node', node_namespace=camera_name, parameters=[{
+        Node(package='h264_image_transport', executable='h264_cam_node', output='screen',
+             name='h264_cam_node', namespace=camera_name, parameters=[{
                 'input_fn': '/dev/video1',
                 'fps': fps,
                 'size': size,

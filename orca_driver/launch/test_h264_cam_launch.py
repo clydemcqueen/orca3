@@ -46,8 +46,8 @@ def generate_launch_description():
     return LaunchDescription([
         # Forward camera h264
         # Will publish on image_raw/h264
-        Node(package='h264_image_transport', node_executable='h264_cam_node', output='screen',
-             node_name='h264_cam_node', node_namespace=camera_name, parameters=[{
+        Node(package='h264_image_transport', executable='h264_cam_node', output='screen',
+             name='h264_cam_node', namespace=camera_name, parameters=[{
                 'input_fn': '/dev/video2',
                 'fps': fps,
                 'size': size,
@@ -56,8 +56,8 @@ def generate_launch_description():
              }]),
 
         # Load and publish a known map
-        # Node(package='fiducial_vlam', node_executable='vmap_main', output='screen',
-        #      node_name='vmap_node', parameters=[{
+        # Node(package='fiducial_vlam', executable='vmap_main', output='screen',
+        #      name='vmap_node', parameters=[{
         #         'publish_tfs': 1,  # Publish marker /tf
         #         'marker_length': 0.1778,  # Marker length for new maps
         #         'marker_map_load_full_filename': map_path,  # Load a pre-built map from disk
@@ -65,8 +65,8 @@ def generate_launch_description():
         #     }]),
 
         # Pick one transport and republish for vloc
-        Node(package='image_transport', node_executable='republish', output='screen',
-             node_name='republish_node', node_namespace=camera_name, arguments=[
+        Node(package='image_transport', executable='republish', output='screen',
+             name='republish_node', namespace=camera_name, arguments=[
                 'h264',  # Input
                 'raw'  # Output
              ], remappings=[
@@ -81,8 +81,8 @@ def generate_launch_description():
              ]),
 
         # Localize against the map
-        # Node(package='fiducial_vlam', node_executable='vloc_main', output='screen',
-        #      node_name='vloc_node', node_namespace=camera_name, parameters=[
+        # Node(package='fiducial_vlam', executable='vloc_main', output='screen',
+        #      name='vloc_node', namespace=camera_name, parameters=[
         #         params_path, {
         #             'camera_frame_id': camera_frame,
         #         }], remappings=[
@@ -90,12 +90,12 @@ def generate_launch_description():
         #     ]),
 
         # Measure lag -- subscribe to repub_raw
-        # Node(package='pipe_perf', node_executable='image_sub_node', output='screen',
-        #      node_name='image_sub_node', node_namespace=camera_name, remappings=[
+        # Node(package='pipe_perf', executable='image_sub_node', output='screen',
+        #      name='image_sub_node', namespace=camera_name, remappings=[
         #         ('image_raw', 'repub_raw'),
         #     ]),
 
         # Measure lag -- subscribe to image_raw/h264
-        Node(package='pipe_perf', node_executable='image_transport_sub_node', output='screen',
-             node_name='image_transport_sub_node', node_namespace=camera_name),
+        Node(package='pipe_perf', executable='image_transport_sub_node', output='screen',
+             name='image_transport_sub_node', namespace=camera_name),
     ])

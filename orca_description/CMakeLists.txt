@@ -25,6 +25,17 @@ foreach(SIM_MODE IN ITEMS hw6 slam_test hw7)
   add_custom_target(generate_${SIM_MODE}_urdf ALL DEPENDS ${URDF_FILE})
 endforeach()
 
+set(URDF_FILE "${CMAKE_CURRENT_BINARY_DIR}/urdf/stereo_rig.urdf")
+add_custom_command(
+  OUTPUT ${URDF_FILE}
+  COMMAND ${PYTHON_EXECUTABLE} "/opt/ros/$ENV{ROS_DISTRO}/bin/xacro"
+  "${CMAKE_CURRENT_SOURCE_DIR}/xacro/stereo_rig.urdf.xacro" ">" "${URDF_FILE}"
+  DEPENDS xacro/stereo_rig.urdf.xacro
+  COMMENT "Generate ${URDF_FILE}"
+  VERBATIM
+)
+add_custom_target(generate_stereo_rig_urdf ALL DEPENDS ${URDF_FILE})
+
 # Load & run linters listed in package.xml
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

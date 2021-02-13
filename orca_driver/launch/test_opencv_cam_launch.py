@@ -43,8 +43,8 @@ def generate_launch_description():
     return LaunchDescription([
         # Forward camera with image_transport
         # Will publish on image_raw, image_raw/compressed, image_raw/theora
-        Node(package='opencv_cam', node_executable='opencv_cam_main', output='screen',
-             node_name='opencv_cam_main', parameters=[{
+        Node(package='opencv_cam', executable='opencv_cam_main', output='screen',
+             name='opencv_cam_main', parameters=[{
                 'index': 200,  # V4L index 0
                 'fps': 30,
                 'width': 640,
@@ -54,8 +54,8 @@ def generate_launch_description():
              }]),
 
         # Load and publish a known map
-        Node(package='fiducial_vlam', node_executable='vmap_main', output='screen',
-             node_name='vmap_node', parameters=[{
+        Node(package='fiducial_vlam', executable='vmap_main', output='screen',
+             name='vmap_node', parameters=[{
                 'publish_tfs': 1,  # Publish marker /tf
                 'marker_length': 0.1778,  # Marker length for new maps
                 'marker_map_load_full_filename': map_path,  # Load a pre-built map from disk
@@ -63,8 +63,8 @@ def generate_launch_description():
              }]),
 
         # Pick one transport and republish for vloc
-        Node(package='image_transport', node_executable='republish', output='screen',
-             node_name='republish_node', arguments=[
+        Node(package='image_transport', executable='republish', output='screen',
+             name='republish_node', arguments=[
                 'compressed',  # Input
                 'raw'  # Output
              ], remappings=[
@@ -75,8 +75,8 @@ def generate_launch_description():
              ]),
 
         # Localize against the map
-        Node(package='fiducial_vlam', node_executable='vloc_main', output='screen',
-             node_name='vloc_node', parameters=[
+        Node(package='fiducial_vlam', executable='vloc_main', output='screen',
+             name='vloc_node', parameters=[
                 params_path, {
                     'camera_frame_id': camera_frame,
                 }], remappings=[
@@ -84,8 +84,8 @@ def generate_launch_description():
              ]),
 
         # Measure lag
-        Node(package='pipe_perf', node_executable='image_sub_node', output='screen',
-             node_name='image_sub_node', remappings=[
+        Node(package='pipe_perf', executable='image_sub_node', output='screen',
+             name='image_sub_node', remappings=[
                 ('image_raw', 'repub_raw'),
              ]),
     ])

@@ -36,14 +36,14 @@ def generate_launch_description():
 
     all_entities = [
         # Joystick driver, generates joy messages
-        Node(package='joy', node_executable='joy_node', output='screen',
-             node_name='joy_node', parameters=[{
+        Node(package='joy', executable='joy_node', output='screen',
+             name='joy_node', parameters=[{
                 'dev': '/dev/input/js0'  # Update as required
              }]),
 
         # Decode h264 stream
-        Node(package='image_transport', node_executable='republish', output='screen',
-             node_name='monitor_node', node_namespace=camera_name, arguments=[
+        Node(package='image_transport', executable='republish', output='screen',
+             name='monitor_node', namespace=camera_name, arguments=[
                 'h264',  # Input
                 'raw'  # Output
              ], remappings=[
@@ -58,8 +58,8 @@ def generate_launch_description():
              ]),
 
         # Annotate image for diagnostics
-        Node(package='orca_base', node_executable='annotate_image_node', output='screen',
-             node_name='annotate_image_node', node_namespace=camera_name, remappings=[
+        Node(package='orca_base', executable='annotate_image_node', output='screen',
+             name='annotate_image_node', namespace=camera_name, remappings=[
                 ('image_raw', 'monitor_raw'),
              ]),
     ]

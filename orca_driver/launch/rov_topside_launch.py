@@ -57,25 +57,25 @@ def generate_launch_description():
 
     all_entities = [
         # Publish static joints
-        Node(package='robot_state_publisher', node_executable='robot_state_publisher',
+        Node(package='robot_state_publisher', executable='robot_state_publisher',
              output='log',
              arguments=[urdf_path]),
 
         # Joystick driver, generates joy messages
-        Node(package='joy', node_executable='joy_node', output='screen',
-             node_name='joy_node', parameters=[{
+        Node(package='joy', executable='joy_node', output='screen',
+             name='joy_node', parameters=[{
                 'dev': '/dev/input/js0'  # Update as required
              }]),
 
         # Barometer filter
-        Node(package='orca_filter', node_executable='baro_filter_node', output='screen',
+        Node(package='orca_filter', executable='baro_filter_node', output='screen',
              parameters=[{
                 'ukf_Q': True,
              }]),
 
         # ROV controller, uses joystick to control the sub
-        Node(package='orca_base', node_executable='rov_node', output='screen',
-             node_name='rov_node', parameters=[rov_node_params], remappings=[
+        Node(package='orca_base', executable='rov_node', output='screen',
+             name='rov_node', parameters=[rov_node_params], remappings=[
                 ('barometer', 'filtered_barometer'),
              ]),
     ]

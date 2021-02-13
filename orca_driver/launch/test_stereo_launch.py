@@ -70,13 +70,13 @@ def generate_launch_description():
 
     nodes = [
         # Publish static transforms
-        Node(package='robot_state_publisher', node_executable='robot_state_publisher',
+        Node(package='robot_state_publisher', executable='robot_state_publisher',
              output=output,
              arguments=[urdf_path]),
 
         # Mapper
-        Node(package='fiducial_vlam', node_executable='vmap_main', output=output,
-             node_name='vmap', parameters=[{
+        Node(package='fiducial_vlam', executable='vmap_main', output=output,
+             name='vmap', parameters=[{
                 'publish_tfs': 1,  # Publish marker /tf
                 'marker_length': 0.1778,  # Marker length for new maps
                 'marker_map_load_full_filename': map_path,  # Load a pre-built map from disk
@@ -84,8 +84,8 @@ def generate_launch_description():
              }]),
 
         # Filter
-        Node(package='orca_filter', node_executable='filter_node', output=output,
-             node_name='filter', parameters=[{
+        Node(package='orca_filter', executable='filter_node', output=output,
+             name='filter', parameters=[{
                 'param_fluid_density': 997.0,
                 'baro_init': 0,  # Init in-air
                 'predict_accel': False,
@@ -152,34 +152,34 @@ def generate_launch_description():
 
         nodes.append(
             ComposableNodeContainer(
-                package='rclcpp_components', node_executable='component_container', output=output,
-                node_name='composite', node_namespace=left_camera_name_full,
+                package='rclcpp_components', executable='component_container', output=output,
+                name='composite', namespace=left_camera_name_full,
                 composable_node_descriptions=[
                     ComposableNode(package='fiducial_vlam', node_plugin='fiducial_vlam::VlocNode',
-                                   node_name='vloc',
-                                   node_namespace=left_camera_name_full,
+                                   name='vloc',
+                                   namespace=left_camera_name_full,
                                    extra_arguments=[{'use_intra_process_comms': True}],
                                    parameters=[left_vloc_params]),
                     ComposableNode(package='gscam', node_plugin='gscam::GSCamNode',
-                                   node_name='gscam',
-                                   node_namespace=left_camera_name_full,
+                                   name='gscam',
+                                   namespace=left_camera_name_full,
                                    extra_arguments=[{'use_intra_process_comms': True}],
                                    parameters=[left_gscam_params]),
                 ]))
 
         nodes.append(
             ComposableNodeContainer(
-                package='rclcpp_components', node_executable='component_container', output=output,
-                node_name='composite', node_namespace=right_camera_name_full,
+                package='rclcpp_components', executable='component_container', output=output,
+                name='composite', namespace=right_camera_name_full,
                 composable_node_descriptions=[
                     ComposableNode(package='fiducial_vlam', node_plugin='fiducial_vlam::VlocNode',
-                                   node_name='vloc',
-                                   node_namespace=right_camera_name_full,
+                                   name='vloc',
+                                   namespace=right_camera_name_full,
                                    extra_arguments=[{'use_intra_process_comms': True}],
                                    parameters=[right_vloc_params]),
                     ComposableNode(package='gscam', node_plugin='gscam::GSCamNode',
-                                   node_name='gscam',
-                                   node_namespace=right_camera_name_full,
+                                   name='gscam',
+                                   namespace=right_camera_name_full,
                                    extra_arguments=[{'use_intra_process_comms': True}],
                                    parameters=[right_gscam_params]),
                 ]))
@@ -189,13 +189,13 @@ def generate_launch_description():
         # Brittle: we're counting on the fact that the parameter names don't collide
 
         nodes.append(
-            Node(package='orca_driver', node_executable='gscam_vloc_main', output=output,
-                 node_namespace=left_camera_name_full,
+            Node(package='orca_driver', executable='gscam_vloc_main', output=output,
+                 namespace=left_camera_name_full,
                  parameters=[left_vloc_params, left_gscam_params]))
 
         nodes.append(
-            Node(package='orca_driver', node_executable='gscam_vloc_main', output=output,
-                 node_namespace=right_camera_name_full,
+            Node(package='orca_driver', executable='gscam_vloc_main', output=output,
+                 namespace=right_camera_name_full,
                  parameters=[right_vloc_params, right_gscam_params]))
 
     return LaunchDescription(nodes)

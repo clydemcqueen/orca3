@@ -52,13 +52,6 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-# Install C++ targets
-install(
-  TARGETS barometer_node driver_node test_node
-  LIBRARY DESTINATION lib                 # Shared libraries must be in lib
-  RUNTIME DESTINATION lib/${PROJECT_NAME} # Node executables must be in lib/<pkg> for ros2
-)
-
 # Install scripts
 install(
   PROGRAMS  # PROGRAMS sets execute bits, FILES clears them
@@ -69,4 +62,4 @@ install(
   DESTINATION lib/${PROJECT_NAME}
 )
 
-ament_auto_package(INSTALL_TO_SHARE cfg maps)
+ament_auto_package(INSTALL_TO_SHARE cfg launch maps params)
