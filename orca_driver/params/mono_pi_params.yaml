@@ -1,0 +1,40 @@
+orb_slam2_mono:
+  ros__parameters:
+    use_sim_time: False
+
+    subscribe_best_effort: False
+    voc_file: 'install/orb_slam2_ros/share/orb_slam2_ros/orb_slam2/Vocabulary/ORBvoc.txt'
+
+    publish_pointcloud: true
+    publish_pose: true
+    publish_tf: false
+    localize_only: false
+    reset_map: false
+
+    load_map: false
+    map_file: map.bin
+
+    pointcloud_frame_id: map
+    camera_frame_id: camera_frame
+    min_num_kf_in_map: 5
+
+    ORBextractor/nFeatures: 1200
+    ORBextractor/scaleFactor: 1.2
+    ORBextractor/nLevels: 8
+    ORBextractor/iniThFAST: 20
+    ORBextractor/minThFAST: 7
+
+    camera_fps: 15
+    # Color order of the images (0: BGR, 1: RGB. It is ignored if images are grayscale)
+    camera_rgb_encoding: true
+
+    # See https://github.com/raulmur/ORB_SLAM2/issues/89 for the author's explanation of these:
+    ThDepth: 40.0
+    depth_map_factor: 1.0
+    camera_baseline: 38.5  # = stereo baseline in m * fx = 0.061 * 631.351 = 38.5
+
+orb_slam2_localizer:
+  ros__parameters:
+    use_sim_time: False
+    camera_frame_id: "right_camera_link"  # Note: the link, not the frame
+    publish_rate: 20

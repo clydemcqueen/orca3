@@ -22,16 +22,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""Launch orb_slam2_ros with a stereo rig consisting of 2x [RPi Zero W + camera]."""
+"""Launch orb_slam2_ros with two Raspberry Pi cameras."""
 
 import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, GroupAction
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import ComposableNodeContainer, Node
+from launch_ros.actions import ComposableNodeContainer, Node, PushRosNamespace
 from launch_ros.descriptions import ComposableNode
 
 
@@ -42,21 +42,18 @@ def generate_launch_description():
     # Custom urdf file
     urdf_file = os.path.join(orca_description_dir, 'urdf', 'stereo_rig.urdf')
 
-    # ORB features vocabulary file
-    # This works well in simulation, but I'm sure how it will do in a marine environment
-    orb_slam_dir = get_package_share_directory('orb_slam2_ros')
-    orb_voc_file = os.path.join(orb_slam_dir, 'orb_slam2', 'Vocabulary', 'ORBvoc.txt')
-
     # Orb-slam2 params
-    slam_params_file = os.path.join(orca_driver_dir, 'params', 'stereo_rig_params.yaml')
+    slam_params_file = os.path.join(orca_driver_dir, 'params', 'stereo_pi_params.yaml')
 
     # Rviz config
-    rviz_cfg_file = os.path.join(orca_driver_dir, 'cfg', 'stereo_rig_launch.rviz')
+    rviz_cfg_file = os.path.join(orca_driver_dir, 'cfg', 'stereo_pi_launch.rviz')
 
-    # Gstreamer config
+    # Camera info
     orca_driver_path = get_package_share_directory('orca_driver')
     cam_info_l = 'file://' + os.path.join(orca_driver_path, 'cfg', 'stereo_rig', 'left.ini')
     cam_info_r = 'file://' + os.path.join(orca_driver_path, 'cfg', 'stereo_rig', 'right.ini')
+
+    # Gstreamer config
     gscam_l = 'udpsrc port=5601 ! queue !' \
               ' application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 !' \
               ' rtpjitterbuffer ! rtph264depay ! h264parse ! avdec_h264 ! videoconvert'
@@ -64,24 +61,56 @@ def generate_launch_description():
               ' application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 !' \
               ' rtpjitterbuffer ! rtph264depay ! h264parse ! avdec_h264 ! videoconvert'
 
+    # TODO use composable gscam node
+    left_composable_nodes = [
+        ComposableNode(
+            package='image_proc',
+            plugin='image_proc::RectifyNode',
+            name='rectify_mono_node',
+            # Remap subscribers and publishers
+            remappings=[
+                ('image', 'image_raw'),
+                # ('camera_info', 'camera_info'),
+                # ('image_rect', 'image_rect')
+            ],
+        ),
+    ]
+
+    right_composable_nodes = [
+        ComposableNode(
+            package='image_proc',
+            plugin='image_proc::RectifyNode',
+            name='rectify_mono_node',
+            # Remap subscribers and publishers
+            remappings=[
+                ('image', 'image_raw'),
+                # ('camera_info', 'camera_info'),
+                # ('image_rect', 'image_rect')
+            ],
+        ),
+    ]
+
     return LaunchDescription([
         DeclareLaunchArgument(
             'rviz',
             default_value='False',
-            description='Launch rviz?'),
+            description='Launch rviz?',
+        ),
 
         # Launch rviz
         ExecuteProcess(
             cmd=['rviz2', '-d', rviz_cfg_file],
             output='screen',
-            condition=IfCondition(LaunchConfiguration('rviz'))),
+            condition=IfCondition(LaunchConfiguration('rviz')),
+        ),
 
         # Replacement for base_controller: odom->base_link is static
         ExecuteProcess(
             cmd=['/opt/ros/foxy/lib/tf2_ros/static_transform_publisher',
                  '0', '0', '0', '0', '0', '0', 'odom', 'base_link',
                  '--ros-args', '-p', 'use_sim_time:=false'],
-            output='screen'),
+            output='screen',
+        ),
 
         # Publish static transforms from the urdf
         Node(
@@ -90,9 +119,10 @@ def generate_launch_description():
             output='screen',
             name='robot_state_publisher',
             arguments=[urdf_file],
-            parameters=[{'use_sim_time': False}]),
+            parameters=[{'use_sim_time': False}],
+        ),
 
-        # Left camera
+        # Left camera TODO move params
         Node(
             package='gscam',
             executable='gscam_main',
@@ -111,9 +141,10 @@ def generate_launch_description():
             remappings=[
                 ('image_raw', 'left/image_raw'),
                 ('camera_info', 'left/camera_info'),
-            ]),
+            ],
+        ),
 
-        # Right camera
+        # Right camera TODO move params
         Node(
             package='gscam',
             executable='gscam_main',
@@ -132,33 +163,38 @@ def generate_launch_description():
             remappings=[
                 ('image_raw', 'right/image_raw'),
                 ('camera_info', 'right/camera_info'),
-            ]),
+            ],
+        ),
 
         # Rectify left
-        Node(
-            package='image_proc',
-            executable='image_proc',
-            output='screen',
-            name='image_proc_l',
-            namespace='stereo',
-            remappings=[
-                ('image', 'left/image_raw'),
-                ('image_rect', 'left/image_rect'),
-                ('camera_info', 'left/camera_info'),
-            ]),
+        GroupAction(
+            [
+                PushRosNamespace('stereo/left'),
+                ComposableNodeContainer(
+                    name='left_container',
+                    namespace='',  # Required attribute
+                    package='rclcpp_components',
+                    executable='component_container',
+                    composable_node_descriptions=left_composable_nodes,
+                    output='screen'
+                ),
+            ],
+        ),
 
         # Rectify right
-        Node(
-            package='image_proc',
-            executable='image_proc',
-            output='screen',
-            name='image_proc_r',
-            namespace='stereo',
-            remappings=[
-                ('image', 'right/image_raw'),
-                ('image_rect', 'right/image_rect'),
-                ('camera_info', 'right/camera_info'),
-            ]),
+        GroupAction(
+            [
+                PushRosNamespace('stereo/right'),
+                ComposableNodeContainer(
+                    name='right_container',
+                    namespace='',  # Required attribute
+                    package='rclcpp_components',
+                    executable='component_container',
+                    composable_node_descriptions=right_composable_nodes,
+                    output='screen'
+                ),
+            ],
+        ),
 
         # Run orb_slam2_ros_stereo
         # TODO how is camera info used? Does it matter if I use l or r?
@@ -167,14 +203,13 @@ def generate_launch_description():
             executable='orb_slam2_ros_stereo',
             output='screen',
             name='orb_slam2_stereo',
-            parameters=[slam_params_file, {
-                'voc_file': orb_voc_file,
-            }],
+            parameters=[slam_params_file],
             remappings=[
                 ('image_left/image_color_rect', '/stereo/left/image_rect'),
                 ('image_right/image_color_rect', '/stereo/right/image_rect'),
                 ('camera/camera_info', '/stereo/left/camera_info'),
-            ]),
+            ],
+        ),
 
         # Run orb_slam2_localizer, a shim that publishes tf map->odom
         Node(
@@ -184,7 +219,8 @@ def generate_launch_description():
             name='orb_slam2_localizer',
             parameters=[slam_params_file],
             remappings=[
-                ('/camera_pose', '/orb_slam2_stereo_node/pose'),
-            ]),
+                ('camera_pose', '/orb_slam2_stereo_node/pose'),
+            ],
+        ),
     ])
 
