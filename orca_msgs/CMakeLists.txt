@@ -33,8 +33,10 @@ ament_auto_find_build_dependencies()
 rosidl_generate_interfaces(
   orca_msgs
   msg/Barometer.msg
+  msg/CameraTilt.msg
   msg/Depth.msg
   msg/Effort.msg
+  msg/Lights.msg
   msg/Status.msg
   msg/Thrust.msg
   DEPENDENCIES geometry_msgs std_msgs

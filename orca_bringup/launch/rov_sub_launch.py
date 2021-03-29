@@ -22,14 +22,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+"""Launch sub for ROV operations."""
+
 import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
-
-
-# Launch sub nodes
 
 
 def generate_launch_description():
@@ -38,27 +37,43 @@ def generate_launch_description():
     camera_name = 'forward_camera'
     camera_frame = 'forward_camera_frame'
     fps = 30
-    size = '800x600'
+    size = '800x600'  # TODO calibrate wet at 1920x1080
 
     orca_driver_path = get_package_share_directory('orca_driver')
     camera_info_path = os.path.join(orca_driver_path, 'cfg', 'brusb_wet_' + size + '.ini')
 
     return LaunchDescription([
-        Node(package='orca_driver', executable='barometer_node', output='screen',
-             name='barometer_node'),
+        Node(
+            package='orca_driver',
+            executable='barometer_node',
+            output='screen',
+            name='barometer_node',
+        ),
 
-        Node(package='orca_driver', executable='driver_node', output='screen',
-             name='driver_node',
-             parameters=[{
-                 'thruster_4_reverse': True,  # Thruster 4 on my BlueROV2 is reversed
-             }]),
+        Node(
+            package='orca_driver',
+            executable='driver_node',
+            output='screen',
+            name='driver_node',
+            parameters=[{
+                'thruster_4_reverse': True,  # Thruster 4 on my BlueROV2 is reversed
+            }],
+        ),
 
-        Node(package='h264_image_transport', executable='h264_cam_node', output='screen',
-             name='h264_cam_node', namespace=camera_name, parameters=[{
+        # TODO switch to gscam2 for ROV operation
+        # TODO overlay baro, battery and time info
+        Node(
+            package='h264_image_transport',
+            executable='h264_cam_node',
+            output='screen',
+            name='h264_cam_node',
+            namespace=camera_name,
+            parameters=[{
                 'input_fn': '/dev/video1',
                 'fps': fps,
                 'size': size,
                 'frame_id': camera_frame,
                 'camera_info_path': camera_info_path,
-             }]),
+            }],
+        ),
     ])

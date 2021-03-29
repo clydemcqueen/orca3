@@ -43,6 +43,7 @@ slams = [
     'orb',  # orb_slam2_ros
 ]
 
+
 def generate_launch_description():
     camera_name = 'forward_camera'
 
@@ -146,7 +147,7 @@ def generate_launch_description():
                 'use_sim_time': LaunchConfiguration('use_sim_time'),
             }]),
 
-        # Subscribe to /cmd_vel and publish /thrusters, /odom and /tf odom->base_link
+        # Subscribe to /cmd_vel and publish /thrust, /odom and /tf odom->base_link
         Node(
             package='orca_base',
             executable='base_controller',

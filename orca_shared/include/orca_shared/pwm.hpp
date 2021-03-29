@@ -25,8 +25,36 @@
 
 #include <cstdint>
 
+#include "orca_msgs/msg/camera_tilt.hpp"
+#include "orca_msgs/msg/lights.hpp"
+
 namespace orca
 {
+//=============================================================================
+// Camera tilt servo
+//=============================================================================
+
+constexpr int TILT_MIN = -45;
+constexpr int TILT_MAX = 45;
+
+uint16_t tilt_to_pwm(int tilt);
+
+int pwm_to_tilt(uint16_t pwm);
+
+//=============================================================================
+// BlueRobotics Lumen subsea light
+//=============================================================================
+
+constexpr int BRIGHTNESS_MIN = 0;
+constexpr int BRIGHTNESS_MAX = 100;
+
+uint16_t brightness_to_pwm(int brightness);
+
+int pwm_to_brightness(uint16_t pwm);
+
+//=============================================================================
+// BlueRobotics T200 thruster + ESC
+//=============================================================================
 
 constexpr double THRUST_FULL_REV = -1.0;
 constexpr double THRUST_STOP = 0.0;

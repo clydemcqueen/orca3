@@ -107,6 +107,15 @@ source install/local_setup.bash
 ros2 launch orca_bringup topside_launch.py
 ~~~
 
+## ROV Operation TODO
+
+* Run gstreamer at receiving end, can also record 
+* Gstreamer shows depth and time ???
+* Joystick
+* Arm / disarm
+* Lights
+* Camera tilt
+
 ## Troubleshooting
 
 The compiler (`cc1plus`) sometimes dies during build, try restarting `colcon build`.

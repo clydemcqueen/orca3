@@ -65,6 +65,7 @@ namespace orca_driver
   CXT_MACRO_MEMBER(read_battery, bool, true)                      /* Read voltage sensor  */ \
   CXT_MACRO_MEMBER(read_leak, bool, true)                         /* Read leak sensor  */ \
   CXT_MACRO_MEMBER(read_temp, bool, true)                         /* Read temp file  */ \
+  /* Various emulation options during development */ \
 /* End of list */
 
 #undef CXT_MACRO_MEMBER

@@ -34,8 +34,10 @@
 
 #include "orca_driver/driver_context.hpp"
 #include "orca_driver/maestro.hpp"
-#include "orca_msgs/msg/thrust.hpp"
+#include "orca_msgs/msg/camera_tilt.hpp"
+#include "orca_msgs/msg/lights.hpp"
 #include "orca_msgs/msg/status.hpp"
+#include "orca_msgs/msg/thrust.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 namespace orca_driver
@@ -49,12 +51,12 @@ bool valid(const rclcpp::Time & t)
 bool pwm_valid(uint16_t pwm)
 {
   return pwm <= orca_msgs::msg::Thrust::THRUST_FULL_FWD &&
-         pwm >= orca_msgs::msg::Thrust::THRUST_FULL_REV;
+    pwm >= orca_msgs::msg::Thrust::THRUST_FULL_REV;
 }
 
 bool thrust_msg_ok(const orca_msgs::msg::Thrust & msg)
 {
-  return std::all_of(msg.thrust.begin(), msg.thrust.end(), [](auto pwm){ return pwm_valid(pwm); });
+  return std::all_of(msg.thrust.begin(), msg.thrust.end(), [](auto pwm) { return pwm_valid(pwm); });
 }
 
 struct Thruster
@@ -65,8 +67,6 @@ struct Thruster
   Thruster(int channel, bool reverse)
     : channel_{channel}, reverse_{reverse} {}
 };
-
-constexpr int QUEUE_SIZE = 10;
 
 // DriverNode provides the interface between the hardware and ROS
 class DriverNode : public rclcpp::Node
@@ -82,15 +82,16 @@ class DriverNode : public rclcpp::Node
   maestro::Maestro maestro_;
   orca_msgs::msg::Status status_msg_;
 
-  // Control message state
-  rclcpp::Subscription<orca_msgs::msg::Thrust>::SharedPtr thrust_sub_;
+  // Thrust message state
   rclcpp::Time thrust_msg_time_;  // Set to now() when a message is received
   double thrust_msg_lag_{0};  // Difference between now() and msg.header.stamp
 
-  // Timer
+  rclcpp::Subscription<orca_msgs::msg::Thrust>::SharedPtr thrust_sub_;
+  rclcpp::Subscription<orca_msgs::msg::CameraTilt>::SharedPtr camera_tilt_sub_;
+  rclcpp::Subscription<orca_msgs::msg::Lights>::SharedPtr lights_sub_;
+
   rclcpp::TimerBase::SharedPtr spin_timer_;
 
-  // Publication
   rclcpp::Publisher<orca_msgs::msg::Status>::SharedPtr status_pub_;
 
 #ifdef UP_LEDS
@@ -126,7 +127,8 @@ class DriverNode : public rclcpp::Node
     // Register parameters
 #undef CXT_MACRO_MEMBER
 #define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_PARAMETER_CHANGED(n, t)
-    CXT_MACRO_REGISTER_PARAMETERS_CHANGED((*this), cxt_, DRIVER_NODE_ALL_PARAMS, validate_parameters)
+    CXT_MACRO_REGISTER_PARAMETERS_CHANGED((*this), cxt_, DRIVER_NODE_ALL_PARAMS,
+      validate_parameters)
 
     // Log parameters
 #undef CXT_MACRO_MEMBER
@@ -257,17 +259,6 @@ class DriverNode : public rclcpp::Node
     if (maestro_.ready()) {
       set_status(orca_msgs::msg::Status::STATUS_OK);
 
-#ifdef CAMERA_TILT
-      if (!maestro_.setPWM(static_cast<uint8_t>(cxt_.tilt_channel_), msg->camera_tilt_pwm)) {
-      RCLCPP_ERROR(get_logger(), "failed to set camera tilt");
-    }
-#endif
-#ifdef LIGHTS
-      if (!maestro_.setPWM(static_cast<uint8_t>(cxt_.lights_channel_), msg->brightness_pwm)) {
-      RCLCPP_ERROR(get_logger(), "failed to set brightness");
-    }
-#endif
-
       for (size_t i = 0; i < 6; ++i) {
         set_thruster(thrusters_[i], msg->thrust[i]);
       }
@@ -305,8 +296,7 @@ class DriverNode : public rclcpp::Node
     if (cxt_.read_battery_) {
       double value = 0.0;
       if (!maestro_.ready() ||
-        !maestro_.getAnalog(static_cast<uint8_t>(cxt_.voltage_channel_), value))
-      {
+        !maestro_.getAnalog(static_cast<uint8_t>(cxt_.voltage_channel_), value)) {
         RCLCPP_ERROR(get_logger(), "could not read the battery, correct bus? member of i2c?");
         status_msg_.voltage = 0;
         status_msg_.low_battery = true;
@@ -331,8 +321,7 @@ class DriverNode : public rclcpp::Node
     if (cxt_.read_leak_) {
       bool value = false;
       if (!maestro_.ready() ||
-        !maestro_.getDigital(static_cast<uint8_t>(cxt_.leak_channel_), value))
-      {
+        !maestro_.getDigital(static_cast<uint8_t>(cxt_.leak_channel_), value)) {
         RCLCPP_ERROR(get_logger(), "could not read the leak sensor");
         status_msg_.leak_detected = true;
         return false;
@@ -352,7 +341,7 @@ class DriverNode : public rclcpp::Node
   {
     if (cxt_.read_temp_) {
       // Raspberry Pi CPU is thermal_zone0
-      static const char * PROC_TEMP = "/sys/class/thermal/thermal_zone0/temp";
+      static const char *PROC_TEMP = "/sys/class/thermal/thermal_zone0/temp";
       std::ifstream file(PROC_TEMP);
       if (!file.is_open()) {
         RCLCPP_ERROR(get_logger(), "%s is missing", PROC_TEMP);
@@ -362,7 +351,8 @@ class DriverNode : public rclcpp::Node
       std::getline(file, line);
       try {
         status_msg_.cpu_temp = std::stoi(line, nullptr);
-      } catch (const std::exception & e) {
+      }
+      catch (const std::exception & e) {
         RCLCPP_ERROR(get_logger(), "stoi failed");
         return false;
       }
@@ -396,18 +386,33 @@ public:
   DriverNode()
     : Node{"driver_node"}
   {
-    // Suppress IDE warnings
+    (void) camera_tilt_sub_;
+    (void) lights_sub_;
     (void) thrust_sub_;
     (void) spin_timer_;
 
     init_parameters();
 
-    // Publish driver status messages
-    status_pub_ = create_publisher<orca_msgs::msg::Status>("driver_status", QUEUE_SIZE);
+    status_pub_ = create_publisher<orca_msgs::msg::Status>("driver_status", 10);
 
-    // Subscribe to thrust messages
-    thrust_sub_ = create_subscription<orca_msgs::msg::Thrust>("thrust", QUEUE_SIZE,
+    thrust_sub_ = create_subscription<orca_msgs::msg::Thrust>("thrust", 10,
       std::bind(&DriverNode::thrust_callback, this, std::placeholders::_1));
+
+    camera_tilt_sub_ = create_subscription<orca_msgs::msg::CameraTilt>("camera_tilt", 10,
+      [this](const orca_msgs::msg::CameraTilt::SharedPtr msg)
+      {
+        if (!maestro_.setPWM(static_cast<uint8_t>(cxt_.tilt_channel_), msg->camera_tilt_pwm)) {
+          RCLCPP_ERROR(get_logger(), "failed to set camera tilt");
+        }
+      });
+
+    lights_sub_ = create_subscription<orca_msgs::msg::Lights>("lights", 10,
+      [this](const orca_msgs::msg::Lights::SharedPtr msg)
+      {
+        if (!maestro_.setPWM(static_cast<uint8_t>(cxt_.lights_channel_), msg->brightness_pwm)) {
+          RCLCPP_ERROR(get_logger(), "failed to set brightness");
+        }
+      });
 
     // Initialize all hardware
     if (!connect_controller() || !read_battery() || !read_leak()) {
@@ -432,22 +437,12 @@ public:
 // Main
 //=============================================================================
 
-int main(int argc, char ** argv)
+int main(int argc, char **argv)
 {
-  // Force flush of the stdout buffer
   setvbuf(stdout, nullptr, _IONBF, BUFSIZ);
-
-  // Init ROS
   rclcpp::init(argc, argv);
-
-  // Init node
   auto node = std::make_shared<orca_driver::DriverNode>();
-
-  // Spin node
   rclcpp::spin(node);
-
-  // Shut down ROS
   rclcpp::shutdown();
-
   return 0;
 }

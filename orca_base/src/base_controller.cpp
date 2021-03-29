@@ -29,7 +29,6 @@
 #include "orca_msgs/msg/barometer.hpp"
 #include "orca_shared/baro.hpp"
 #include "orca_shared/model.hpp"
-#include "orca_shared/util.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "tf2_ros/transform_broadcaster.h"
 
