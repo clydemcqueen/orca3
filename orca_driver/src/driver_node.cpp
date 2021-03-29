@@ -163,7 +163,31 @@ class DriverNode : public rclcpp::Node
     thrust_timeout_ = rclcpp::Duration{RCL_MS_TO_NS(cxt_.timeout_thrust_ms_)};
 
     spin_timer_ = create_wall_timer(std::chrono::milliseconds{cxt_.timer_period_ms_},
-      std::bind(&DriverNode::timer_callback, this));
+      [this]()
+      {
+        if (!maestro_.ready()) {
+          return;
+        }
+
+        if (!read_battery() || !read_leak() || !read_temp()) {
+          // Huge problem, we're done
+          abort();
+          return;
+        }
+
+        if (valid(thrust_msg_time_) && now() - thrust_msg_time_ > thrust_timeout_) {
+          // We were receiving thrust messages, but they stopped.
+          // This is normal, but it might also indicate that a node died.
+          RCLCPP_INFO(get_logger(), "thrust timeout");
+          thrust_msg_time_ = rclcpp::Time();
+          all_stop();
+        }
+
+        status_msg_.header.stamp = now();
+        status_msg_.thrust_msg_lag = thrust_msg_lag_;
+        status_pub_->publish(status_msg_);
+      }
+    );
   }
 
   // Connect to Maestro and run pre-dive checks, return true if successful
@@ -243,55 +267,6 @@ class DriverNode : public rclcpp::Node
     }
   }
 
-  void thrust_callback(const orca_msgs::msg::Thrust::SharedPtr msg)
-  {
-    // Guard against stupid mistakes
-    if (!thrust_msg_ok(*msg)) {
-      RCLCPP_ERROR(get_logger(), "bad thrust message!");
-      return;
-    }
-
-    if (!valid(thrust_msg_time_)) {
-      RCLCPP_INFO(get_logger(), "receiving thrust messages");
-    }
-
-    thrust_msg_time_ = now();
-    thrust_msg_lag_ = valid(msg->header.stamp) ? (now() - msg->header.stamp).seconds() : 0;
-
-    if (maestro_.ready()) {
-      set_status(orca_msgs::msg::Status::STATUS_OK);
-
-      for (size_t i = 0; i < 6; ++i) {
-        set_thruster(thrusters_[i], msg->thrust[i]);
-      }
-    }
-  }
-
-  void timer_callback()
-  {
-    if (!maestro_.ready()) {
-      return;
-    }
-
-    if (!read_battery() || !read_leak() || !read_temp()) {
-      // Huge problem, we're done
-      abort();
-      return;
-    }
-
-    if (valid(thrust_msg_time_) && now() - thrust_msg_time_ > thrust_timeout_) {
-      // We were receiving thrust messages, but they stopped.
-      // This is normal, but it might also indicate that a node died.
-      RCLCPP_INFO(get_logger(), "thrust timeout");
-      thrust_msg_time_ = rclcpp::Time();
-      all_stop();
-    }
-
-    status_msg_.header.stamp = now();
-    status_msg_.thrust_msg_lag = thrust_msg_lag_;
-    status_pub_->publish(status_msg_);
-  }
-
   // Read battery sensor, return true if everything is OK
   bool read_battery()
   {
@@ -339,6 +314,7 @@ class DriverNode : public rclcpp::Node
     return true;
   }
 
+  // Read temp sensor, return true if everything is OK
   bool read_temp()
   {
     if (cxt_.read_temp_ && cxt_.maestro_port_ != FAKE_PORT) {
@@ -398,21 +374,49 @@ public:
     status_pub_ = create_publisher<orca_msgs::msg::Status>("driver_status", 10);
 
     thrust_sub_ = create_subscription<orca_msgs::msg::Thrust>("thrust", 10,
-      std::bind(&DriverNode::thrust_callback, this, std::placeholders::_1));
+      [this](const orca_msgs::msg::Thrust::SharedPtr msg)  // NOLINT
+      {
+        // Guard against stupid mistakes
+        if (!thrust_msg_ok(*msg)) {
+          RCLCPP_ERROR(get_logger(), "bad thrust message!");
+          return;
+        }
+
+        if (!valid(thrust_msg_time_)) {
+          RCLCPP_INFO(get_logger(), "receiving thrust messages");
+        }
+
+        thrust_msg_time_ = now();
+        thrust_msg_lag_ = valid(msg->header.stamp) ? (now() - msg->header.stamp).seconds() : 0;
+
+        if (maestro_.ready()) {
+          set_status(orca_msgs::msg::Status::STATUS_OK);
+
+          for (size_t i = 0; i < 6; ++i) {
+            set_thruster(thrusters_[i], msg->thrust[i]);
+          }
+        }
+      }
+
+    );
 
     camera_tilt_sub_ = create_subscription<orca_msgs::msg::CameraTilt>("camera_tilt", 10,
-      [this](const orca_msgs::msg::CameraTilt::SharedPtr msg)
+      [this](const orca_msgs::msg::CameraTilt::SharedPtr msg)  // NOLINT
       {
-        if (!maestro_.setPWM(static_cast<uint8_t>(cxt_.tilt_channel_), msg->camera_tilt_pwm)) {
-          RCLCPP_ERROR(get_logger(), "failed to set camera tilt");
+        if (maestro_.setPWM(static_cast<uint8_t>(cxt_.tilt_channel_), msg->camera_tilt_pwm)) {
+          RCLCPP_INFO(get_logger(), "camera tilt %d", msg->camera_tilt_pwm);
+        } else {
+          RCLCPP_ERROR(get_logger(), "failed to set camera tilt %d", msg->camera_tilt_pwm);
         }
       });
 
     lights_sub_ = create_subscription<orca_msgs::msg::Lights>("lights", 10,
-      [this](const orca_msgs::msg::Lights::SharedPtr msg)
+      [this](const orca_msgs::msg::Lights::SharedPtr msg)  // NOLINT
       {
-        if (!maestro_.setPWM(static_cast<uint8_t>(cxt_.lights_channel_), msg->brightness_pwm)) {
-          RCLCPP_ERROR(get_logger(), "failed to set brightness");
+        if (maestro_.setPWM(static_cast<uint8_t>(cxt_.lights_channel_), msg->brightness_pwm)) {
+          RCLCPP_INFO(get_logger(), "lights %d", msg->brightness_pwm);
+        } else {
+          RCLCPP_ERROR(get_logger(), "failed to set lights %d", msg->brightness_pwm);
         }
       });
 

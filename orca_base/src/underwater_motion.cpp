@@ -46,7 +46,10 @@ UnderwaterMotion::UnderwaterMotion(const rclcpp::Logger & logger, const BaseCont
 {
 }
 
-#define CLAMP(v, minmax) report_and_clamp(__func__, #v, v, minmax)
+// Loud vs quiet clamp functions
+// TODO(clyde) report_and_clamp() has exposed a few bugs in orca_nav2::PurePursuitController3D
+// #define CLAMP(v, minmax) report_and_clamp(__func__, #v, v, minmax)
+#define CLAMP(v, minmax) orca::clamp(v, minmax)
 #define EPSILON 0.00001
 
 double
@@ -68,7 +71,6 @@ UnderwaterMotion::report_and_clamp(std::string func, std::string name, double v,
 }
 
 // a = (v1 - v0) / dt
-// TODO(clyde) report_and_clamp() has exposed a few bugs in orca_nav2::PurePursuitController3D
 geometry_msgs::msg::Accel UnderwaterMotion::calc_accel(
   const geometry_msgs::msg::Twist & v0,
   const geometry_msgs::msg::Twist & v1,

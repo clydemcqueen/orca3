@@ -42,6 +42,11 @@ def generate_launch_description():
     orca_driver_path = get_package_share_directory('orca_driver')
     camera_info_path = os.path.join(orca_driver_path, 'cfg', 'brusb_wet_' + size + '.ini')
 
+    driver_node_params = {
+        # 'maestro_port': 'fake',
+        'thruster_4_reverse': True,  # Thruster 4 on my BlueROV2 is reversed
+    }
+
     return LaunchDescription([
         Node(
             package='orca_driver',
@@ -55,9 +60,7 @@ def generate_launch_description():
             executable='driver_node',
             output='screen',
             name='driver_node',
-            parameters=[{
-                'thruster_4_reverse': True,  # Thruster 4 on my BlueROV2 is reversed
-            }],
+            parameters=[driver_node_params],
         ),
 
         # TODO switch to gscam2 for ROV operation

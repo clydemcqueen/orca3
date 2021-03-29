@@ -24,6 +24,9 @@
 
 """Launch topside for ROV operations."""
 
+# Test w/ no barometer:
+# ros2 topic pub -r 20 -p 20 /barometer orca_msgs/msg/Barometer {}
+
 import os
 
 from ament_index_python.packages import get_package_share_directory
@@ -36,12 +39,20 @@ from launch_ros.actions import Node
 def generate_launch_description():
     # Each ballast weight weighs 0.19kg
 
-    # TODO use orca params file
-    rov_node_params = {}
+    joy_node_params = {
+        'dev': '/dev/input/js0',  # Update as required
+        'autorepeat_rate': 20.,  # Force /joy Hz to be >= 20Hz
+        'deadzone': 0.0,  # Deadzone > 0 breaks autorepeat_rate
+    }
 
-    # TODO use orca params file
+    rov_node_params = {
+        'deadzone': 0.05,  # Set deadzone here instead
+    }
+
     base_controller_params = {
-        'stamp_msgs_with_current_time': False,
+        'stamp_msgs_with_current_time': False,  # True if there is no barometer
+        'hover_thrust': False,  # True: always use hover thrust, be careful out of water!
+        'pid_enabled': False,  # True: always hold vertical position: be careful out of water!
     }
 
     orca_description_dir = get_package_share_directory('orca_description')
@@ -64,9 +75,7 @@ def generate_launch_description():
             executable='joy_node',
             output='screen',
             name='joy_node',
-            parameters=[{
-                'dev': '/dev/input/js0'  # Update as required
-            }],
+            parameters=[joy_node_params],
         ),
 
         # Subscribe to /joy and publish /cmd_vel, /lights and /camera_tilt

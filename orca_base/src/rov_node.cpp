@@ -42,7 +42,7 @@ namespace orca_base
   CXT_MACRO_MEMBER(timeout_joy_ms, int, 100) \
   /* Joy message timeout in ms  */ \
  \
-  CXT_MACRO_MEMBER(dead_band, float, 0.05f) \
+  CXT_MACRO_MEMBER(deadzone, float, 0.05f) \
   /* Ignore small joystick inputs  */ \
   CXT_MACRO_MEMBER(x_scale, double, 1.0) \
   CXT_MACRO_MEMBER(y_scale, double, 0.5) \
@@ -128,8 +128,9 @@ class ROVNode : public rclcpp::Node
 
     spin_timer_ = create_wall_timer(spin_period_, [this]()
     {
-      if (now() - joy_msg_.header.stamp > joy_timeout_) {
-        // Joystick msgs stop when user lets go, send stop msg
+      if (orca::valid(joy_msg_.header.stamp) && now() - joy_msg_.header.stamp > joy_timeout_) {
+        // Depending on settings, joystick msgs stop when user lets go, send stop msg
+        RCLCPP_INFO(get_logger(), "Joy timeout");
         stop();
       }
     });
@@ -224,16 +225,15 @@ public:
         }
 
         // Velocity
-        // TODO there's a dead zone in the joy node? Do I need this dead_band calc?
         geometry_msgs::msg::Twist cmd_vel_msg;
         cmd_vel_msg.linear.x =
-          orca::dead_band(joy_msg_.axes[joy_axis_x_], cxt_.dead_band_) * cxt_.x_scale_;
+          orca::deadzone(joy_msg_.axes[joy_axis_x_], cxt_.deadzone_) * cxt_.x_scale_;
         cmd_vel_msg.linear.y =
-          orca::dead_band(joy_msg_.axes[joy_axis_y_], cxt_.dead_band_) * cxt_.y_scale_;
+          orca::deadzone(joy_msg_.axes[joy_axis_y_], cxt_.deadzone_) * cxt_.y_scale_;
         cmd_vel_msg.linear.z =
-          orca::dead_band(joy_msg_.axes[joy_axis_z_], cxt_.dead_band_) * cxt_.z_scale_;
+          orca::deadzone(joy_msg_.axes[joy_axis_z_], cxt_.deadzone_) * cxt_.z_scale_;
         cmd_vel_msg.angular.z =
-          orca::dead_band(joy_msg_.axes[joy_axis_yaw_], cxt_.dead_band_) * cxt_.yaw_scale_;
+          orca::deadzone(joy_msg_.axes[joy_axis_yaw_], cxt_.deadzone_) * cxt_.yaw_scale_;
         cmd_vel_pub_->publish(cmd_vel_msg);
 
         joy_msg_ = *msg;
