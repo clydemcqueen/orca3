@@ -182,15 +182,17 @@ class DriverNode : public rclcpp::Node
     all_stop();
 
     // Check to see that all thrusters are stopped.
-    for (size_t i = 0; i < thrusters_.size(); ++i) {
-      uint16_t value = 0;
-      maestro_.getPWM(static_cast<uint8_t>(thrusters_[i].channel_), value);
-      RCLCPP_INFO(get_logger(), "thruster %d is set at %d", i + 1, value);
-      if (value != orca_msgs::msg::Thrust::THRUST_STOP) {
-        RCLCPP_ERROR(get_logger(), "thruster %d didn't initialize properly (and possibly others)",
-          i + 1);
-        maestro_.disconnect();
-        return false;
+    if (cxt_.maestro_port_ != FAKE_PORT) {
+      for (size_t i = 0; i < thrusters_.size(); ++i) {
+        uint16_t value = 0;
+        maestro_.getPWM(static_cast<uint8_t>(thrusters_[i].channel_), value);
+        RCLCPP_INFO(get_logger(), "thruster %d is set at %d", i + 1, value);
+        if (value != orca_msgs::msg::Thrust::THRUST_STOP) {
+          RCLCPP_ERROR(get_logger(), "thruster %d didn't initialize properly (and possibly others)",
+            i + 1);
+          maestro_.disconnect();
+          return false;
+        }
       }
     }
 
@@ -293,7 +295,7 @@ class DriverNode : public rclcpp::Node
   // Read battery sensor, return true if everything is OK
   bool read_battery()
   {
-    if (cxt_.read_battery_) {
+    if (cxt_.read_battery_ && cxt_.maestro_port_ != FAKE_PORT) {
       double value = 0.0;
       if (!maestro_.ready() ||
         !maestro_.getAnalog(static_cast<uint8_t>(cxt_.voltage_channel_), value)) {
@@ -318,7 +320,7 @@ class DriverNode : public rclcpp::Node
   // Read leak sensor, return true if everything is OK
   bool read_leak()
   {
-    if (cxt_.read_leak_) {
+    if (cxt_.read_leak_ && cxt_.maestro_port_ != FAKE_PORT) {
       bool value = false;
       if (!maestro_.ready() ||
         !maestro_.getDigital(static_cast<uint8_t>(cxt_.leak_channel_), value)) {
@@ -339,7 +341,7 @@ class DriverNode : public rclcpp::Node
 
   bool read_temp()
   {
-    if (cxt_.read_temp_) {
+    if (cxt_.read_temp_ && cxt_.maestro_port_ != FAKE_PORT) {
       // Raspberry Pi CPU is thermal_zone0
       static const char *PROC_TEMP = "/sys/class/thermal/thermal_zone0/temp";
       std::ifstream file(PROC_TEMP);

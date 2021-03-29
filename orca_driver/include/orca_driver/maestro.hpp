@@ -30,14 +30,16 @@ namespace maestro
 
 // A very simple class to communicate w/ the Pololu Maestro board via USB.
 
+#define FAKE_PORT "fake"
+
 class Maestro
 {
 private:
   int fd_;
 
-  bool writeBytes(const uint8_t * bytes, ssize_t size) const;
+  bool writeBytes(const uint8_t *bytes, ssize_t size) const;
 
-  bool readBytes(uint8_t * bytes, ssize_t size) const;
+  bool readBytes(uint8_t *bytes, ssize_t size) const;
 
   bool getValue(uint8_t channel, uint16_t & value);
 
@@ -46,18 +48,29 @@ public:
 
   ~Maestro();
 
+  // Open the virtual serial port, return true if successful
+  // Likely causes of failure: (a) we're not root, (b) wrong port
   bool connect(const std::string & port);
 
+  // Close the virtual serial port
   void disconnect();
 
+  // True if the open port is fake
+  bool fake_port() const;
+
+  // True if connected or emulating
   bool ready() const;
 
+  // Set the servo / ESC PWM signal, value is in microseconds, return true if successful
   bool setPWM(uint8_t channel, uint16_t value);
 
+  // Get the servo / ESC PWM signal, value is in microseconds, return true if successful
   bool getPWM(uint8_t channel, uint16_t & value);
 
+  // Get the value of an analog pin, 0-5.0V
   bool getAnalog(uint8_t channel, double & value);
 
+  // Get the value of a digital pin, true = high
   bool getDigital(uint8_t channel, bool & value);
 };
 
