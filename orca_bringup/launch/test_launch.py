@@ -22,11 +22,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+"""Test the hardware."""
+
 from launch import LaunchDescription
 from launch_ros.actions import Node
-
-
-# Test the hardware
 
 
 def generate_launch_description():
@@ -37,7 +36,7 @@ def generate_launch_description():
         Node(package='orca_driver', executable='driver_node', output='screen',
              name='driver_node',
              parameters=[{
-                 'thruster_4_reverse': True  # Thruster 4 ESC is programmed incorrectly TODO ?
+                 'thruster_4_reverse': True  # Thruster 4 ESC is programmed incorrectly
              }]),
 
         Node(package='orca_driver', executable='test_node', output='screen'),

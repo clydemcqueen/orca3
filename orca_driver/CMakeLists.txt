@@ -62,4 +62,4 @@ install(
   DESTINATION lib/${PROJECT_NAME}
 )
 
-ament_auto_package(INSTALL_TO_SHARE cfg launch maps params)
+ament_auto_package(INSTALL_TO_SHARE cfg)

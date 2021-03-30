@@ -1,9 +1,0 @@
-# All marker locations are fixed (f: 1)
-
-marker_length: 0.1778
-markers:
-  - id: 0
-    u: 1
-    f: 1
-    xyz: [0, 0, -2]
-    rpy: [0, 0, 0]

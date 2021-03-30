@@ -22,17 +22,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""Launch orb_slam2_ros with two Raspberry Pi cameras."""
+"""Launch orb_slam2_ros with two Raspberry Pi cameras where the L and R images are side-by-side."""
+
+# TODO EXPERIMENT
 
 import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess, GroupAction
+from launch.actions import DeclareLaunchArgument, ExecuteProcess
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import ComposableNodeContainer, Node, PushRosNamespace
-from launch_ros.descriptions import ComposableNode
+from launch_ros.actions import Node
 
 
 def generate_launch_description():
@@ -43,7 +44,7 @@ def generate_launch_description():
     urdf_file = os.path.join(orca_description_dir, 'urdf', 'stereo_rig.urdf')
 
     # Orb-slam2 params
-    slam_params_file = os.path.join(orca_driver_dir, 'params', 'stereo_pi_params.yaml')
+    slam_params_file = os.path.join(orca_driver_dir, 'params', 'stereo_pi_sbs_params.yaml')
 
     # Rviz config
     rviz_cfg_file = os.path.join(orca_driver_dir, 'cfg', 'stereo_pi_launch.rviz')
@@ -53,42 +54,12 @@ def generate_launch_description():
     cam_info_l = 'file://' + os.path.join(orca_driver_path, 'cfg', 'stereo_rig', 'left.ini')
     cam_info_r = 'file://' + os.path.join(orca_driver_path, 'cfg', 'stereo_rig', 'right.ini')
 
-    # Gstreamer config
-    gscam_l = 'udpsrc port=5601 ! queue !' \
-              ' application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 !' \
-              ' rtpjitterbuffer ! rtph264depay ! h264parse ! avdec_h264 ! videoconvert'
-    gscam_r = 'udpsrc port=5602 ! queue !' \
-              ' application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 !' \
-              ' rtpjitterbuffer ! rtph264depay ! h264parse ! avdec_h264 ! videoconvert'
-
-    # TODO use composable gscam node
-    left_composable_nodes = [
-        ComposableNode(
-            package='image_proc',
-            plugin='image_proc::RectifyNode',
-            name='rectify_mono_node',
-            # Remap subscribers and publishers
-            remappings=[
-                ('image', 'image_raw'),
-                # ('camera_info', 'camera_info'),
-                # ('image_rect', 'image_rect')
-            ],
-        ),
-    ]
-
-    right_composable_nodes = [
-        ComposableNode(
-            package='image_proc',
-            plugin='image_proc::RectifyNode',
-            name='rectify_mono_node',
-            # Remap subscribers and publishers
-            remappings=[
-                ('image', 'image_raw'),
-                # ('camera_info', 'camera_info'),
-                # ('image_rect', 'image_rect')
-            ],
-        ),
-    ]
+    # Gstreamer config, the last element will be connected to appsink
+    gscam_sbs = """
+udpsrc do-timestamp=true port=5601 ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! queue ! rtph264depay ! video/x-h264,width=800,height=600 ! h264parse ! avdec_h264 ! queue ! videoconvert ! m. \
+udpsrc do-timestamp=true port=5602 ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! queue ! rtph264depay ! video/x-h264,width=800,height=600 ! h264parse ! avdec_h264 ! queue ! videoconvert ! m. \
+videomixer name=m sink_1::xpos=800 sink_2::ypos=600 ! videoconvert
+"""
 
     return LaunchDescription([
         DeclareLaunchArgument(
@@ -122,92 +93,60 @@ def generate_launch_description():
             parameters=[{'use_sim_time': False}],
         ),
 
-        # Left camera TODO move params
+        # Gstreamer will join the two images
         Node(
             package='gscam',
             executable='gscam_main',
             output='screen',
-            name='gscam_l',
+            name='gscam_both',
             namespace='stereo',
             parameters=[{
-                'gscam_config': gscam_l,
-                'use_gst_timestamps': False,  # TODO figure this out
-                'image_encoding': 'mono8',
-                'preroll': True,  # Forces pipeline to negotiate early, catching errors
-                'camera_info_url': cam_info_l,
-                'camera_name': 'stereo_left',
-                'frame_id': 'left_frame',
-            }],
-            remappings=[
-                ('image_raw', 'left/image_raw'),
-                ('camera_info', 'left/camera_info'),
-            ],
-        ),
-
-        # Right camera TODO move params
-        Node(
-            package='gscam',
-            executable='gscam_main',
-            output='screen',
-            name='gscam_r',
-            namespace='stereo',
-            parameters=[{
-                'gscam_config': gscam_r,
+                'gscam_config': gscam_sbs,
                 'use_gst_timestamps': False,
                 'image_encoding': 'mono8',
                 'preroll': True,  # Forces pipeline to negotiate early, catching errors
-                'camera_info_url': cam_info_r,
-                'camera_name': 'stereo_right',
-                'frame_id': 'right_frame',
+                'camera_info_url': cam_info_l,
+                'camera_name': 'stereo_both',
+                'frame_id': 'left_frame',
             }],
             remappings=[
-                ('image_raw', 'right/image_raw'),
-                ('camera_info', 'right/camera_info'),
+                ('image_raw', 'side_by_side'),
+                ('camera_info', 'camera_info'),
             ],
         ),
 
-        # Rectify left
-        GroupAction(
-            [
-                PushRosNamespace('stereo/left'),
-                ComposableNodeContainer(
-                    name='left_container',
-                    namespace='',  # Required attribute
-                    package='rclcpp_components',
-                    executable='component_container',
-                    composable_node_descriptions=left_composable_nodes,
-                    output='screen'
-                ),
-            ],
-        ),
-
-        # Rectify right
-        GroupAction(
-            [
-                PushRosNamespace('stereo/right'),
-                ComposableNodeContainer(
-                    name='right_container',
-                    namespace='',  # Required attribute
-                    package='rclcpp_components',
-                    executable='component_container',
-                    composable_node_descriptions=right_composable_nodes,
-                    output='screen'
-                ),
+        # Split and rectify
+        Node(
+            package='orca_localize',
+            executable='stereo_split',
+            output='screen',
+            name='stereo_split',
+            namespace='stereo',
+            parameters=[slam_params_file, {
+                'left_info_url': cam_info_l,
+                'right_info_url': cam_info_r,
+            }],
+            remappings=[
+                ('both', 'side_by_side'),
+                ('left', 'left/image_rect'),
+                ('right', 'right/image_rect'),
             ],
         ),
 
         # Run orb_slam2_ros_stereo
-        # TODO how is camera info used? Does it matter if I use l or r?
         Node(
             package='orb_slam2_ros',
             executable='orb_slam2_ros_stereo',
             output='screen',
             name='orb_slam2_stereo',
-            parameters=[slam_params_file],
+            parameters=[slam_params_file, {
+                # 'left_info_url': cam_info_l,
+                # 'right_info_url': cam_info_r,
+            }],
             remappings=[
                 ('image_left/image_color_rect', '/stereo/left/image_rect'),
                 ('image_right/image_color_rect', '/stereo/right/image_rect'),
-                ('camera/camera_info', '/stereo/left/camera_info'),
+                ('camera/camera_info', '/stereo/camera_info'),
             ],
         ),
 
@@ -223,4 +162,3 @@ def generate_launch_description():
             ],
         ),
     ])
-
