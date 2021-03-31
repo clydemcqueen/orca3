@@ -98,21 +98,21 @@ class DriverNode : public rclcpp::Node
   // LEDs on the UP board
   // https://github.com/intel-iot-devkit/mraa/blob/master/examples/platform/up2-leds.cpp
   mraa::Led led_ready_{"yellow"};
-  mraa::Led led_mission_{"green"};
+  mraa::Led led_connected_{"green"};
   mraa::Led led_problem_{"red"};
 
 #define LED_READY_ON() led_ready_.setBrightness(led_ready_.readMaxBrightness() / 2)
-#define LED_MISSION_ON() led_mission_.setBrightness(led_mission_.readMaxBrightness() / 2)
+#define LED_CONNECTED_ON() led_connected_.setBrightness(led_connected_.readMaxBrightness() / 2)
 #define LED_PROBLEM_ON() led_problem_.setBrightness(led_problem_.readMaxBrightness() / 2)
 #define LED_READY_OFF() led_ready_.setBrightness(0)
-#define LED_MISSION_OFF() led_mission_.setBrightness(0)
+#define LED_CONNECTED_OFF() led_connected_.setBrightness(0)
 #define LED_PROBLEM_OFF() led_problem_.setBrightness(0)
 #else
 #define LED_READY_ON()
-#define LED_MISSION_ON()
+#define LED_CONNECTED_ON()
 #define LED_PROBLEM_ON()
 #define LED_READY_OFF()
-#define LED_MISSION_OFF()
+#define LED_CONNECTED_OFF()
 #define LED_PROBLEM_OFF()
 
 #endif
@@ -181,6 +181,7 @@ class DriverNode : public rclcpp::Node
           RCLCPP_INFO(get_logger(), "thrust timeout");
           thrust_msg_time_ = rclcpp::Time();
           all_stop();
+          set_status(orca_msgs::msg::Status::STATUS_OK);
         }
 
         status_msg_.header.stamp = now();
@@ -232,12 +233,15 @@ class DriverNode : public rclcpp::Node
       status_msg_.status = status;
 
       LED_READY_OFF();
-      LED_MISSION_OFF();
+      LED_CONNECTED_OFF();
       LED_PROBLEM_OFF();
 
       switch (status_msg_.status) {
         case orca_msgs::msg::Status::STATUS_OK:
           LED_READY_ON();
+          break;
+        case orca_msgs::msg::Status::STATUS_CONNECTED:
+          LED_CONNECTED_ON();
           break;
         case orca_msgs::msg::Status::STATUS_ABORT:
           LED_PROBLEM_ON();
@@ -390,7 +394,7 @@ public:
         thrust_msg_lag_ = valid(msg->header.stamp) ? (now() - msg->header.stamp).seconds() : 0;
 
         if (maestro_.ready()) {
-          set_status(orca_msgs::msg::Status::STATUS_OK);
+          set_status(orca_msgs::msg::Status::STATUS_CONNECTED);
 
           for (size_t i = 0; i < 6; ++i) {
             set_thruster(thrusters_[i], msg->thrust[i]);

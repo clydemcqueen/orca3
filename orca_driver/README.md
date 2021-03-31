@@ -24,9 +24,45 @@ I made the following custom modifications -- YMMV:
 Below I've outlined rough instructions to install the required software on the UP board.
 You'll need to dive into the system-specific instructions for details.
 
-### Install Ubuntu 18.04.4 LTS Server
+### Install Ubuntu 20.04 LTS Server and the UP kernel
 
-Install Ubuntu 18.04.4 LTS Server.
+Install Ubuntu 20.04 LTS Server, then the UP kernel, per these instructions:
+https://github.com/up-board/up-community/wiki/Ubuntu_20.04
+
+Install UP extras and i2c tools:
+~~~
+sudo apt install upboard-extras i2c-tools
+~~~
+
+Add `$USER` to several groups to provide access to the hardware:
+~~~
+sudo usermod -a -G gpio ${USER}
+sudo usermod -a -G leds ${USER}
+sudo usermod -a -G i2c ${USER}
+sudo usermod -a -G spi ${USER}
+sudo usermod -a -G dialout ${USER}
+~~~
+
+Test the i2c bus:
+~~~
+i2cdetect 1
+~~~
+
+Test the LEDs:
+~~~
+echo 1 > /sys/class/leds/upboard:green:/brightness
+echo 0 > /sys/class/leds/upboard:green:/brightness
+~~~
+
+### Install MRAA
+
+MRAA provides an abstraction layer for the hardware:
+
+~~~
+sudo add-apt-repository ppa:mraa/mraa
+sudo apt-get update
+sudo apt-get install libmraa2 libmraa-dev libmraa-java python3-mraa mraa-tools
+~~~
 
 ### Install Chrony
 
@@ -38,6 +74,8 @@ Have the UP board use the topside computer as a reference.
 
 Check the requirements for [h264_image_transport](https://github.com/clydemcqueen/h264_image_transport)
 and install any missing ffmpeg libraries.
+
+TODO replace with gstreamer instructions
 
 ### Install ROS2 Foxy
 
@@ -55,24 +93,13 @@ sudo rosdep init
 rosdep update
 ~~~
 
-### Install MRAA
-
-MRAA is a standard hardware interface for small boards.
-
-~~~
-sudo add-apt-repository ppa:mraa/mraa
-sudo apt-get update
-sudo apt-get install libmraa2 libmraa-dev libmraa-java python3-mraa mraa-tools
-~~~
-
-### Install Orca3 on the AUV
+### Install Orca3
 
 ~~~
 mkdir -p ~/ros2/orca3_ws/src
 cd ~/ros2/orca3_ws/src
 git clone https://github.com/clydemcqueen/BlueRobotics_MS5837_Library.git -b mraa_ros2
 git clone https://github.com/ptrmu/ros2_shared.git
-git clone https://github.com/clydemcqueen/h264_image_transport.git
 git clone https://github.com/clydemcqueen/orca3.git
 touch orca3/orca_base/COLCON_IGNORE
 touch orca3/orca_description/COLCON_IGNORE
@@ -95,7 +122,7 @@ On the UP board:
 cd ~/ros2/orca3_ws
 source /opt/ros/foxy/setup.bash
 source install/local_setup.bash
-ros2 launch orca_bringup sub_launch.py
+ros2 launch orca_bringup rov_sub_launch.py
 ~~~
 
 On the topside computer:
@@ -104,7 +131,7 @@ On the topside computer:
 cd ~/ros2/orca3_ws
 source /opt/ros/foxy/setup.bash
 source install/local_setup.bash
-ros2 launch orca_bringup topside_launch.py
+ros2 launch orca_bringup rov_topside_launch.py
 ~~~
 
 ## ROV Operation TODO
@@ -124,8 +151,3 @@ If that fails, try:
 export MAKEFLAGS='-j 1'
 colcon build
 ~~~
-
-Test the i2c bus using `i2cdetect 1`.
-
-Make sure that `$USER` is in the dialout, video and i2c groups.
-Remember to log out and log back in after changing groups.

@@ -9,5 +9,6 @@ bool leak_detected
 
 uint8 STATUS_NONE=0
 uint8 STATUS_OK=1
-uint8 STATUS_ABORT=2
+uint8 STATUS_CONNECTED=2
+uint8 STATUS_ABORT=3
 uint8 status
