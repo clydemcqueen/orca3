@@ -32,16 +32,6 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    # Camera name must match camera name in URDF file
-    # Should also match the camera name in the camera info file
-    camera_name = 'forward_camera'
-    camera_frame = 'forward_camera_frame'
-    fps = 30
-    size = '800x600'  # TODO calibrate wet at 1920x1080
-
-    orca_driver_path = get_package_share_directory('orca_driver')
-    camera_info_path = os.path.join(orca_driver_path, 'cfg', 'brusb_wet_' + size + '.ini')
-
     driver_node_params = {
         # 'maestro_port': 'fake',
         'thruster_4_reverse': True,  # Thruster 4 on my BlueROV2 is reversed
@@ -61,22 +51,5 @@ def generate_launch_description():
             output='screen',
             name='driver_node',
             parameters=[driver_node_params],
-        ),
-
-        # TODO switch to gscam2 for ROV operation
-        # TODO overlay baro, battery and time info
-        Node(
-            package='h264_image_transport',
-            executable='h264_cam_node',
-            output='screen',
-            name='h264_cam_node',
-            namespace=camera_name,
-            parameters=[{
-                'input_fn': '/dev/video1',
-                'fps': fps,
-                'size': size,
-                'frame_id': camera_frame,
-                'camera_info_path': camera_info_path,
-            }],
         ),
     ])
