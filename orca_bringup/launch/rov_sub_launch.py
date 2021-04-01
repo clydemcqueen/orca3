@@ -34,6 +34,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     driver_node_params = {
         # 'maestro_port': 'fake',
+        # 'read_battery': False,
         'thruster_4_reverse': True,  # Thruster 4 on my BlueROV2 is reversed
     }
 

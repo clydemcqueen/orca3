@@ -33,6 +33,12 @@ namespace orca_driver
 
 // See BlueROV2 thruster diagram: https://bluerobotics.com/learn/bluerov2-assembly/
 
+// Maestro must be configured, see http://www.pololu.com/catalog/product/1350
+// Current configuration (in cfg/maestro.cfg):
+//   Channels 0-7 and 9-10 are PWM output for thrusters and camera tilt
+//   Channel 8 is PWM output for lights (boot at 1100 vs 1500)
+//   Channels 11-17 are inputs
+
 #define DRIVER_NODE_ALL_PARAMS \
   CXT_MACRO_MEMBER(timer_period_ms, int, 100)                     /* Timer period in ms  */ \
   CXT_MACRO_MEMBER(timeout_thrust_ms, int, 1000)                  /* Thrust msg timeout */ \
@@ -53,7 +59,7 @@ namespace orca_driver
  \
   CXT_MACRO_MEMBER(pwm_range, int, 200)                           /* Clamp pwm: 1500 +/- range */ \
  \
-  CXT_MACRO_MEMBER(lights_channel, int, 9)                        /* PWM lights channel */ \
+  CXT_MACRO_MEMBER(lights_channel, int, 8)                        /* PWM lights channel */ \
   CXT_MACRO_MEMBER(tilt_channel, int, 10)                         /* PWM tilt channel */ \
   CXT_MACRO_MEMBER(voltage_channel, int, 11)                      /* Analog voltage channel */ \
   CXT_MACRO_MEMBER(leak_channel, int, 12)                         /* Digital leak channel */ \
