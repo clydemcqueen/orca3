@@ -83,7 +83,7 @@ def generate_launch_description():
             package='orca_base',
             executable='teleop_node',
             output='screen',
-            name='rov_node',
+            name='teleop_node',
             parameters=[teleop_node_params],
         ),
 

@@ -30,8 +30,6 @@
 #include "ros2_shared/context_macros.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 
-// TODO ROVNode -> TeleopNode
-
 namespace orca_base
 {
 
@@ -39,7 +37,7 @@ namespace orca_base
 // Parameter(s)
 //=============================================================================
 
-#define ROV_NODE_PARAMS \
+#define TELEOP_NODE_PARAMS \
   CXT_MACRO_MEMBER(timer_period_ms, int, 50) \
   /* Timer period in ms  */ \
   CXT_MACRO_MEMBER(timeout_joy_ms, int, 100) \
@@ -62,9 +60,9 @@ namespace orca_base
 #undef CXT_MACRO_MEMBER
 #define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_DEFINE_MEMBER(n, t, d)
 
-struct ROVContext
+struct TeleopContext
 {
-  CXT_MACRO_DEFINE_MEMBERS(ROV_NODE_PARAMS)
+  CXT_MACRO_DEFINE_MEMBERS(TELEOP_NODE_PARAMS)
 };
 
 //=============================================================================
@@ -88,12 +86,12 @@ bool trim_down(
 }
 
 //=============================================================================
-// ROVNode subscribes to /joy and publishes /armed, /camera_tilt, /cmd_vel and /lights
+// TeleopNode subscribes to /joy and publishes /armed, /camera_tilt, /cmd_vel and /lights
 //=============================================================================
 
-class ROVNode : public rclcpp::Node
+class TeleopNode : public rclcpp::Node
 {
-  ROVContext cxt_;
+  TeleopContext cxt_;
 
   const int joy_axis_yaw_ = JOY_AXIS_LEFT_LR;
   const int joy_axis_x_ = JOY_AXIS_LEFT_FB;
@@ -141,22 +139,22 @@ class ROVNode : public rclcpp::Node
     // Get parameters, this will immediately call validate_parameters()
 #undef CXT_MACRO_MEMBER
 #define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_LOAD_PARAMETER((*this), cxt_, n, t, d)
-    CXT_MACRO_INIT_PARAMETERS(ROV_NODE_PARAMS, validate_parameters)
+    CXT_MACRO_INIT_PARAMETERS(TELEOP_NODE_PARAMS, validate_parameters)
 
     // Register parameters
 #undef CXT_MACRO_MEMBER
 #define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_PARAMETER_CHANGED(n, t)
-    CXT_MACRO_REGISTER_PARAMETERS_CHANGED((*this), cxt_, ROV_NODE_PARAMS, validate_parameters)
+    CXT_MACRO_REGISTER_PARAMETERS_CHANGED((*this), cxt_, TELEOP_NODE_PARAMS, validate_parameters)
 
     // Log parameters
 #undef CXT_MACRO_MEMBER
 #define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_LOG_PARAMETER(RCLCPP_INFO, get_logger(), cxt_, n, t, d)
-    ROV_NODE_PARAMS
+    TELEOP_NODE_PARAMS
 
     // Check that all command line parameters are defined
 #undef CXT_MACRO_MEMBER
 #define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_CHECK_CMDLINE_PARAMETER(n, t, d)
-    CXT_MACRO_CHECK_CMDLINE_PARAMETERS((*this), ROV_NODE_PARAMS)
+    CXT_MACRO_CHECK_CMDLINE_PARAMETERS((*this), TELEOP_NODE_PARAMS)
   }
 
   // Send all stop
@@ -206,7 +204,7 @@ class ROVNode : public rclcpp::Node
 
 public:
 
-  ROVNode()
+  TeleopNode()
     : Node{"teleop_node"}
   {
     (void) joy_sub_;
@@ -266,7 +264,7 @@ public:
     RCLCPP_INFO(get_logger(), "teleop_node ready");
   }
 
-  ~ROVNode()
+  ~TeleopNode()
   {
     disarm(now());
   }
@@ -282,7 +280,7 @@ int main(int argc, char **argv)
 {
   setvbuf(stdout, nullptr, _IONBF, BUFSIZ);
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<orca_base::ROVNode>();
+  auto node = std::make_shared<orca_base::TeleopNode>();
   rclcpp::spin(node);
   rclcpp::shutdown();
   return 0;
