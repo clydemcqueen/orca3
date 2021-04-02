@@ -41,9 +41,12 @@ namespace orca_base
 // -- recovery controllers (spin, wait) interrupt PurePursuitController3D and may cause rapid
 //    acceleration or deceleration. These will be clamped.
 
-UnderwaterMotion::UnderwaterMotion(const rclcpp::Logger & logger, const BaseContext & cxt)
-: logger_{logger}, cxt_{cxt}
+UnderwaterMotion::UnderwaterMotion(const rclcpp::Logger & logger, const BaseContext & cxt,
+  const rclcpp::Time & t, double z)
+: logger_{logger}, cxt_{cxt}, time_{t}
 {
+  RCLCPP_INFO(logger_, "Initialise underwater motion at z=%g", z);
+  pose_.position.z = z;
 }
 
 // Loud vs quiet clamp functions
@@ -190,11 +193,9 @@ geometry_msgs::msg::TransformStamped UnderwaterMotion::transform_stamped()
 
 void UnderwaterMotion::update(const rclcpp::Time & t, const geometry_msgs::msg::Twist & cmd_vel)
 {
-  if (!orca::valid(time_)) {
-    RCLCPP_INFO(logger_, "Bootstrap underwater motion");
-  }
-
   time_ = t;
+
+  // Stable, but less accurate
   auto dt = 1. / cxt_.controller_frequency_;
 
   pose_ = calc_pose(pose_, vel_, dt);

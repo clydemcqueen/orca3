@@ -45,14 +45,14 @@ def generate_launch_description():
         'deadzone': 0.0,  # Deadzone > 0 breaks autorepeat_rate
     }
 
-    rov_node_params = {
+    teleop_node_params = {
         'deadzone': 0.05,  # Set deadzone here instead
     }
 
     base_controller_params = {
-        'stamp_msgs_with_current_time': False,  # True if there is no barometer
-        'hover_thrust': False,  # True: always use hover thrust, be careful out of water!
-        'pid_enabled': False,  # True: always hold vertical position: be careful out of water!
+        'stamp_msgs_with_current_time': True,  # True if there is no barometer
+        'hover_thrust': True,  # True: always use hover thrust, be careful out of water!
+        'pid_enabled': True,  # True: always hold vertical position: be careful out of water!
     }
 
     orca_description_dir = get_package_share_directory('orca_description')
@@ -78,13 +78,13 @@ def generate_launch_description():
             parameters=[joy_node_params],
         ),
 
-        # Subscribe to /joy and publish /cmd_vel, /lights and /camera_tilt
+        # Subscribe to /joy and publish /armed, /camera_tilt, /cmd_vel and /lights
         Node(
             package='orca_base',
-            executable='rov_node',
+            executable='teleop_node',
             output='screen',
             name='rov_node',
-            parameters=[rov_node_params],
+            parameters=[teleop_node_params],
         ),
 
         # Subscribe to /cmd_vel and publish /thrust, /odom and /tf odom->base_link

@@ -32,6 +32,7 @@ ament_auto_find_build_dependencies()
 # Generate ROS messages
 rosidl_generate_interfaces(
   orca_msgs
+  msg/Armed.msg
   msg/Barometer.msg
   msg/CameraTilt.msg
   msg/Depth.msg

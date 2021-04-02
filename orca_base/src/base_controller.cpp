@@ -26,6 +26,7 @@
 #include "orca_base/underwater_motion.hpp"
 #include "orca_base/pid.hpp"
 #include "orca_base/thrusters.hpp"
+#include "orca_msgs/msg/armed.hpp"
 #include "orca_msgs/msg/barometer.hpp"
 #include "orca_shared/baro.hpp"
 #include "orca_shared/model.hpp"
@@ -37,28 +38,34 @@ namespace orca_base
 
 constexpr int QUEUE_SIZE = 10;
 
-// BaseController subscribes to /cmd_vel and does 2 main things:
+// BaseController subscribes to /armed and /cmd_vel and does 2 main things:
 // -- Publish thrust commands to achieve the target velocity
 // -- Estimate and publish the current pose
 //
 // BaseController also uses the barometer sensor to hold the sub at the target odom.z position
+//
+// BaseController must be armed to publish thrust. For AUV operation this is typically done
+// by setting auto_arm to True. For ROV or mixed AUV+ROV operation the joystick can be used
+// to arm and disarm BaseController.
 
 class BaseController : public rclcpp::Node
 {
   BaseContext cxt_;
   orca::Barometer barometer_;
   Thrusters thrusters_;
+  bool armed_;
 
   // Most recent incoming velocity message
   geometry_msgs::msg::Twist cmd_vel_;
 
   // Current pose
-  UnderwaterMotion underwater_motion_;
+  std::unique_ptr<UnderwaterMotion> underwater_motion_;
 
   std::unique_ptr<pid::Controller> pid_z_;
 
-  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
+  rclcpp::Subscription<orca_msgs::msg::Armed>::SharedPtr armed_sub_;
   rclcpp::Subscription<orca_msgs::msg::Barometer>::SharedPtr baro_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
 
   rclcpp::Publisher<geometry_msgs::msg::AccelStamped>::SharedPtr accel_pub_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr vel_pub_;
@@ -72,6 +79,10 @@ class BaseController : public rclcpp::Node
   {
     pid_z_ = std::make_unique<pid::Controller>(
       false, cxt_.pid_z_kp_, cxt_.pid_z_ki_, cxt_.pid_z_kd_, cxt_.pid_z_i_max_);
+
+    if (cxt_.auto_arm_) {
+      arm();
+    }
   }
 
   void init_parameters()
@@ -97,22 +108,38 @@ class BaseController : public rclcpp::Node
     CXT_MACRO_CHECK_CMDLINE_PARAMETERS((*this), BASE_ALL_PARAMS)
   }
 
+  void arm()
+  {
+    RCLCPP_INFO(get_logger(), "Armed");
+    armed_ = true;
+  }
+
+  void disarm()
+  {
+    RCLCPP_INFO(get_logger(), "Disarmed");
+    armed_ = false;
+
+    // The motion model doesn't track motion while disarmed
+    // TODO track barometer motion while disarmed, assume x, y and yaw do not change
+    underwater_motion_ = nullptr;
+  }
+
   void publish_odometry()
   {
     if (accel_pub_->get_subscription_count() > 0) {
-      accel_pub_->publish(underwater_motion_.accel_stamped());
+      accel_pub_->publish(underwater_motion_->accel_stamped());
     }
     if (vel_pub_->get_subscription_count() > 0) {
-      vel_pub_->publish(underwater_motion_.vel_stamped());
+      vel_pub_->publish(underwater_motion_->vel_stamped());
     }
     if (pose_pub_->get_subscription_count() > 0) {
-      pose_pub_->publish(underwater_motion_.pose_stamped());
+      pose_pub_->publish(underwater_motion_->pose_stamped());
     }
     if (odom_pub_->get_subscription_count() > 0) {
-      odom_pub_->publish(underwater_motion_.odometry());
+      odom_pub_->publish(underwater_motion_->odometry());
     }
     if (cxt_.publish_tf_) {
-      tf_broadcaster_->sendTransform(underwater_motion_.transform_stamped());
+      tf_broadcaster_->sendTransform(underwater_motion_->transform_stamped());
     }
   }
 
@@ -120,8 +147,8 @@ class BaseController : public rclcpp::Node
   {
     if (thrust_pub_->get_subscription_count() > 0) {
       auto dt = 1. / cxt_.controller_frequency_;
-      auto pose = underwater_motion_.pose_stamped();
-      auto thrust = underwater_motion_.thrust();
+      auto pose = underwater_motion_->pose_stamped();
+      auto thrust = underwater_motion_->thrust();
 
       // Add hover thrust
       if (cxt_.hover_thrust_) {
@@ -153,11 +180,12 @@ class BaseController : public rclcpp::Node
 
 public:
   BaseController()
-  : Node("base_controller"), underwater_motion_(get_logger(), cxt_)
+    : Node("base_controller"), armed_{false}
   {
     // Suppress IDE warnings
-    (void) cmd_vel_sub_;
+    (void) armed_sub_;
     (void) baro_sub_;
+    (void) cmd_vel_sub_;
 
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
 
@@ -169,11 +197,16 @@ public:
     odom_pub_ = create_publisher<nav_msgs::msg::Odometry>("odom", QUEUE_SIZE);
     thrust_pub_ = create_publisher<orca_msgs::msg::Thrust>("thrust", QUEUE_SIZE);
 
-    cmd_vel_sub_ = create_subscription<geometry_msgs::msg::Twist>(
-      "cmd_vel", QUEUE_SIZE,
-      [this](geometry_msgs::msg::Twist::ConstSharedPtr msg) // NOLINT
+    armed_sub_ = create_subscription<orca_msgs::msg::Armed>(
+      "armed", QUEUE_SIZE,
+      [this](orca_msgs::msg::Armed::ConstSharedPtr msg) // NOLINT
       {
-        cmd_vel_ = *msg;
+        armed_ = msg->armed;
+        if (msg->armed) {
+          arm();
+        } else {
+          disarm();
+        }
       });
 
     // Barometer messages are continuous and reliable, use them to drive the control loop
@@ -182,23 +215,40 @@ public:
       [this](orca_msgs::msg::Barometer::ConstSharedPtr msg) // NOLINT
       {
         if (!barometer_.initialized()) {
-          // Calibrate the barometer so that baro.z = odom.z = 0 at this pressure
-          // Note that this can only be set once -- parameter changes will not affect PID control
+          // Calibrate the barometer so that baro.z = odom.z = 0 at this pressure. This happens
+          // exactly once, presumably at the surface. The base_controller will not arm until this
+          // has happened.
           barometer_.initialize(cxt_, msg->pressure, 0);
           RCLCPP_INFO(get_logger(), "baro.z = odom.z = 0 at pressure %g", msg->pressure);
         }
 
-        rclcpp::Time t(msg->header.stamp);
+        if (armed_) {
+          rclcpp::Time t(msg->header.stamp);
 
-        // Overwrite stamp, useful if we're running a simulation on wall time
-        if (cxt_.stamp_msgs_with_current_time_) {
-          t = now();
+          // Overwrite stamp, useful if we're running a simulation on wall time
+          if (cxt_.stamp_msgs_with_current_time_) {
+            t = now();
+          }
+
+          if (!underwater_motion_) {
+            // Initialize the underwater motion model from the barometer
+            underwater_motion_ = std::make_unique<UnderwaterMotion>(get_logger(), cxt_, t,
+              barometer_.pressure_to_base_link_z(cxt_, msg->pressure));
+          }
+
+          underwater_motion_->update(t, cmd_vel_);
+
+          // TODO publish odometry while disarmed
+          publish_odometry();
+          publish_thrust(msg);
         }
+      });
 
-        underwater_motion_.update(t, cmd_vel_);
-
-        publish_odometry();
-        publish_thrust(msg);
+    cmd_vel_sub_ = create_subscription<geometry_msgs::msg::Twist>(
+      "cmd_vel", QUEUE_SIZE,
+      [this](geometry_msgs::msg::Twist::ConstSharedPtr msg) // NOLINT
+      {
+        cmd_vel_ = *msg;
       });
 
     RCLCPP_INFO(get_logger(), "base_controller ready");
@@ -211,22 +261,12 @@ public:
 // Main
 //=============================================================================
 
-int main(int argc, char ** argv)
+int main(int argc, char **argv)
 {
-  // Force flush of the stdout buffer
   setvbuf(stdout, nullptr, _IONBF, BUFSIZ);
-
-  // Init ROS
   rclcpp::init(argc, argv);
-
-  // Init node
   auto node = std::make_shared<orca_base::BaseController>();
-
-  // Spin node
   rclcpp::spin(node);
-
-  // Shut down ROS
   rclcpp::shutdown();
-
   return 0;
 }

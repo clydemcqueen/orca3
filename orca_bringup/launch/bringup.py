@@ -54,7 +54,6 @@ def generate_launch_description():
     nav2_bringup_launch_dir = os.path.join(nav2_bringup_dir, 'launch')
 
     urdf_file = os.path.join(orca_description_dir, 'urdf', 'hw7.urdf')  # TODO choose urdf
-    teleop_params_file = os.path.join(orca_bringup_dir, 'params', 'xbox_holonomic_3d.yaml')
     nav2_bt_file = os.path.join(orca_bringup_dir, 'behavior_trees', 'orca3_bt.xml')
 
     use_sim_time = LaunchConfiguration('use_sim_time')
@@ -139,13 +138,11 @@ def generate_launch_description():
 
         # Subscribe to /joy and publish /cmd_vel
         Node(
-            package='teleop_twist_joy',
+            package='orca_base',
             executable='teleop_node',
             output='screen',
             name='teleop_node',
-            parameters=[teleop_params_file, {
-                'use_sim_time': LaunchConfiguration('use_sim_time'),
-            }]),
+            parameters=[configured_orca_params]),
 
         # Subscribe to /cmd_vel and publish /thrust, /odom and /tf odom->base_link
         Node(

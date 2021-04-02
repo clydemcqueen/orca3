@@ -31,6 +31,8 @@ namespace orca_base
 {
 
 #define BASE_PARAMS \
+  CXT_MACRO_MEMBER(auto_arm, bool, false) \
+ \
   CXT_MACRO_MEMBER(stamp_msgs_with_current_time, bool, false) \
   CXT_MACRO_MEMBER(xy_vel, double, 0.4) \
   CXT_MACRO_MEMBER(xy_accel, double, 0.4) \

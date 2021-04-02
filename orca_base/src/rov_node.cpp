@@ -24,10 +24,13 @@
 
 #include "geometry_msgs/msg/twist.hpp"
 #include "orca_base/joystick.hpp"
+#include "orca_msgs/msg/armed.hpp"
 #include "orca_shared/pwm.hpp"
 #include "orca_shared/util.hpp"
 #include "ros2_shared/context_macros.hpp"
 #include "sensor_msgs/msg/joy.hpp"
+
+// TODO ROVNode -> TeleopNode
 
 namespace orca_base
 {
@@ -85,11 +88,7 @@ bool trim_down(
 }
 
 //=============================================================================
-// ROVNode subscribes to /joy and manages all ROV operations
-// -- manage global arm / disarm
-// -- publish /cmd_vel
-// -- publish /camera_tilt
-// -- publish /lights
+// ROVNode subscribes to /joy and publishes /armed, /camera_tilt, /cmd_vel and /lights
 //=============================================================================
 
 class ROVNode : public rclcpp::Node
@@ -117,8 +116,9 @@ class ROVNode : public rclcpp::Node
 
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
 
-  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
+  rclcpp::Publisher<orca_msgs::msg::Armed>::SharedPtr armed_pub_;
   rclcpp::Publisher<orca_msgs::msg::CameraTilt>::SharedPtr camera_tilt_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
   rclcpp::Publisher<orca_msgs::msg::Lights>::SharedPtr lights_pub_;
 
   void validate_parameters()
@@ -159,9 +159,33 @@ class ROVNode : public rclcpp::Node
     CXT_MACRO_CHECK_CMDLINE_PARAMETERS((*this), ROV_NODE_PARAMS)
   }
 
+  // Send all stop
   void stop()
   {
     cmd_vel_pub_->publish(geometry_msgs::msg::Twist{});
+  }
+
+  // Send armed=true
+  void arm(const rclcpp::Time & stamp)
+  {
+    armed_ = true;
+    publish_armed(stamp);
+  }
+
+  // Stop and send armed=false
+  void disarm(const rclcpp::Time & stamp)
+  {
+    stop();
+    armed_ = false;
+    publish_armed(stamp);
+  }
+
+  void publish_armed(const rclcpp::Time & stamp)
+  {
+    orca_msgs::msg::Armed msg;
+    msg.header.stamp = stamp;
+    msg.armed = armed_;
+    armed_pub_->publish(msg);
   }
 
   void publish_camera_tilt(const rclcpp::Time & stamp)
@@ -183,25 +207,25 @@ class ROVNode : public rclcpp::Node
 public:
 
   ROVNode()
-    : Node{"rov_node"}
+    : Node{"teleop_node"}
   {
     (void) joy_sub_;
     (void) spin_timer_;
 
     init_parameters();
 
-    cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
+    armed_pub_ = create_publisher<orca_msgs::msg::Armed>("armed", 10);
     camera_tilt_pub_ = create_publisher<orca_msgs::msg::CameraTilt>("camera_tilt", 10);
+    cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
     lights_pub_ = create_publisher<orca_msgs::msg::Lights>("lights", 10);
 
     joy_sub_ = create_subscription<sensor_msgs::msg::Joy>(
       "joy", 10, [this](const sensor_msgs::msg::Joy::SharedPtr msg)
       {
         if (button_down(msg, joy_msg_, joy_button_disarm_)) {
-          armed_ = false;
-          stop();
+          disarm(joy_msg_.header.stamp);
         } else if (button_down(msg, joy_msg_, joy_button_arm_)) {
-          armed_ = true;
+          arm(joy_msg_.header.stamp);
         }
 
         // If we're disarmed, ignore everything else
@@ -239,12 +263,12 @@ public:
         joy_msg_ = *msg;
       });
 
-    RCLCPP_INFO(get_logger(), "rov_node ready");
+    RCLCPP_INFO(get_logger(), "teleop_node ready");
   }
 
   ~ROVNode()
   {
-    stop();
+    disarm(now());
   }
 };
 

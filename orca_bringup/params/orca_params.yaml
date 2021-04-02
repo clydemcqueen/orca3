@@ -8,13 +8,17 @@ joy_node:
   ros__parameters:
     use_sim_time: False
     dev: "/dev/input/js0"
+    autorepeat_rate: 20.  # Set /joy Hz
+    deadzone: 0.0  # Deadzone > 0 breaks autorepeat_rate
 
 teleop_node:
   ros__parameters:
     use_sim_time: False
+    deadzone: 0.05  # Deadzone: ignore small joystick motions
 
 base_controller:
   ros__parameters:
+    auto_arm: True  # Default for demo
     use_sim_time: False
     stamp_msgs_with_current_time: True
     mdl_mass: 9.9
