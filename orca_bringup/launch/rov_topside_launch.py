@@ -50,9 +50,9 @@ def generate_launch_description():
     }
 
     base_controller_params = {
-        'stamp_msgs_with_current_time': True,  # True if there is no barometer
-        'hover_thrust': True,  # True: always use hover thrust, be careful out of water!
-        'pid_enabled': True,  # True: always hold vertical position: be careful out of water!
+        'stamp_msgs_with_current_time': False,  # False: use sub clock.now()
+        'hover_thrust': False,  # Boot ROV with 0 vertical thrust, enable/disable with joystick
+        'pid_enabled': False,  # Boot ROV with 0 vertical thrust, enable/disable with joystick
     }
 
     orca_description_dir = get_package_share_directory('orca_description')

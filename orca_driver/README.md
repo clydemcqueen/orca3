@@ -41,6 +41,7 @@ sudo usermod -a -G leds ${USER}
 sudo usermod -a -G i2c ${USER}
 sudo usermod -a -G spi ${USER}
 sudo usermod -a -G dialout ${USER}
+sudo usermod -a -G video ${USER}
 ~~~
 
 Test the i2c bus:
@@ -135,6 +136,16 @@ ros2 launch orca_bringup rov_topside_launch.py
 ~~~
 
 ## ROV Operation TODO
+
+Send video:
+~~~
+gst-launch-1.0 -v v4l2src device=/dev/video2 do-timestamp=true ! queue ! video/x-h264,width=1920,height=1080,framerate=30/1 ! h264parse ! queue ! rtph264pay config-interval=-1 pt=96 ! udpsink host=192.168.86.27 port=5600
+~~~
+
+Receive video topside:
+~~~
+gst-launch-1.0 udpsrc port=5600 ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! avdec_h264 ! autovideosink
+~~~
 
 * Run gstreamer at receiving end, can also record 
 * Gstreamer shows depth and time ???
