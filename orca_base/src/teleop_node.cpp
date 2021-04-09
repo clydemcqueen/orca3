@@ -27,6 +27,7 @@
 #include "orca_msgs/msg/armed.hpp"
 #include "orca_shared/pwm.hpp"
 #include "orca_shared/util.hpp"
+#include "rclcpp/parameter_client.hpp"
 #include "ros2_shared/context_macros.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 
@@ -99,6 +100,10 @@ class TeleopNode : public rclcpp::Node
   const int joy_axis_z_ = JOY_AXIS_RIGHT_FB;
   const int joy_button_disarm_ = JOY_BUTTON_VIEW;
   const int joy_button_arm_ = JOY_BUTTON_MENU;
+  const int joy_button_hover_off_ = JOY_BUTTON_A;
+  const int joy_button_hover_on_ = JOY_BUTTON_B;
+  const int joy_button_pid_off_ = JOY_BUTTON_X;
+  const int joy_button_pid_on_ = JOY_BUTTON_Y;
   const int joy_axis_camera_tilt_ = JOY_AXIS_TRIM_FB;
   const int joy_axis_lights_ = JOY_AXIS_TRIM_LR;
 
@@ -119,6 +124,8 @@ class TeleopNode : public rclcpp::Node
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
   rclcpp::Publisher<orca_msgs::msg::Lights>::SharedPtr lights_pub_;
 
+  std::shared_ptr<rclcpp::AsyncParametersClient> base_controller_client_;
+
   void validate_parameters()
   {
     std::chrono::milliseconds spin_period_ = std::chrono::milliseconds{cxt_.timer_period_ms_};
@@ -128,7 +135,7 @@ class TeleopNode : public rclcpp::Node
     {
       if (orca::valid(joy_msg_.header.stamp) && now() - joy_msg_.header.stamp > joy_timeout_) {
         // Depending on settings, joystick msgs stop when user lets go, send stop msg
-        RCLCPP_INFO(get_logger(), "Joy timeout");
+        RCLCPP_INFO(get_logger(), "joy timeout");
         stop();
       }
     });
@@ -202,6 +209,35 @@ class TeleopNode : public rclcpp::Node
     lights_pub_->publish(msg);
   }
 
+  void set_base_controller_param(std::string param, bool value)
+  {
+    if (!base_controller_client_) {
+      base_controller_client_ = std::make_shared<rclcpp::AsyncParametersClient>(this,
+        "base_controller");
+    }
+
+    if (base_controller_client_->service_is_ready()) {
+      RCLCPP_INFO_STREAM(get_logger(), "set " << param << " to " << value);
+      base_controller_client_->set_parameters({rclcpp::Parameter(param, value)},
+        [this](std::shared_future<std::vector<rcl_interfaces::msg::SetParametersResult>> future)
+        {
+          future.wait();
+          auto results = future.get();
+          if (results.size() != 1) {
+            RCLCPP_ERROR_STREAM(get_logger(), "expected 1 result, got " << results.size());
+          } else {
+            if (results[0].successful) {
+              RCLCPP_INFO(get_logger(), "success");
+            } else {
+              RCLCPP_ERROR(get_logger(), "failure");
+            }
+          }
+        });
+    } else {
+      RCLCPP_ERROR(get_logger(), "base_controller parameter server is not ready");
+    }
+  }
+
 public:
 
   TeleopNode()
@@ -230,6 +266,18 @@ public:
         if (!armed_) {
           joy_msg_ = *msg;
           return;
+        }
+
+        // Base controller parameters
+        if (button_down(msg, joy_msg_, joy_button_hover_off_)) {
+          set_base_controller_param("hover_thrust", false);
+        } else if (button_down(msg, joy_msg_, joy_button_hover_on_)) {
+          set_base_controller_param("hover_thrust", true);
+        }
+        if (button_down(msg, joy_msg_, joy_button_pid_off_)) {
+          set_base_controller_param("pid_enabled", false);
+        } else if (button_down(msg, joy_msg_, joy_button_pid_on_)) {
+          set_base_controller_param("pid_enabled", true);
         }
 
         // Camera tilt
