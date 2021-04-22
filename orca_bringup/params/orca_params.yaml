@@ -137,4 +137,3 @@ orb_slam2_localizer:
     camera_frame_id: "left_camera_link"  # Note: the link, not the frame
     publish_rate: 20
     transform_expiration_ms: 0
-    wait_for_transform_ms: 0

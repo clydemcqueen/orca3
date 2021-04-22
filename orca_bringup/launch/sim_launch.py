@@ -70,7 +70,6 @@ def generate_launch_description():
 
     urdf_file = os.path.join(orca_description_dir, 'urdf', 'hw7.urdf')
     nav2_params_file = os.path.join(orca_bringup_dir, 'params', 'nav2_params.yaml')
-    rviz_cfg_file = os.path.join(orca_bringup_dir, 'cfg', 'sim_launch.rviz')
 
     return LaunchDescription([
         # Arguments
@@ -83,6 +82,11 @@ def generate_launch_description():
             'slam',
             default_value='orb',
             description='Choose SLAM strategy: ' + ', '.join(slams)),
+
+        DeclareLaunchArgument(
+            'nav',
+            default_value='True',
+            description='Launch nav?'),
 
         DeclareLaunchArgument(
             'world',
@@ -194,6 +198,7 @@ def generate_launch_description():
             launch_arguments={
                 'use_sim_time': LaunchConfiguration('use_sim_time'),
                 'slam': LaunchConfiguration('slam'),
+                'nav': LaunchConfiguration('nav'),
                 'vlam_map': [orca_gazebo_dir, '/worlds/', LaunchConfiguration('world'), '_map.yaml'],
                 'nav2_params_file': nav2_params_file,
             }.items()),
