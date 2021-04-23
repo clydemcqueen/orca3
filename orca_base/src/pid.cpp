@@ -59,6 +59,8 @@ void Controller::set_target(double target)
 double Controller::calc(builtin_interfaces::msg::Time stamp, double state, double dt)
 {
   msg_.header.stamp = stamp;
+  msg_.dt = dt;
+  msg_.state = state;
   msg_.error = msg_.target - state;
 
   if (angle_) {
