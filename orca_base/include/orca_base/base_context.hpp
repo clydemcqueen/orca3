@@ -33,7 +33,6 @@ namespace orca_base
 #define BASE_PARAMS \
   CXT_MACRO_MEMBER(auto_arm, bool, false) \
   CXT_MACRO_MEMBER(stamp_msgs_with_current_time, bool, false) \
-  CXT_MACRO_MEMBER(controller_frequency, double, 20.0) \
  \
   CXT_MACRO_MEMBER(x_vel, double, 0.4) \
   CXT_MACRO_MEMBER(y_vel, double, 0.4) \

@@ -3,10 +3,10 @@
  <tabbed_widget parent="main_window" name="Main Window">
   <Tab tab_name="tab1" containers="1">
    <Container>
-    <DockSplitter sizes="0.250256;0.249744;0.250256;0.249744" count="4" orientation="-">
+    <DockSplitter sizes="0.200103;0.200103;0.19959;0.200103;0.200103" count="5" orientation="-">
      <DockArea name="...">
       <plot style="Lines" mode="TimeSeries">
-       <range top="1900.000000" bottom="1100.000000" left="1619213339.755738" right="1619213344.711914"/>
+       <range top="1900.000000" bottom="1100.000000" left="1619218494.623061" right="1619218499.583106"/>
        <limitY min="1100" max="1900"/>
        <curve color="#1f77b4" name="/thrust/thrust.4"/>
        <curve color="#d62728" name="/thrust/thrust.5"/>
@@ -14,7 +14,7 @@
      </DockArea>
      <DockArea name="...">
       <plot style="Lines" mode="TimeSeries">
-       <range top="0.100000" bottom="-0.100000" left="1619213339.755738" right="1619213344.711914"/>
+       <range top="0.031932" bottom="-1.309226" left="1619218494.595975" right="1619218499.583106"/>
        <limitY/>
        <curve color="#1ac938" name="/pose/position/z"/>
        <curve color="#ff7f0e" name="/vel/linear/z"/>
@@ -24,7 +24,7 @@
      </DockArea>
      <DockArea name="...">
       <plot style="Lines" mode="TimeSeries">
-       <range top="0.072982" bottom="-0.001780" left="59.027000" right="64.027000"/>
+       <range top="0.007920" bottom="-0.009984" left="1619218494.623061" right="1619218499.583106"/>
        <limitY/>
        <curve color="#1f77b4" name="/pid_z/p_term"/>
        <curve color="#d62728" name="/pid_z/i_term"/>
@@ -33,10 +33,17 @@
      </DockArea>
      <DockArea name="...">
       <plot style="Lines" mode="TimeSeries">
-       <range top="103017.301353" bottom="101828.530362" left="59.027000" right="64.027000"/>
+       <range top="114251.662091" bottom="113170.348101" left="212.530000" right="217.530000"/>
        <limitY/>
        <curve color="#ff7f0e" name="/barometer/pressure"/>
        <curve color="#f14cc1" name="/filtered_barometer/pressure"/>
+      </plot>
+     </DockArea>
+     <DockArea name="...">
+      <plot style="Lines" mode="TimeSeries">
+       <range top="0.055192" bottom="0.044495" left="1619218494.623061" right="1619218499.583106"/>
+       <limitY/>
+       <curve color="#9467bd" name="/pid_z/dt"/>
       </plot>
      </DockArea>
     </DockSplitter>
@@ -63,15 +70,15 @@
    <discard_large_arrays value="true"/>
    <max_array_size value="true"/>
    <selected_topics>
-    <topic name="/barometer"/>
-    <topic name="/status"/>
-    <topic name="/thrust"/>
+    <topic name="/filtered_barometer"/>
     <topic name="/accel"/>
+    <topic name="/barometer"/>
     <topic name="/cmd_vel"/>
     <topic name="/pid_z"/>
     <topic name="/pose"/>
+    <topic name="/status"/>
+    <topic name="/thrust"/>
     <topic name="/vel"/>
-    <topic name="/filtered_barometer"/>
    </selected_topics>
   </plugin>
   <plugin ID="UDP Server"/>
