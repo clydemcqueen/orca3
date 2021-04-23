@@ -3,10 +3,10 @@
  <tabbed_widget parent="main_window" name="Main Window">
   <Tab tab_name="tab1" containers="1">
    <Container>
-    <DockSplitter sizes="0.333162;0.333675;0.333162" count="3" orientation="-">
+    <DockSplitter sizes="0.250256;0.249744;0.250256;0.249744" count="4" orientation="-">
      <DockArea name="...">
       <plot style="Lines" mode="TimeSeries">
-       <range top="1900.000000" bottom="1100.000000" left="1619212835.149744" right="1619212840.108036"/>
+       <range top="1900.000000" bottom="1100.000000" left="1619213339.755738" right="1619213344.711914"/>
        <limitY min="1100" max="1900"/>
        <curve color="#1f77b4" name="/thrust/thrust.4"/>
        <curve color="#d62728" name="/thrust/thrust.5"/>
@@ -14,7 +14,7 @@
      </DockArea>
      <DockArea name="...">
       <plot style="Lines" mode="TimeSeries">
-       <range top="0.029500" bottom="-1.209500" left="1619212835.088281" right="1619212840.108036"/>
+       <range top="0.100000" bottom="-0.100000" left="1619213339.755738" right="1619213344.711914"/>
        <limitY/>
        <curve color="#1ac938" name="/pose/position/z"/>
        <curve color="#ff7f0e" name="/vel/linear/z"/>
@@ -24,11 +24,19 @@
      </DockArea>
      <DockArea name="...">
       <plot style="Lines" mode="TimeSeries">
-       <range top="0.031360" bottom="-0.025951" left="100.004000" right="105.004000"/>
+       <range top="0.072982" bottom="-0.001780" left="59.027000" right="64.027000"/>
        <limitY/>
        <curve color="#1f77b4" name="/pid_z/p_term"/>
        <curve color="#d62728" name="/pid_z/i_term"/>
        <curve color="#1ac938" name="/pid_z/d_term"/>
+      </plot>
+     </DockArea>
+     <DockArea name="...">
+      <plot style="Lines" mode="TimeSeries">
+       <range top="103017.301353" bottom="101828.530362" left="59.027000" right="64.027000"/>
+       <limitY/>
+       <curve color="#ff7f0e" name="/barometer/pressure"/>
+       <curve color="#f14cc1" name="/filtered_barometer/pressure"/>
       </plot>
      </DockArea>
     </DockSplitter>
@@ -60,9 +68,10 @@
     <topic name="/thrust"/>
     <topic name="/accel"/>
     <topic name="/cmd_vel"/>
+    <topic name="/pid_z"/>
     <topic name="/pose"/>
     <topic name="/vel"/>
-    <topic name="/pid_z"/>
+    <topic name="/filtered_barometer"/>
    </selected_topics>
   </plugin>
   <plugin ID="UDP Server"/>

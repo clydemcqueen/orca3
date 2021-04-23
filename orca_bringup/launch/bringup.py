@@ -133,6 +133,14 @@ def generate_launch_description():
             arguments=[urdf_file],
             parameters=[configured_orca_params]),
 
+        # Barometer filter
+        Node(
+            package='orca_base',
+            executable='baro_filter_node',
+            output='screen',
+            name='baro_filter_node',
+            parameters=[configured_orca_params]),
+
         # Publish /joy
         Node(
             package='joy',
@@ -155,7 +163,10 @@ def generate_launch_description():
             executable='base_controller',
             output='screen',
             name='base_controller',
-            parameters=[configured_orca_params]),
+            parameters=[configured_orca_params],
+            remappings=[
+                ('barometer', 'filtered_barometer'),
+            ]),
 
         # fiducial_vlam: publish a map of ArUco markers
         Node(
