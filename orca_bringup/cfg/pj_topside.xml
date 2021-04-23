@@ -1,25 +1,34 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <root version="2.3.8">
- <tabbed_widget name="Main Window" parent="main_window">
+ <tabbed_widget parent="main_window" name="Main Window">
   <Tab tab_name="tab1" containers="1">
    <Container>
-    <DockSplitter sizes="0.50045;0.49955" orientation="-" count="2">
+    <DockSplitter sizes="0.333162;0.333675;0.333162" count="3" orientation="-">
      <DockArea name="...">
-      <plot mode="TimeSeries" style="Lines">
-       <range right="1619131441.274253" bottom="1100.000000" left="1619131436.316309" top="1900.000000"/>
-       <limitY max="1900" min="1100"/>
+      <plot style="Lines" mode="TimeSeries">
+       <range top="1900.000000" bottom="1100.000000" left="1619212835.149744" right="1619212840.108036"/>
+       <limitY min="1100" max="1900"/>
        <curve color="#1f77b4" name="/thrust/thrust.4"/>
        <curve color="#d62728" name="/thrust/thrust.5"/>
       </plot>
      </DockArea>
      <DockArea name="...">
-      <plot mode="TimeSeries" style="Lines">
-       <range right="1619131441.274253" bottom="-1.977431" left="1619131436.311138" top="0.048230"/>
+      <plot style="Lines" mode="TimeSeries">
+       <range top="0.029500" bottom="-1.209500" left="1619212835.088281" right="1619212840.108036"/>
        <limitY/>
        <curve color="#1ac938" name="/pose/position/z"/>
        <curve color="#ff7f0e" name="/vel/linear/z"/>
        <curve color="#f14cc1" name="/accel/accel/linear/z"/>
        <curve color="#17becf" name="/cmd_vel/linear/z"/>
+      </plot>
+     </DockArea>
+     <DockArea name="...">
+      <plot style="Lines" mode="TimeSeries">
+       <range top="0.031360" bottom="-0.025951" left="100.004000" right="105.004000"/>
+       <limitY/>
+       <curve color="#1f77b4" name="/pid_z/p_term"/>
+       <curve color="#d62728" name="/pid_z/i_term"/>
+       <curve color="#1ac938" name="/pid_z/d_term"/>
       </plot>
      </DockArea>
     </DockSplitter>
@@ -53,6 +62,7 @@
     <topic name="/cmd_vel"/>
     <topic name="/pose"/>
     <topic name="/vel"/>
+    <topic name="/pid_z"/>
    </selected_topics>
   </plugin>
   <plugin ID="UDP Server"/>

@@ -72,6 +72,7 @@ class BaseController : public rclcpp::Node
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
   rclcpp::Publisher<orca_msgs::msg::Thrust>::SharedPtr thrust_pub_;
+  rclcpp::Publisher<orca_msgs::msg::Pid>::SharedPtr pid_z_pub_;
 
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
@@ -158,9 +159,14 @@ class BaseController : public rclcpp::Node
       // Add PID thrust
       if (cxt_.pid_enabled_) {
         pid_z_->set_target(pose.pose.position.z);
+
         auto curr_z = barometer_.pressure_to_base_link_z(cxt_, baro_msg->pressure);
-        auto accel_z = pid_z_->calc(curr_z, dt);
+        auto accel_z = pid_z_->calc(baro_msg->header.stamp, curr_z, dt);
         thrust.force.z += cxt_.accel_to_force(accel_z);
+
+        if (pid_z_pub_->get_subscription_count() > 0) {
+          pid_z_pub_->publish(pid_z_->msg());
+        }
       }
 
       // Scale by bollard force, clamp to [-1, 1]
@@ -196,6 +202,7 @@ public:
     pose_pub_ = create_publisher<geometry_msgs::msg::PoseStamped>("pose", QUEUE_SIZE);
     odom_pub_ = create_publisher<nav_msgs::msg::Odometry>("odom", QUEUE_SIZE);
     thrust_pub_ = create_publisher<orca_msgs::msg::Thrust>("thrust", QUEUE_SIZE);
+    pid_z_pub_ = create_publisher<orca_msgs::msg::Pid>("pid_z", QUEUE_SIZE);
 
     armed_sub_ = create_subscription<orca_msgs::msg::Armed>(
       "armed", QUEUE_SIZE,
