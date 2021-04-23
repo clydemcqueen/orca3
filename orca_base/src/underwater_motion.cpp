@@ -80,8 +80,8 @@ geometry_msgs::msg::Accel UnderwaterMotion::calc_accel(
   double dt)
 {
   geometry_msgs::msg::Accel result;
-  result.linear.x = CLAMP((v1.linear.x - v0.linear.x) / dt, cxt_.xy_accel_);
-  result.linear.y = CLAMP((v1.linear.y - v0.linear.y) / dt, cxt_.xy_accel_);
+  result.linear.x = CLAMP((v1.linear.x - v0.linear.x) / dt, cxt_.x_accel_);
+  result.linear.y = CLAMP((v1.linear.y - v0.linear.y) / dt, cxt_.y_accel_);
   result.linear.z = CLAMP((v1.linear.z - v0.linear.z) / dt, cxt_.z_accel_);
   result.angular.z = CLAMP((v1.angular.z - v0.angular.z) / dt, cxt_.yaw_accel_);
   return result;
@@ -94,8 +94,8 @@ geometry_msgs::msg::Twist UnderwaterMotion::calc_vel(
   double dt)
 {
   geometry_msgs::msg::Twist result;
-  result.linear.x = CLAMP(v0.linear.x + a.linear.x * dt, cxt_.xy_vel_);
-  result.linear.y = CLAMP(v0.linear.y + a.linear.y * dt, cxt_.xy_vel_);
+  result.linear.x = CLAMP(v0.linear.x + a.linear.x * dt, cxt_.x_vel_);
+  result.linear.y = CLAMP(v0.linear.y + a.linear.y * dt, cxt_.y_vel_);
   result.linear.z = CLAMP(v0.linear.z + a.linear.z * dt, cxt_.z_vel_);
   result.angular.z = CLAMP(v0.angular.z + a.angular.z * dt, cxt_.yaw_vel_);
   return result;
@@ -201,6 +201,7 @@ void UnderwaterMotion::update(const rclcpp::Time & t, const geometry_msgs::msg::
   pose_ = calc_pose(pose_, vel_, dt);
   vel_ = calc_vel(vel_, accel_, dt);
 
+#if 0
   if (orca::is_zero(cmd_vel)) {
     // Coast
     thrust_ = geometry_msgs::msg::Wrench();
@@ -214,6 +215,13 @@ void UnderwaterMotion::update(const rclcpp::Time & t, const geometry_msgs::msg::
     // Thrust to accelerate to cmd_vel + thrust to counteract drag
     thrust_ = cxt_.accel_to_wrench(accel_ - cxt_.drag_accel(vel_));
   }
+#else
+  // Accelerate to cmd_vel
+  accel_ = calc_accel(vel_, cmd_vel, dt);
+
+  // Thrust to accelerate to cmd_vel + thrust to counteract drag
+  thrust_ = cxt_.accel_to_wrench(accel_ - cxt_.drag_accel(vel_));
+#endif
 }
 
 }  // namespace orca_base

@@ -46,10 +46,10 @@ namespace orca_base
  \
   CXT_MACRO_MEMBER(deadzone, float, 0.05f) \
   /* Ignore small joystick inputs  */ \
-  CXT_MACRO_MEMBER(x_scale, double, 1.0) \
-  CXT_MACRO_MEMBER(y_scale, double, 0.5) \
-  CXT_MACRO_MEMBER(z_scale, double, 0.5) \
-  CXT_MACRO_MEMBER(yaw_scale, double, 0.7) \
+  CXT_MACRO_MEMBER(x_vel, double, 1.0) \
+  CXT_MACRO_MEMBER(y_vel, double, 0.5) \
+  CXT_MACRO_MEMBER(z_vel, double, 0.5) \
+  CXT_MACRO_MEMBER(yaw_vel, double, 0.7) \
   /* Scale joystick input  */ \
  \
   CXT_MACRO_MEMBER(inc_tilt, int, 5) \
@@ -297,13 +297,13 @@ public:
         // Velocity
         geometry_msgs::msg::Twist cmd_vel_msg;
         cmd_vel_msg.linear.x =
-          orca::deadzone(joy_msg_.axes[joy_axis_x_], cxt_.deadzone_) * cxt_.x_scale_;
+          orca::deadzone(joy_msg_.axes[joy_axis_x_], cxt_.deadzone_) * cxt_.x_vel_;
         cmd_vel_msg.linear.y =
-          orca::deadzone(joy_msg_.axes[joy_axis_y_], cxt_.deadzone_) * cxt_.y_scale_;
+          orca::deadzone(joy_msg_.axes[joy_axis_y_], cxt_.deadzone_) * cxt_.y_vel_;
         cmd_vel_msg.linear.z =
-          orca::deadzone(joy_msg_.axes[joy_axis_z_], cxt_.deadzone_) * cxt_.z_scale_;
+          orca::deadzone(joy_msg_.axes[joy_axis_z_], cxt_.deadzone_) * cxt_.z_vel_;
         cmd_vel_msg.angular.z =
-          orca::deadzone(joy_msg_.axes[joy_axis_yaw_], cxt_.deadzone_) * cxt_.yaw_scale_;
+          orca::deadzone(joy_msg_.axes[joy_axis_yaw_], cxt_.deadzone_) * cxt_.yaw_vel_;
         cmd_vel_pub_->publish(cmd_vel_msg);
 
         joy_msg_ = *msg;
