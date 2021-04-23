@@ -46,16 +46,15 @@ namespace orca_base
  \
   CXT_MACRO_MEMBER(deadzone, float, 0.05f) \
   /* Ignore small joystick inputs  */ \
-  CXT_MACRO_MEMBER(x_scale, double, 1.0) \
-  CXT_MACRO_MEMBER(y_scale, double, 0.5) \
-  CXT_MACRO_MEMBER(z_scale, double, 0.5) \
-  CXT_MACRO_MEMBER(yaw_scale, double, 0.7) \
+  CXT_MACRO_MEMBER(x_vel, double, 1.0) \
+  CXT_MACRO_MEMBER(y_vel, double, 0.5) \
+  CXT_MACRO_MEMBER(z_vel, double, 0.5) \
+  CXT_MACRO_MEMBER(yaw_vel, double, 0.7) \
   /* Scale joystick input  */ \
  \
   CXT_MACRO_MEMBER(inc_tilt, int, 5) \
-  /* Tilt increment  */ \
   CXT_MACRO_MEMBER(inc_lights, int, 20) \
-  /* Lights increment  */ \
+  CXT_MACRO_MEMBER(inc_z_vel, double, 0.1) \
 /* End of list */
 
 #undef CXT_MACRO_MEMBER
@@ -104,16 +103,20 @@ class TeleopNode : public rclcpp::Node
   const int joy_button_hover_on_ = JOY_BUTTON_B;
   const int joy_button_pid_off_ = JOY_BUTTON_X;
   const int joy_button_pid_on_ = JOY_BUTTON_Y;
-  const int joy_axis_camera_tilt_ = JOY_AXIS_TRIM_FB;
+  const int joy_button_camera_tilt_up_ = JOY_BUTTON_LEFT_BUMPER;
+  const int joy_button_camera_tilt_down_ = JOY_BUTTON_RIGHT_BUMPER;
   const int joy_axis_lights_ = JOY_AXIS_TRIM_LR;
+  const int joy_axis_z_vel_trim_ = JOY_AXIS_TRIM_FB;
+  const int joy_button_z_vel_trim_cancel_ = JOY_BUTTON_LOGO;
 
   rclcpp::Duration joy_timeout_{0};  // Set by parameter
 
   sensor_msgs::msg::Joy joy_msg_;  // Compare 2 joy msgs to sense button transitions
 
-  bool armed_{};  // True: joystick active
-  int tilt_{};    // Tilt value [-45, 45]
-  int lights_{};  // Lights value [0, 100]
+  bool armed_{};          // True: joystick active
+  int tilt_{};            // Tilt value [-45, 45]
+  int lights_{};          // Lights value [0, 100]
+  double z_vel_trim_{};   // Z velocity trim [-z_vel, z_vel]
 
   rclcpp::TimerBase::SharedPtr spin_timer_;
 
@@ -195,6 +198,7 @@ class TeleopNode : public rclcpp::Node
 
   void publish_camera_tilt(const rclcpp::Time & stamp)
   {
+    RCLCPP_INFO(get_logger(), "tilt %d", tilt_);
     orca_msgs::msg::CameraTilt msg;
     msg.header.stamp = stamp;
     msg.camera_tilt_pwm = orca::tilt_to_pwm(tilt_);
@@ -203,6 +207,7 @@ class TeleopNode : public rclcpp::Node
 
   void publish_lights(const rclcpp::Time & stamp)
   {
+    RCLCPP_INFO(get_logger(), "lights %d", lights_);
     orca_msgs::msg::Lights msg;
     msg.header.stamp = stamp;
     msg.brightness_pwm = orca::brightness_to_pwm(lights_);
@@ -281,9 +286,11 @@ public:
         }
 
         // Camera tilt
-        if (trim_down(msg, joy_msg_, joy_axis_camera_tilt_)) {
-          tilt_ += (msg->axes[joy_axis_camera_tilt_] > 0) ? -cxt_.inc_tilt_ : cxt_.inc_tilt_;
-          tilt_ = orca::clamp(tilt_, orca::TILT_MIN, orca::TILT_MAX);
+        if (button_down(msg, joy_msg_, joy_button_camera_tilt_down_)) {
+          tilt_ = orca::clamp(tilt_ - cxt_.inc_tilt_, orca::TILT_MIN, orca::TILT_MAX);
+          publish_camera_tilt(msg->header.stamp);
+        } else if (button_down(msg, joy_msg_, joy_button_camera_tilt_up_)) {
+          tilt_ = orca::clamp(tilt_ + cxt_.inc_tilt_, orca::TILT_MIN, orca::TILT_MAX);
           publish_camera_tilt(msg->header.stamp);
         }
 
@@ -294,16 +301,30 @@ public:
           publish_lights(msg->header.stamp);
         }
 
-        // Velocity
+        // Stick velocity
         geometry_msgs::msg::Twist cmd_vel_msg;
         cmd_vel_msg.linear.x =
-          orca::deadzone(joy_msg_.axes[joy_axis_x_], cxt_.deadzone_) * cxt_.x_scale_;
+          orca::deadzone(joy_msg_.axes[joy_axis_x_], cxt_.deadzone_) * cxt_.x_vel_;
         cmd_vel_msg.linear.y =
-          orca::deadzone(joy_msg_.axes[joy_axis_y_], cxt_.deadzone_) * cxt_.y_scale_;
+          orca::deadzone(joy_msg_.axes[joy_axis_y_], cxt_.deadzone_) * cxt_.y_vel_;
         cmd_vel_msg.linear.z =
-          orca::deadzone(joy_msg_.axes[joy_axis_z_], cxt_.deadzone_) * cxt_.z_scale_;
+          orca::deadzone(joy_msg_.axes[joy_axis_z_], cxt_.deadzone_) * cxt_.z_vel_;
         cmd_vel_msg.angular.z =
-          orca::deadzone(joy_msg_.axes[joy_axis_yaw_], cxt_.deadzone_) * cxt_.yaw_scale_;
+          orca::deadzone(joy_msg_.axes[joy_axis_yaw_], cxt_.deadzone_) * cxt_.yaw_vel_;
+
+        // Z velocity trim
+        if (button_down(msg, joy_msg_, joy_button_z_vel_trim_cancel_)) {
+          z_vel_trim_ = 0;
+          RCLCPP_INFO(get_logger(), "cancel z vel trim");
+        } else if (trim_down(msg, joy_msg_, joy_axis_z_vel_trim_)) {
+          z_vel_trim_ += (msg->axes[joy_axis_z_vel_trim_] < 0) ? -cxt_.inc_z_vel_ : cxt_.inc_z_vel_;
+          z_vel_trim_ = orca::clamp(z_vel_trim_, cxt_.z_vel_);
+          RCLCPP_INFO(get_logger(), "z vel trim %g", z_vel_trim_);
+        }
+
+        // Combine stick + trim
+        cmd_vel_msg.linear.z = orca::clamp(cmd_vel_msg.linear.z + z_vel_trim_, cxt_.z_vel_);
+
         cmd_vel_pub_->publish(cmd_vel_msg);
 
         joy_msg_ = *msg;

@@ -11,14 +11,14 @@ screen -dmS orca_fcam bash -c "gst-launch-1.0 v4l2src device=/dev/video2 do-time
 # gstreamer notes:
 #
 # v4l2src pulls data from the camera
-#   pulled from video1, which is h264 encoded on the BlueRobotics USB camera
-#   do-timestamp=true means that the camera provides a timestamp
+#   pulled from video2, which is h264 encoded on the BlueRobotics USB camera
+#   do-timestamp=true means that v4l2src provides a timestamp
 #
 # queue provides a producer/consumer buffer, and makes sure that the producer (v4l2src)
 # and consumer (capsfilter and downstream) are on different threads
 #
 # There’s an implied “capsfilter caps=” in the next step.
-# This set of caps specifies width, height and framerate, the other caps are negotiated.
+# This set of capabilities specifies width, height and framerate, the other caps are negotiated.
 #
 # h264parse parses the h264 stream and provides additional caps downstream. In this case it provides these caps:
 #   stream-format=(string)byte-stream, alignment=(string)au, pixel-aspect-ratio=(fraction)1/1, colorimetry=(string)2:4:7:1, interlace-mode=(string)progressive

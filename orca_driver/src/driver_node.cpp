@@ -375,7 +375,7 @@ public:
 
     init_parameters();
 
-    status_pub_ = create_publisher<orca_msgs::msg::Status>("driver_status", 10);
+    status_pub_ = create_publisher<orca_msgs::msg::Status>("status", 10);
 
     thrust_sub_ = create_subscription<orca_msgs::msg::Thrust>("thrust", 10,
       [this](const orca_msgs::msg::Thrust::SharedPtr msg)  // NOLINT
