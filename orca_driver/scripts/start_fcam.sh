@@ -7,7 +7,7 @@
 # To not start on boot: sudo systemctl disable orca_fcam.service
 
 #screen -dmS orca_fcam bash -c "gst-launch-1.0 -v v4l2src device=/dev/video2 do-timestamp=true ! queue ! video/x-h264,width=1920,height=1080,framerate=15/1 ! h264parse ! queue ! rtph264pay config-interval=-10 pt=96 ! udpsink host=192.168.86.105 port=5600; exec bash"
-screen -dmS orca_fcam bash -c "gst-launch-1.0 -v v4l2src device=/dev/video2 do-timestamp=true ! queue ! video/x-h264,width=1920,height=1080,framerate=30/1 ! h264parse ! queue ! rtph264pay config-interval=-10 pt=96 ! udpsink host=192.168.86.105 port=5600; exec bash"
+screen -dmS orca_fcam bash -c "gst-launch-1.0 v4l2src device=/dev/video2 do-timestamp=true ! queue ! video/x-h264,width=1920,height=1080,framerate=30/1 ! h264parse ! queue ! rtph264pay config-interval=10 pt=96 ! udpsink host=10.0.0.1 port=5600; exec bash"
 #screen -dmS orca_fcam bash -c "gst-launch-1.0 -v v4l2src device=/dev/video2 do-timestamp=true ! queue ! video/x-h264,width=1920,height=1080,framerate=30/1 ! h264parse ! rtph264pay config-interval=-1 ! tcpserversink port=5601; exec bash"
 
 # gstreamer notes:
