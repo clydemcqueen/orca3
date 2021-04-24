@@ -26,7 +26,7 @@
 
 from launch import LaunchDescription
 from launch_ros.actions import Node
-from launch.actions import ExecuteProcess
+from launch.actions import ExecuteProcess, SetEnvironmentVariable
 
 
 def generate_launch_description():
@@ -38,6 +38,9 @@ def generate_launch_description():
     }
 
     return LaunchDescription([
+        # To see output of `ros2 bag record` immediately
+        SetEnvironmentVariable('RCUTILS_LOGGING_BUFFERED_STREAM', '1'),
+
         # Bag local topics
         ExecuteProcess(
             cmd=['ros2', 'bag', 'record', '/status', '/barometer'],
