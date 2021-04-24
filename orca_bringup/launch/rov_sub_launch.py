@@ -26,6 +26,7 @@
 
 from launch import LaunchDescription
 from launch_ros.actions import Node
+from launch.actions import ExecuteProcess
 
 
 def generate_launch_description():
@@ -37,6 +38,12 @@ def generate_launch_description():
     }
 
     return LaunchDescription([
+        # Bag local topics
+        ExecuteProcess(
+            cmd=['ros2', 'bag', 'record', '/status', '/barometer'],
+            output='screen'
+        ),
+
         Node(
             package='orca_driver',
             executable='barometer_node',
