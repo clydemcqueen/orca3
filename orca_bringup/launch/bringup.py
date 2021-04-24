@@ -30,7 +30,7 @@ from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable
-from launch.conditions import LaunchConfigurationEquals
+from launch.conditions import IfCondition, LaunchConfigurationEquals
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
@@ -100,6 +100,11 @@ def generate_launch_description():
             description='Choose SLAM strategy: ' + ', '.join(slams)),
 
         DeclareLaunchArgument(
+            'nav',
+            default_value='True',
+            description='Launch nav?'),
+
+        DeclareLaunchArgument(
             'vlam_map',
             default_value='install/orca_gazebo/share/orca_gazebo/worlds/medium_ring_map.yaml',
             description='Full path to Vlam map file'),
@@ -128,6 +133,14 @@ def generate_launch_description():
             arguments=[urdf_file],
             parameters=[configured_orca_params]),
 
+        # Barometer filter
+        Node(
+            package='orca_base',
+            executable='baro_filter_node',
+            output='screen',
+            name='baro_filter_node',
+            parameters=[configured_orca_params]),
+
         # Publish /joy
         Node(
             package='joy',
@@ -150,7 +163,10 @@ def generate_launch_description():
             executable='base_controller',
             output='screen',
             name='base_controller',
-            parameters=[configured_orca_params]),
+            parameters=[configured_orca_params],
+            remappings=[
+                ('barometer', 'filtered_barometer'),
+            ]),
 
         # fiducial_vlam: publish a map of ArUco markers
         Node(
@@ -217,7 +233,8 @@ def generate_launch_description():
             executable='map_server',
             name='map_server',
             output='screen',
-            parameters=[configured_nav2_params]),
+            parameters=[configured_nav2_params],
+            condition=IfCondition(LaunchConfiguration('nav'))),
 
         # Manage the lifecycle of map_server
         Node(
@@ -229,7 +246,8 @@ def generate_launch_description():
                 'use_sim_time': use_sim_time,
                 'autostart': True,
                 'node_names': ['map_server'],
-            }]),
+            }],
+            condition=IfCondition(LaunchConfiguration('nav'))),
 
         # Include the rest of Nav2
         IncludeLaunchDescription(
@@ -240,5 +258,6 @@ def generate_launch_description():
                 'params_file': nav2_params_file,
                 'map_subscribe_transient_local': 'true',
                 'default_bt_xml_filename': nav2_bt_file,
-            }.items()),
+            }.items(),
+            condition=IfCondition(LaunchConfiguration('nav'))),
     ])

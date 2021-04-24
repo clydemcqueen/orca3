@@ -31,7 +31,7 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import SetEnvironmentVariable
+from launch.actions import ExecuteProcess, SetEnvironmentVariable
 from launch_ros.actions import Node
 
 
@@ -50,9 +50,9 @@ def generate_launch_description():
     }
 
     base_controller_params = {
-        'stamp_msgs_with_current_time': True,  # True if there is no barometer
-        'hover_thrust': True,  # True: always use hover thrust, be careful out of water!
-        'pid_enabled': True,  # True: always hold vertical position: be careful out of water!
+        'stamp_msgs_with_current_time': False,  # False: use sub clock.now()
+        'hover_thrust': False,  # Boot ROV with 0 vertical thrust, enable/disable with joystick
+        'pid_enabled': False,  # Boot ROV with 0 vertical thrust, enable/disable with joystick
     }
 
     orca_description_dir = get_package_share_directory('orca_description')
@@ -60,6 +60,12 @@ def generate_launch_description():
 
     return LaunchDescription([
         SetEnvironmentVariable('RCUTILS_LOGGING_BUFFERED_STREAM', '1'),
+
+        # Bag everything
+        ExecuteProcess(
+            cmd=['ros2', 'bag', 'record', '-a'],
+            output='screen'
+        ),
 
         # Publish static /tf
         Node(

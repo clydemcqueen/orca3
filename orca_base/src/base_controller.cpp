@@ -72,6 +72,7 @@ class BaseController : public rclcpp::Node
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
   rclcpp::Publisher<orca_msgs::msg::Thrust>::SharedPtr thrust_pub_;
+  rclcpp::Publisher<orca_msgs::msg::Pid>::SharedPtr pid_z_pub_;
 
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
@@ -143,10 +144,9 @@ class BaseController : public rclcpp::Node
     }
   }
 
-  void publish_thrust(orca_msgs::msg::Barometer::ConstSharedPtr baro_msg)
+  void publish_thrust(double baro_z)
   {
     if (thrust_pub_->get_subscription_count() > 0) {
-      auto dt = 1. / cxt_.controller_frequency_;
       auto pose = underwater_motion_->pose_stamped();
       auto thrust = underwater_motion_->thrust();
 
@@ -156,11 +156,15 @@ class BaseController : public rclcpp::Node
       }
 
       // Add PID thrust
-      if (cxt_.pid_enabled_) {
+      if (cxt_.pid_enabled_ && underwater_motion_->dt() > 0) {
         pid_z_->set_target(pose.pose.position.z);
-        auto curr_z = barometer_.pressure_to_base_link_z(cxt_, baro_msg->pressure);
-        auto accel_z = pid_z_->calc(curr_z, dt);
+
+        auto accel_z = pid_z_->calc(underwater_motion_->time(), baro_z, underwater_motion_->dt());
         thrust.force.z += cxt_.accel_to_force(accel_z);
+
+        if (pid_z_pub_->get_subscription_count() > 0) {
+          pid_z_pub_->publish(pid_z_->msg());
+        }
       }
 
       // Scale by bollard force, clamp to [-1, 1]
@@ -196,6 +200,7 @@ public:
     pose_pub_ = create_publisher<geometry_msgs::msg::PoseStamped>("pose", QUEUE_SIZE);
     odom_pub_ = create_publisher<nav_msgs::msg::Odometry>("odom", QUEUE_SIZE);
     thrust_pub_ = create_publisher<orca_msgs::msg::Thrust>("thrust", QUEUE_SIZE);
+    pid_z_pub_ = create_publisher<orca_msgs::msg::Pid>("pid_z", QUEUE_SIZE);
 
     armed_sub_ = create_subscription<orca_msgs::msg::Armed>(
       "armed", QUEUE_SIZE,
@@ -222,6 +227,8 @@ public:
           RCLCPP_INFO(get_logger(), "baro.z = odom.z = 0 at pressure %g", msg->pressure);
         }
 
+        auto baro_z = barometer_.pressure_to_base_link_z(cxt_, msg->pressure);
+
         if (armed_) {
           rclcpp::Time t(msg->header.stamp);
 
@@ -232,15 +239,15 @@ public:
 
           if (!underwater_motion_) {
             // Initialize the underwater motion model from the barometer
-            underwater_motion_ = std::make_unique<UnderwaterMotion>(get_logger(), cxt_, t,
-              barometer_.pressure_to_base_link_z(cxt_, msg->pressure));
+            underwater_motion_ = std::make_unique<UnderwaterMotion>(get_logger(), cxt_, t, baro_z);
+          } else {
+            // Update motion t-1 to t
+            underwater_motion_->update(t, cmd_vel_);
           }
-
-          underwater_motion_->update(t, cmd_vel_);
 
           // TODO publish odometry while disarmed
           publish_odometry();
-          publish_thrust(msg);
+          publish_thrust(baro_z);
         }
       });
 

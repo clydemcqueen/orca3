@@ -35,6 +35,7 @@ ARG SIM_FIDUCIAL_BRANCH
 ARG UKF_BRANCH
 
 RUN git clone https://github.com/clydemcqueen/orca3.git -b $ORCA3_BRANCH
+# TODO touch orca_driver/COLCON_IGNORE
 RUN git clone https://github.com/ptrmu/fiducial_vlam.git -b $FIDUCIAL_VLAM_BRANCH
 RUN git clone https://github.com/clydemcqueen/orb_slam_2_ros.git -b $ORB_SLAM2_ROS_BRANCH
 RUN git clone https://github.com/ptrmu/ros2_shared.git -b $ROS2_SHARED_BRANCH

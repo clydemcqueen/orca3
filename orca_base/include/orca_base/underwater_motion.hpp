@@ -42,9 +42,11 @@ class UnderwaterMotion
 {
   rclcpp::Logger logger_;
   const BaseContext & cxt_;
+  rclcpp::Time prev_time_;
 
   // Pose is in the odom frame, velocity, accelerate and thrust are in the base frame
   rclcpp::Time time_;
+  double dt_;
   geometry_msgs::msg::Accel accel_;
   geometry_msgs::msg::Twist vel_;
   geometry_msgs::msg::Pose pose_;
@@ -54,24 +56,23 @@ class UnderwaterMotion
 
   geometry_msgs::msg::Accel calc_accel(
     const geometry_msgs::msg::Twist & v0,
-    const geometry_msgs::msg::Twist & v1,
-    double dt);
+    const geometry_msgs::msg::Twist & v1);
 
   geometry_msgs::msg::Twist calc_vel(
     const geometry_msgs::msg::Twist & v0,
-    const geometry_msgs::msg::Accel & a,
-    double dt);
+    const geometry_msgs::msg::Accel & a);
 
   geometry_msgs::msg::Pose calc_pose(
     const geometry_msgs::msg::Pose & p0,
-    const geometry_msgs::msg::Twist & v,
-    double dt);
+    const geometry_msgs::msg::Twist & v);
 
 public:
   UnderwaterMotion(const rclcpp::Logger & logger, const BaseContext & cxt,
     const rclcpp::Time & t, double z);
 
   const rclcpp::Time & time() { return time_; }
+
+  double dt() const { return dt_; }
 
   const geometry_msgs::msg::Pose & pose() { return pose_; }
 

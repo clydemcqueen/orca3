@@ -33,6 +33,7 @@ def generate_launch_description():
         # 'maestro_port': 'fake',
         # 'read_battery': False,
         'thruster_4_reverse': True,  # Thruster 4 on my BlueROV2 is reversed
+        'timer_period_ms': 50,  # Publish voltage at 20Hz
     }
 
     return LaunchDescription([

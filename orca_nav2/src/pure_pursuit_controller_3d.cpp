@@ -86,8 +86,8 @@ class PurePursuitController3D : public nav2_core::Controller
   std::string base_frame_id_;
 
   // Parameters
-  double xy_vel_{};
-  double xy_accel_{};
+  double x_vel_{};
+  double x_accel_{};
   double z_vel_{};
   double z_accel_{};
   double yaw_vel_{};
@@ -97,7 +97,7 @@ class PurePursuitController3D : public nav2_core::Controller
   double goal_tolerance_{};       // Stop motion when we're very close to the goal
   double tick_rate_{};            // Tick rate, used to compute dt
 
-  Limiter xy_limiter_;
+  Limiter x_limiter_;
   Limiter z_limiter_;
   Limiter yaw_limiter_;
 
@@ -205,10 +205,10 @@ class PurePursuitController3D : public nav2_core::Controller
       if (goal_f_base.pose.position.x > 0) {
         // Goal is ahead of the sub: move forward along the shortest curve
         auto curvature = 2.0 * goal_f_base.pose.position.y / xy_dist_sq;
-        if (std::abs(curvature) * xy_vel_ <= yaw_vel_) {
+        if (std::abs(curvature) * x_vel_ <= yaw_vel_) {
           // Move at constant velocity
-          cmd_vel.linear.x = xy_vel_;
-          cmd_vel.angular.z = curvature * xy_vel_;
+          cmd_vel.linear.x = x_vel_;
+          cmd_vel.angular.z = curvature * x_vel_;
         } else {
           // Tight curve... don't exceed angular velocity limit
           cmd_vel.linear.x = yaw_vel_ / std::abs(curvature);
@@ -216,7 +216,7 @@ class PurePursuitController3D : public nav2_core::Controller
         }
 
         // Decelerate
-        xy_limiter_.decelerate(cmd_vel.linear.x, xy_dist);
+        x_limiter_.decelerate(cmd_vel.linear.x, xy_dist);
       } else {
         // Goal is behind the sub: rotate to face it
         cmd_vel.angular.z = goal_f_base.pose.position.y > 0 ? yaw_vel_ : -yaw_vel_;
@@ -243,8 +243,8 @@ public:
     tf_ = tf;
     base_frame_id_ = costmap_ros->getBaseFrameID();
 
-    PARAMETER(parent, name, xy_vel, 0.4)
-    PARAMETER(parent, name, xy_accel, 0.4)
+    PARAMETER(parent, name, x_vel, 0.4)
+    PARAMETER(parent, name, x_accel, 0.4)
     PARAMETER(parent, name, z_vel, 0.2)
     PARAMETER(parent, name, z_accel, 0.2)
     PARAMETER(parent, name, yaw_vel, 0.4)
@@ -254,7 +254,7 @@ public:
     PARAMETER(parent, name, goal_tolerance, 0.1)
     PARAMETER(parent, name, tick_rate, 20.0)
 
-    xy_limiter_ = Limiter(xy_accel_, 1. / tick_rate_);
+    x_limiter_ = Limiter(x_accel_, 1. / tick_rate_);
     z_limiter_ = Limiter(z_accel_, 1. / tick_rate_);
     yaw_limiter_ = Limiter(yaw_accel_, 1. / tick_rate_);
 
@@ -288,7 +288,7 @@ public:
     cmd_vel.twist = pure_pursuit_3d(pose);
 
     // Limit acceleration
-    xy_limiter_.limit(cmd_vel.twist.linear.x, prev_vel_.linear.x);
+    x_limiter_.limit(cmd_vel.twist.linear.x, prev_vel_.linear.x);
     z_limiter_.limit(cmd_vel.twist.linear.z, prev_vel_.linear.z);
     yaw_limiter_.limit(cmd_vel.twist.angular.z, prev_vel_.angular.z);
 

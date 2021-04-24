@@ -76,43 +76,40 @@ UnderwaterMotion::report_and_clamp(std::string func, std::string name, double v,
 // a = (v1 - v0) / dt
 geometry_msgs::msg::Accel UnderwaterMotion::calc_accel(
   const geometry_msgs::msg::Twist & v0,
-  const geometry_msgs::msg::Twist & v1,
-  double dt)
+  const geometry_msgs::msg::Twist & v1)
 {
   geometry_msgs::msg::Accel result;
-  result.linear.x = CLAMP((v1.linear.x - v0.linear.x) / dt, cxt_.xy_accel_);
-  result.linear.y = CLAMP((v1.linear.y - v0.linear.y) / dt, cxt_.xy_accel_);
-  result.linear.z = CLAMP((v1.linear.z - v0.linear.z) / dt, cxt_.z_accel_);
-  result.angular.z = CLAMP((v1.angular.z - v0.angular.z) / dt, cxt_.yaw_accel_);
+  result.linear.x = CLAMP((v1.linear.x - v0.linear.x) / dt_, cxt_.x_accel_);
+  result.linear.y = CLAMP((v1.linear.y - v0.linear.y) / dt_, cxt_.y_accel_);
+  result.linear.z = CLAMP((v1.linear.z - v0.linear.z) / dt_, cxt_.z_accel_);
+  result.angular.z = CLAMP((v1.angular.z - v0.angular.z) / dt_, cxt_.yaw_accel_);
   return result;
 }
 
 // v = v0 + a * dt
 geometry_msgs::msg::Twist UnderwaterMotion::calc_vel(
   const geometry_msgs::msg::Twist & v0,
-  const geometry_msgs::msg::Accel & a,
-  double dt)
+  const geometry_msgs::msg::Accel & a)
 {
   geometry_msgs::msg::Twist result;
-  result.linear.x = CLAMP(v0.linear.x + a.linear.x * dt, cxt_.xy_vel_);
-  result.linear.y = CLAMP(v0.linear.y + a.linear.y * dt, cxt_.xy_vel_);
-  result.linear.z = CLAMP(v0.linear.z + a.linear.z * dt, cxt_.z_vel_);
-  result.angular.z = CLAMP(v0.angular.z + a.angular.z * dt, cxt_.yaw_vel_);
+  result.linear.x = CLAMP(v0.linear.x + a.linear.x * dt_, cxt_.x_vel_);
+  result.linear.y = CLAMP(v0.linear.y + a.linear.y * dt_, cxt_.y_vel_);
+  result.linear.z = CLAMP(v0.linear.z + a.linear.z * dt_, cxt_.z_vel_);
+  result.angular.z = CLAMP(v0.angular.z + a.angular.z * dt_, cxt_.yaw_vel_);
   return result;
 }
 
 // p = p0 + v * dt
 geometry_msgs::msg::Pose UnderwaterMotion::calc_pose(
   const geometry_msgs::msg::Pose & p0,
-  const geometry_msgs::msg::Twist & v,
-  double dt)
+  const geometry_msgs::msg::Twist & v)
 {
   geometry_msgs::msg::Pose result;
   auto yaw = orca::get_yaw(p0.orientation);
-  result.position.x = p0.position.x + (v.linear.x * cos(yaw) + v.linear.y * sin(-yaw)) * dt;
-  result.position.y = p0.position.y + (v.linear.x * sin(yaw) + v.linear.y * cos(-yaw)) * dt;
-  result.position.z = p0.position.z + v.linear.z * dt;
-  yaw += v.angular.z * dt;
+  result.position.x = p0.position.x + (v.linear.x * cos(yaw) + v.linear.y * sin(-yaw)) * dt_;
+  result.position.y = p0.position.y + (v.linear.x * sin(yaw) + v.linear.y * cos(-yaw)) * dt_;
+  result.position.z = p0.position.z + v.linear.z * dt_;
+  yaw += v.angular.z * dt_;
   orca::set_yaw(result.orientation, yaw);
 
   if (result.position.z > 0) {
@@ -193,27 +190,23 @@ geometry_msgs::msg::TransformStamped UnderwaterMotion::transform_stamped()
 
 void UnderwaterMotion::update(const rclcpp::Time & t, const geometry_msgs::msg::Twist & cmd_vel)
 {
+  prev_time_ = time_;
   time_ = t;
 
-  // Stable, but less accurate
-  auto dt = 1. / cxt_.controller_frequency_;
-
-  pose_ = calc_pose(pose_, vel_, dt);
-  vel_ = calc_vel(vel_, accel_, dt);
-
-  if (orca::is_zero(cmd_vel)) {
-    // Coast
-    thrust_ = geometry_msgs::msg::Wrench();
-
-    // Drag results in negative acceleration
-    accel_ = cxt_.drag_accel(vel_);
-  } else {
-    // Accelerate to cmd_vel
-    accel_ = calc_accel(vel_, cmd_vel, dt);
-
-    // Thrust to accelerate to cmd_vel + thrust to counteract drag
-    thrust_ = cxt_.accel_to_wrench(accel_ - cxt_.drag_accel(vel_));
+  dt_ = (time_ - prev_time_).seconds();
+  if (dt_ <= 0 || dt_ > 0.1) {
+    RCLCPP_WARN(logger_, "dt was %g, clamp to 0.05", dt_);
+    dt_ = 0.05;
   }
+
+  pose_ = calc_pose(pose_, vel_);
+  vel_ = calc_vel(vel_, accel_);
+
+  // Accelerate to cmd_vel
+  accel_ = calc_accel(vel_, cmd_vel);
+
+  // Thrust to accelerate to cmd_vel + thrust to counteract drag
+  thrust_ = cxt_.accel_to_wrench(accel_ - cxt_.drag_accel(vel_));
 }
 
 }  // namespace orca_base
