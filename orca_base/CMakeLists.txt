@@ -44,4 +44,11 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+# Install scripts
+install(
+  PROGRAMS  # PROGRAMS sets execute bits, FILES clears them
+  scripts/fake_barometer.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_auto_package()
