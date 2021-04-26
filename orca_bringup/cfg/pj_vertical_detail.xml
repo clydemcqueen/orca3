@@ -1,46 +1,50 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <root version="2.3.8">
- <tabbed_widget parent="main_window" name="Main Window">
+ <tabbed_widget name="Main Window" parent="main_window">
   <Tab containers="1" tab_name="tab1">
    <Container>
-    <DockSplitter orientation="-" count="2" sizes="0.501147;0.498853">
-     <DockSplitter orientation="|" count="2" sizes="0.500347;0.499653">
+    <DockSplitter count="2" orientation="-" sizes="0.5;0.5">
+     <DockSplitter count="2" orientation="|" sizes="0.502399;0.497601">
       <DockArea name="...">
        <plot mode="TimeSeries" style="Lines">
-        <range top="16.383959" bottom="16.072346" left="98.449893" right="103.399832"/>
+        <range left="189.200014" right="199.199902" top="0.015133" bottom="-0.620452"/>
         <limitY/>
-        <curve color="#1f77b4" name="/status/voltage"/>
+        <curve name="/vertical/accel_drag" color="#1f77b4"/>
+        <curve name="/vertical/accel_hover" color="#d62728"/>
+        <curve name="/vertical/accel_pid" color="#1ac938"/>
+        <curve name="/vertical/accel_plan" color="#ff7f0e"/>
+        <curve name="/vertical/accel_total" color="#f14cc1"/>
        </plot>
       </DockArea>
       <DockArea name="...">
        <plot mode="TimeSeries" style="Lines">
-        <range top="132717.250000" bottom="131152.750000" left="98.405133" right="103.393518"/>
+        <range left="189.200014" right="199.199902" top="106089.850766" bottom="98912.019445"/>
         <limitY/>
-        <curve color="#ff7f0e" name="/barometer/pressure"/>
-        <curve color="#f14cc1" name="/filtered_barometer/pressure"/>
+        <curve name="/barometer/pressure" color="#ff7f0e"/>
+        <curve name="/filtered_barometer/pressure" color="#f14cc1"/>
        </plot>
       </DockArea>
      </DockSplitter>
-     <DockSplitter orientation="|" count="2" sizes="0.500347;0.499653">
+     <DockSplitter count="2" orientation="|" sizes="0.502399;0.497601">
       <DockArea name="...">
        <plot mode="TimeSeries" style="Lines">
-        <range top="1500.100000" bottom="1499.900000" left="98.405133" right="103.393518"/>
+        <range left="189.200014" right="199.199902" top="1576.650000" bottom="1423.350000"/>
         <limitY/>
-        <curve color="#d62728" name="/thrust/thrust.0"/>
-        <curve color="#1ac938" name="/thrust/thrust.1"/>
-        <curve color="#ff7f0e" name="/thrust/thrust.2"/>
-        <curve color="#f14cc1" name="/thrust/thrust.3"/>
-        <curve color="#9467bd" name="/thrust/thrust.4"/>
-        <curve color="#17becf" name="/thrust/thrust.5"/>
+        <curve name="/thrust/thrust.0" color="#d62728"/>
+        <curve name="/thrust/thrust.1" color="#1ac938"/>
+        <curve name="/thrust/thrust.2" color="#ff7f0e"/>
+        <curve name="/thrust/thrust.3" color="#f14cc1"/>
+        <curve name="/thrust/thrust.4" color="#9467bd"/>
+        <curve name="/thrust/thrust.5" color="#17becf"/>
        </plot>
       </DockArea>
       <DockArea name="...">
        <plot mode="TimeSeries" style="Lines">
-        <range top="0.001172" bottom="-0.048063" left="98.405133" right="103.393518"/>
+        <range left="189.200014" right="199.199902" top="0.113071" bottom="-0.693730"/>
         <limitY/>
-        <curve color="#bcbd22" name="/vel/linear/z"/>
-        <curve color="#1f77b4" name="/pose/position/z"/>
-        <curve color="#1ac938" name="/accel/accel/linear/z"/>
+        <curve name="/vel/linear/z" color="#bcbd22"/>
+        <curve name="/pid_z/state" color="#9467bd"/>
+        <curve name="/pid_z/target" color="#17becf"/>
        </plot>
       </DockArea>
      </DockSplitter>
@@ -68,15 +72,14 @@
    <discard_large_arrays value="true"/>
    <max_array_size value="true"/>
    <selected_topics>
-    <topic name="/accel"/>
     <topic name="/barometer"/>
     <topic name="/cmd_vel"/>
     <topic name="/filtered_barometer"/>
     <topic name="/pid_z"/>
     <topic name="/pose"/>
-    <topic name="/status"/>
     <topic name="/thrust"/>
     <topic name="/vel"/>
+    <topic name="/vertical"/>
    </selected_topics>
   </plugin>
   <plugin ID="UDP Server"/>
