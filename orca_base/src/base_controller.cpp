@@ -28,6 +28,7 @@
 #include "orca_base/thrusters.hpp"
 #include "orca_msgs/msg/armed.hpp"
 #include "orca_msgs/msg/barometer.hpp"
+#include "orca_msgs/msg/vertical.hpp"
 #include "orca_shared/baro.hpp"
 #include "orca_shared/model.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -67,12 +68,13 @@ class BaseController : public rclcpp::Node
   rclcpp::Subscription<orca_msgs::msg::Barometer>::SharedPtr baro_sub_;
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
 
-  rclcpp::Publisher<geometry_msgs::msg::AccelStamped>::SharedPtr accel_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::AccelStamped>::SharedPtr accel_plan_pub_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr vel_pub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
   rclcpp::Publisher<orca_msgs::msg::Thrust>::SharedPtr thrust_pub_;
   rclcpp::Publisher<orca_msgs::msg::Pid>::SharedPtr pid_z_pub_;
+  rclcpp::Publisher<orca_msgs::msg::Vertical>::SharedPtr vertical_pub_;
 
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
@@ -127,8 +129,8 @@ class BaseController : public rclcpp::Node
 
   void publish_odometry()
   {
-    if (accel_pub_->get_subscription_count() > 0) {
-      accel_pub_->publish(underwater_motion_->accel_stamped());
+    if (accel_plan_pub_->get_subscription_count() > 0) {
+      accel_plan_pub_->publish(underwater_motion_->accel_plan_stamped());
     }
     if (vel_pub_->get_subscription_count() > 0) {
       vel_pub_->publish(underwater_motion_->vel_stamped());
@@ -146,6 +148,8 @@ class BaseController : public rclcpp::Node
 
   void publish_thrust(double baro_z)
   {
+    orca_msgs::msg::Vertical vertical_msg;
+
     if (thrust_pub_->get_subscription_count() > 0) {
       auto pose = underwater_motion_->pose_stamped();
       auto thrust = underwater_motion_->thrust();
@@ -153,14 +157,16 @@ class BaseController : public rclcpp::Node
       // Add hover thrust
       if (cxt_.hover_thrust_) {
         thrust.force.z += cxt_.hover_force_z();
+        vertical_msg.accel_hover = cxt_.hover_accel_z();
       }
 
       // Add PID thrust
       if (cxt_.pid_enabled_ && underwater_motion_->dt() > 0) {
         pid_z_->set_target(pose.pose.position.z);
 
-        auto accel_z = pid_z_->calc(underwater_motion_->time(), baro_z, underwater_motion_->dt());
-        thrust.force.z += cxt_.accel_to_force(accel_z);
+        auto accel_pid_z = pid_z_->calc(underwater_motion_->time(), baro_z, underwater_motion_->dt());
+        thrust.force.z += cxt_.accel_to_force(accel_pid_z);
+        vertical_msg.accel_pid = accel_pid_z;
 
         if (pid_z_pub_->get_subscription_count() > 0) {
           pid_z_pub_->publish(pid_z_->msg());
@@ -179,6 +185,17 @@ class BaseController : public rclcpp::Node
       }
       thrust_msg.header.stamp = pose.header.stamp;
       thrust_pub_->publish(thrust_msg);
+
+      if (vertical_pub_->get_subscription_count() > 0) {
+        vertical_msg.header.stamp = pose.header.stamp;
+        vertical_msg.accel_plan = underwater_motion_->accel_plan().linear.z;
+        vertical_msg.accel_drag = underwater_motion_->accel_drag().linear.z;
+        vertical_msg.accel_total = vertical_msg.accel_plan + vertical_msg.accel_drag +
+          vertical_msg.accel_hover + vertical_msg.accel_pid;
+        vertical_msg.force = cxt_.accel_to_force(vertical_msg.accel_total);
+        vertical_msg.effort = effort.force.z;
+        vertical_pub_->publish(vertical_msg);
+      }
     }
   }
 
@@ -195,12 +212,13 @@ public:
 
     init_parameters();
 
-    accel_pub_ = create_publisher<geometry_msgs::msg::AccelStamped>("accel", QUEUE_SIZE);
+    accel_plan_pub_ = create_publisher<geometry_msgs::msg::AccelStamped>("accel_plan", QUEUE_SIZE);
     vel_pub_ = create_publisher<geometry_msgs::msg::TwistStamped>("vel", QUEUE_SIZE);
     pose_pub_ = create_publisher<geometry_msgs::msg::PoseStamped>("pose", QUEUE_SIZE);
     odom_pub_ = create_publisher<nav_msgs::msg::Odometry>("odom", QUEUE_SIZE);
     thrust_pub_ = create_publisher<orca_msgs::msg::Thrust>("thrust", QUEUE_SIZE);
     pid_z_pub_ = create_publisher<orca_msgs::msg::Pid>("pid_z", QUEUE_SIZE);
+    vertical_pub_ = create_publisher<orca_msgs::msg::Vertical>("vertical", QUEUE_SIZE);
 
     armed_sub_ = create_subscription<orca_msgs::msg::Armed>(
       "armed", QUEUE_SIZE,

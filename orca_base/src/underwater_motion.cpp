@@ -138,12 +138,12 @@ geometry_msgs::msg::TwistStamped UnderwaterMotion::vel_stamped()
   return result;
 }
 
-geometry_msgs::msg::AccelStamped UnderwaterMotion::accel_stamped()
+geometry_msgs::msg::AccelStamped UnderwaterMotion::accel_plan_stamped()
 {
   geometry_msgs::msg::AccelStamped result;
   result.header.stamp = time_;
   result.header.frame_id = cxt_.base_frame_id_;
-  result.accel = accel_;
+  result.accel = accel_plan_;
   return result;
 }
 
@@ -200,13 +200,16 @@ void UnderwaterMotion::update(const rclcpp::Time & t, const geometry_msgs::msg::
   }
 
   pose_ = calc_pose(pose_, vel_);
-  vel_ = calc_vel(vel_, accel_);
+  vel_ = calc_vel(vel_, accel_plan_);
 
   // Accelerate to cmd_vel
-  accel_ = calc_accel(vel_, cmd_vel);
+  accel_plan_ = calc_accel(vel_, cmd_vel);
 
-  // Thrust to accelerate to cmd_vel + thrust to counteract drag
-  thrust_ = cxt_.accel_to_wrench(accel_ - cxt_.drag_accel(vel_));
+  // Counteract drag
+  accel_drag_ = -cxt_.drag_accel(vel_);
+
+  // Combined thrust
+  thrust_ = cxt_.accel_to_wrench(accel_plan_ + accel_drag_);
 }
 
 }  // namespace orca_base

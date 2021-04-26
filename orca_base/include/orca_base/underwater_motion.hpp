@@ -47,7 +47,8 @@ class UnderwaterMotion
   // Pose is in the odom frame, velocity, accelerate and thrust are in the base frame
   rclcpp::Time time_;
   double dt_;
-  geometry_msgs::msg::Accel accel_;
+  geometry_msgs::msg::Accel accel_plan_;
+  geometry_msgs::msg::Accel accel_drag_;
   geometry_msgs::msg::Twist vel_;
   geometry_msgs::msg::Pose pose_;
   geometry_msgs::msg::Wrench thrust_;
@@ -78,7 +79,9 @@ public:
 
   const geometry_msgs::msg::Twist & vel() { return vel_; }
 
-  const geometry_msgs::msg::Accel & accel() { return accel_; }
+  const geometry_msgs::msg::Accel & accel_plan() { return accel_plan_; }
+
+  const geometry_msgs::msg::Accel & accel_drag() { return accel_drag_; }
 
   const geometry_msgs::msg::Wrench & thrust() { return thrust_; }
 
@@ -86,7 +89,7 @@ public:
 
   geometry_msgs::msg::TwistStamped vel_stamped();
 
-  geometry_msgs::msg::AccelStamped accel_stamped();
+  geometry_msgs::msg::AccelStamped accel_plan_stamped();
 
   geometry_msgs::msg::WrenchStamped thrust_stamped();
 
