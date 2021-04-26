@@ -1,0 +1,11 @@
+[Unit]
+Description=Orca right camera
+
+[Service]
+Type=forking
+User=pi
+# No need to build orca3:
+ExecStart=/home/pi/orca3/orca_driver/scripts/start_rcam.sh
+
+[Install]
+WantedBy=multi-user.target
