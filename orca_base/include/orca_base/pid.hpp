@@ -45,7 +45,7 @@ public:
   // Run one calculation
   double calc(builtin_interfaces::msg::Time stamp, double state, double dt);
 
-  orca_msgs::msg::Pid msg() const {return msg_;}
+  const orca_msgs::msg::Pid & msg() const {return msg_;}
 };
 
 }  // namespace pid

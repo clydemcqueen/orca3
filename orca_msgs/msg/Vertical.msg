@@ -1,3 +1,5 @@
+# Deprecated, use Motion.msg
+
 std_msgs/Header header
 
 float64 accel_plan    # Accel to move from v0 to v1

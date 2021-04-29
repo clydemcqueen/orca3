@@ -31,7 +31,7 @@ namespace orca_base
 // Purpose: given cmd_vel, calculate motion taking into account the effects of gravity and drag.
 //
 // Implement a constant acceleration (trapezoidal velocity) motion model to reduce pitch and drift.
-// Pose is in the odom frame, velocity, acceleration and thrust are in the base frame.
+// Pose is in the world frame; velocity, acceleration and thrust are in the robot frame.
 //
 // There are several sources of cmd_vel:
 // -- teleop_twist_joy. Acceleration and velocity may be too high, and will be clamped.
@@ -43,10 +43,15 @@ namespace orca_base
 
 UnderwaterMotion::UnderwaterMotion(const rclcpp::Logger & logger, const BaseContext & cxt,
   const rclcpp::Time & t, double z)
-: logger_{logger}, cxt_{cxt}, time_{t}
+: logger_{logger}, cxt_{cxt}
 {
-  RCLCPP_INFO(logger_, "Initialise underwater motion at z=%g", z);
-  pose_.position.z = z;
+  motion_.header.stamp = t;
+  motion_.pose.position.z = z;
+
+  pid_z_ = std::make_unique<pid::Controller>(
+    false, cxt_.pid_z_kp_, cxt_.pid_z_ki_, cxt_.pid_z_kd_, cxt_.pid_z_i_max_);
+
+  RCLCPP_INFO(logger_, "initialize underwater motion at z=%g", z);
 }
 
 // Loud vs quiet clamp functions
@@ -79,10 +84,10 @@ geometry_msgs::msg::Accel UnderwaterMotion::calc_accel(
   const geometry_msgs::msg::Twist & v1)
 {
   geometry_msgs::msg::Accel result;
-  result.linear.x = CLAMP((v1.linear.x - v0.linear.x) / dt_, cxt_.x_accel_);
-  result.linear.y = CLAMP((v1.linear.y - v0.linear.y) / dt_, cxt_.y_accel_);
-  result.linear.z = CLAMP((v1.linear.z - v0.linear.z) / dt_, cxt_.z_accel_);
-  result.angular.z = CLAMP((v1.angular.z - v0.angular.z) / dt_, cxt_.yaw_accel_);
+  result.linear.x = CLAMP((v1.linear.x - v0.linear.x) / motion_.dt, cxt_.x_accel_);
+  result.linear.y = CLAMP((v1.linear.y - v0.linear.y) / motion_.dt, cxt_.y_accel_);
+  result.linear.z = CLAMP((v1.linear.z - v0.linear.z) / motion_.dt, cxt_.z_accel_);
+  result.angular.z = CLAMP((v1.angular.z - v0.angular.z) / motion_.dt, cxt_.yaw_accel_);
   return result;
 }
 
@@ -92,10 +97,10 @@ geometry_msgs::msg::Twist UnderwaterMotion::calc_vel(
   const geometry_msgs::msg::Accel & a)
 {
   geometry_msgs::msg::Twist result;
-  result.linear.x = CLAMP(v0.linear.x + a.linear.x * dt_, cxt_.x_vel_);
-  result.linear.y = CLAMP(v0.linear.y + a.linear.y * dt_, cxt_.y_vel_);
-  result.linear.z = CLAMP(v0.linear.z + a.linear.z * dt_, cxt_.z_vel_);
-  result.angular.z = CLAMP(v0.angular.z + a.angular.z * dt_, cxt_.yaw_vel_);
+  result.linear.x = CLAMP(v0.linear.x + a.linear.x * motion_.dt, cxt_.x_vel_);
+  result.linear.y = CLAMP(v0.linear.y + a.linear.y * motion_.dt, cxt_.y_vel_);
+  result.linear.z = CLAMP(v0.linear.z + a.linear.z * motion_.dt, cxt_.z_vel_);
+  result.angular.z = CLAMP(v0.angular.z + a.angular.z * motion_.dt, cxt_.yaw_vel_);
   return result;
 }
 
@@ -106,10 +111,10 @@ geometry_msgs::msg::Pose UnderwaterMotion::calc_pose(
 {
   geometry_msgs::msg::Pose result;
   auto yaw = orca::get_yaw(p0.orientation);
-  result.position.x = p0.position.x + (v.linear.x * cos(yaw) + v.linear.y * sin(-yaw)) * dt_;
-  result.position.y = p0.position.y + (v.linear.x * sin(yaw) + v.linear.y * cos(-yaw)) * dt_;
-  result.position.z = p0.position.z + v.linear.z * dt_;
-  yaw += v.angular.z * dt_;
+  result.position.x = p0.position.x + (v.linear.x * cos(yaw) + v.linear.y * sin(-yaw)) * motion_.dt;
+  result.position.y = p0.position.y + (v.linear.x * sin(yaw) + v.linear.y * cos(-yaw)) * motion_.dt;
+  result.position.z = p0.position.z + v.linear.z * motion_.dt;
+  yaw += v.angular.z * motion_.dt;
   orca::set_yaw(result.orientation, yaw);
 
   if (result.position.z > 0) {
@@ -120,43 +125,7 @@ geometry_msgs::msg::Pose UnderwaterMotion::calc_pose(
   return result;
 }
 
-geometry_msgs::msg::PoseStamped UnderwaterMotion::pose_stamped()
-{
-  geometry_msgs::msg::PoseStamped result;
-  result.header.stamp = time_;
-  result.header.frame_id = cxt_.odom_frame_id_;
-  result.pose = pose_;
-  return result;
-}
-
-geometry_msgs::msg::TwistStamped UnderwaterMotion::vel_stamped()
-{
-  geometry_msgs::msg::TwistStamped result;
-  result.header.stamp = time_;
-  result.header.frame_id = cxt_.base_frame_id_;
-  result.twist = vel_;
-  return result;
-}
-
-geometry_msgs::msg::AccelStamped UnderwaterMotion::accel_plan_stamped()
-{
-  geometry_msgs::msg::AccelStamped result;
-  result.header.stamp = time_;
-  result.header.frame_id = cxt_.base_frame_id_;
-  result.accel = accel_plan_;
-  return result;
-}
-
-geometry_msgs::msg::WrenchStamped UnderwaterMotion::thrust_stamped()
-{
-  geometry_msgs::msg::WrenchStamped result;
-  result.header.stamp = time_;
-  result.header.frame_id = cxt_.base_frame_id_;
-  result.wrench = thrust_;
-  return result;
-}
-
-nav_msgs::msg::Odometry UnderwaterMotion::odometry()
+nav_msgs::msg::Odometry UnderwaterMotion::odometry() const
 {
   static std::array<double, 36> covariance{
     1, 0, 0, 0, 0, 0,
@@ -168,48 +137,66 @@ nav_msgs::msg::Odometry UnderwaterMotion::odometry()
   };
 
   nav_msgs::msg::Odometry result;
-  result.header.stamp = time_;
+  result.header.stamp = motion_.header.stamp;
   result.header.frame_id = cxt_.odom_frame_id_;
   result.child_frame_id = cxt_.base_frame_id_;
-  result.pose.pose = pose_;
+  result.pose.pose = motion_.pose;
   result.pose.covariance = covariance;
-  result.twist.twist = orca::robot_to_world_frame(vel_, orca::get_yaw(pose_.orientation));
+  result.twist.twist = orca::robot_to_world_frame(motion_.vel, orca::get_yaw(motion_.pose.orientation));
   result.twist.covariance = covariance;
   return result;
 }
 
-geometry_msgs::msg::TransformStamped UnderwaterMotion::transform_stamped()
+geometry_msgs::msg::TransformStamped UnderwaterMotion::transform_stamped() const
 {
   geometry_msgs::msg::TransformStamped result;
-  result.header.stamp = time_;
+  result.header.stamp = motion_.header.stamp;
   result.header.frame_id = cxt_.odom_frame_id_;
   result.child_frame_id = cxt_.base_frame_id_;
-  result.transform = orca::pose_msg_to_transform_msg(pose_);
+  result.transform = orca::pose_msg_to_transform_msg(motion_.pose);
   return result;
 }
 
-void UnderwaterMotion::update(const rclcpp::Time & t, const geometry_msgs::msg::Twist & cmd_vel)
+void UnderwaterMotion::update(const rclcpp::Time & t, const geometry_msgs::msg::Twist & cmd_vel, double baro_z)
 {
-  prev_time_ = time_;
-  time_ = t;
+  prev_time_ = motion_.header.stamp;
+  motion_.header.stamp = t;
 
-  dt_ = (time_ - prev_time_).seconds();
-  if (dt_ <= 0 || dt_ > 0.1) {
-    RCLCPP_WARN(logger_, "dt was %g, clamp to 0.05", dt_);
-    dt_ = 0.05;
+  motion_.dt = (t - prev_time_).seconds();
+  if (motion_.dt <= 0 || motion_.dt > 0.1) {
+    RCLCPP_WARN(logger_, "dt was %g, clamp to 0.05", motion_.dt);
+    motion_.dt = 0.05;
   }
 
-  pose_ = calc_pose(pose_, vel_);
-  vel_ = calc_vel(vel_, accel_plan_);
+  motion_.pose = calc_pose(motion_.pose, motion_.vel);
+  motion_.vel = calc_vel(motion_.vel, motion_.accel_model);
 
   // Accelerate to cmd_vel
-  accel_plan_ = calc_accel(vel_, cmd_vel);
+  motion_.accel_model = calc_accel(motion_.vel, cmd_vel);
 
   // Counteract drag
-  accel_drag_ = -cxt_.drag_accel(vel_);
+  motion_.accel_drag = -cxt_.drag_accel(motion_.vel);
+
+  // Hover
+  if (cxt_.hover_thrust_) {
+    motion_.accel_hover.linear.z = cxt_.hover_accel_z();
+  } else {
+    motion_.accel_hover.linear.z = 0;
+  }
+
+  // PID thrust
+  if (cxt_.pid_enabled_) {
+    pid_z_->set_target(motion_.pose.position.z);
+    motion_.accel_pid.linear.z = pid_z_->calc(t, baro_z, motion_.dt);
+  } else {
+    motion_.accel_pid.linear.z = 0;
+  }
 
   // Combined thrust
-  thrust_ = cxt_.accel_to_wrench(accel_plan_ + accel_drag_);
+  auto accel_total = motion_.accel_model + motion_.accel_drag + motion_.accel_hover + motion_.accel_pid;
+  motion_.accel_total = accel_total;
+  motion_.force = cxt_.accel_to_wrench(accel_total);
+  motion_.effort = cxt_.wrench_to_effort(motion_.force);
 }
 
 }  // namespace orca_base
