@@ -93,8 +93,8 @@ struct Model
   static constexpr double TETHER_DIAM = 0.008;
 
   static constexpr double ROV_AREA_BOW = ROV_DIM_Y * ROV_DIM_Z;   // Bow and stern
-  static constexpr double ROV_AREA_TOP = ROV_DIM_X * ROV_DIM_Z;   // Top and bottom
-  static constexpr double ROV_AREA_PORT = ROV_DIM_X * ROV_DIM_Y;  // Port and starboard
+  static constexpr double ROV_AREA_TOP = ROV_DIM_X * ROV_DIM_Y;   // Top and bottom
+  static constexpr double ROV_AREA_PORT = ROV_DIM_X * ROV_DIM_Z;  // Port and starboard
 
   // From BlueRobotics specs, in Newtons
   static constexpr double T200_MAX_POS_FORCE = 50;
