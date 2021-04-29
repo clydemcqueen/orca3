@@ -37,23 +37,8 @@ from launch_ros.actions import Node
 
 # TODO call bringup.py (figure out how to combine IfCondition with EqualsCondition)
 def generate_launch_description():
-    # Each ballast weight weighs 0.19kg
-
-    joy_node_params = {
-        'dev': '/dev/input/js0',  # Update as required
-        'autorepeat_rate': 20.,  # Force /joy Hz to be >= 20Hz
-        'deadzone': 0.0,  # Deadzone > 0 breaks autorepeat_rate
-    }
-
-    teleop_node_params = {
-        'deadzone': 0.05,  # Set deadzone here instead
-    }
-
-    base_controller_params = {
-        'stamp_msgs_with_current_time': False,  # False: use sub clock.now()
-        'hover_thrust': False,  # Boot ROV with 0 vertical thrust, enable/disable with joystick
-        'pid_enabled': False,  # Boot ROV with 0 vertical thrust, enable/disable with joystick
-    }
+    orca_bringup_dir = get_package_share_directory('orca_bringup')
+    params_file = os.path.join(orca_bringup_dir, 'params', 'rov_topside_params.yaml')
 
     orca_description_dir = get_package_share_directory('orca_description')
     urdf_file = os.path.join(orca_description_dir, 'urdf', 'hw7.urdf')
@@ -81,7 +66,7 @@ def generate_launch_description():
             executable='joy_node',
             output='screen',
             name='joy_node',
-            parameters=[joy_node_params],
+            parameters=[params_file],
         ),
 
         # Subscribe to /joy and publish /armed, /camera_tilt, /cmd_vel and /lights
@@ -90,7 +75,7 @@ def generate_launch_description():
             executable='teleop_node',
             output='screen',
             name='teleop_node',
-            parameters=[teleop_node_params],
+            parameters=[params_file],
         ),
 
         # Subscribe to /cmd_vel and publish /thrust, /odom and /tf odom->base_link
@@ -99,7 +84,7 @@ def generate_launch_description():
             executable='base_controller',
             output='screen',
             name='base_controller',
-            parameters=[base_controller_params],
+            parameters=[params_file],
             remappings=[
                 ('barometer', 'filtered_barometer'),
             ],
@@ -110,8 +95,6 @@ def generate_launch_description():
             package='orca_base',
             executable='baro_filter_node',
             output='screen',
-            parameters=[{
-                'ukf_Q': True,
-            }],
+            parameters=[params_file],
         ),
     ])
