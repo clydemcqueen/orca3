@@ -62,6 +62,10 @@ class BaseController : public rclcpp::Node
   // Motion model
   std::unique_ptr<UnderwaterMotion> underwater_motion_;
 
+  // Always publish odometry
+  nav_msgs::msg::Odometry odometry_;
+  geometry_msgs::msg::TransformStamped transform_;
+
   rclcpp::Subscription<orca_msgs::msg::Armed>::SharedPtr armed_sub_;
   rclcpp::Subscription<orca_msgs::msg::Barometer>::SharedPtr baro_sub_;
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
@@ -136,10 +140,11 @@ class BaseController : public rclcpp::Node
     }
   }
 
-  void publish_odometry()
+  void publish_odometry(const rclcpp::Time & t)
   {
     if (odom_pub_->get_subscription_count() > 0) {
-      odom_pub_->publish(underwater_motion_->odometry());
+      odometry_.header.stamp = t;
+      odom_pub_->publish(odometry_);
     }
   }
 
@@ -150,10 +155,11 @@ class BaseController : public rclcpp::Node
     }
   }
 
-  void publish_tf()
+  void publish_tf(const rclcpp::Time & t)
   {
     if (cxt_.publish_tf_) {
-      tf_broadcaster_->sendTransform(underwater_motion_->transform_stamped());
+      transform_.header.stamp = t;
+      tf_broadcaster_->sendTransform(transform_);
     }
   }
 
@@ -187,6 +193,12 @@ public:
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
 
     init_parameters();
+
+    // Init frames so that we can publish odometry before we have a motion model
+    odometry_.header.frame_id = cxt_.odom_frame_id_;
+    odometry_.child_frame_id = cxt_.base_frame_id_;
+    transform_.header.frame_id = cxt_.odom_frame_id_;
+    transform_.child_frame_id = cxt_.base_frame_id_;
 
     depth_pub_ = create_publisher<orca_msgs::msg::Depth>("depth", QUEUE_SIZE);
     motion_pub_ = create_publisher<orca_msgs::msg::Motion>("motion", QUEUE_SIZE);
@@ -228,9 +240,6 @@ public:
 
         auto baro_z = barometer_.pressure_to_base_link_z(cxt_, msg->pressure);
 
-        // Always publish depth
-        publish_depth(t, baro_z);
-
         if (armed_) {
           if (!underwater_motion_) {
             // Initialize the underwater motion model from the barometer
@@ -240,12 +249,20 @@ public:
             underwater_motion_->update(t, cmd_vel_, baro_z);
           }
 
+          odometry_ = underwater_motion_->odometry();
+          transform_ = underwater_motion_->transform_stamped();
+
           publish_motion();
-          publish_odometry();
           publish_pid();
-          publish_tf();
           publish_thrust();
         }
+
+        // Depth is accurate even when disarmed
+        publish_depth(t, baro_z);
+
+        // Odometry is not updated when disarmed, but publish anyway
+        publish_odometry(t);
+        publish_tf(t);
       });
 
     cmd_vel_sub_ = create_subscription<geometry_msgs::msg::Twist>(
