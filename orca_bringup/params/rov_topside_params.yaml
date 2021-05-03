@@ -33,10 +33,10 @@ base_controller:
     # mdl_volume: 0.01
     # mdl_thrust_scale: 0.7
 
-    # Pull in FT3 results for FT7
-    mdl_mass: 11.1
-    mdl_volume: 0.0111335
-    mdl_thrust_scale: 0.17
+    # Tested in FT7
+    mdl_mass: 11.3
+    mdl_volume: 0.01115
+    mdl_thrust_scale: 0.7
 
     # FT4+ is in saltwater
     mdl_fluid_density: 1027.  # Saltwater
