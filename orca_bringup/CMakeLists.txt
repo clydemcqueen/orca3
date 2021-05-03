@@ -11,4 +11,11 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+# Install scripts
+install(
+  PROGRAMS
+  scripts/dump_rosout.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_auto_package(INSTALL_TO_SHARE behavior_trees cfg launch params worlds)
