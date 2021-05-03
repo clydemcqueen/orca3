@@ -42,10 +42,13 @@ def generate_launch_description():
         SetEnvironmentVariable('RCUTILS_LOGGING_BUFFERED_STREAM', '1'),
 
         # Bag local topics
-        ExecuteProcess(
-            cmd=['ros2', 'bag', 'record', '/status', '/barometer'],
-            output='screen'
-        ),
+        # Turned off because the up1 is stopped by pulling power, and so the bags are not closed
+        # correctly. There's a new 'ros2 bag reindex' command available in Rolling and Galactic,
+        # but this may not make it to Foxy.
+        # ExecuteProcess(
+        #     cmd=['ros2', 'bag', 'record', '/status', '/barometer'],
+        #     output='screen'
+        # ),
 
         Node(
             package='orca_driver',
