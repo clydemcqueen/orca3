@@ -9,9 +9,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# Suppress warning until ros2_shared is updated for Foxy
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
-
 # Emulate colcon in CLion
 if($ENV{CLION_IDE})
   find_package(fastrtps_cmake_module REQUIRED)
@@ -31,6 +28,8 @@ ament_auto_find_build_dependencies()
 ament_auto_add_executable(fiducial_localizer src/fiducial_localizer.cpp)
 
 ament_auto_add_executable(orb_slam2_localizer src/orb_slam2_localizer.cpp)
+
+ament_auto_add_executable(stereo_split src/stereo_split.cpp)
 
 # Load & run linters listed in package.xml
 if(BUILD_TESTING)

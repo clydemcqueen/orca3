@@ -32,6 +32,9 @@
 #include "geometry_msgs/msg/wrench_stamped.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "orca_base/base_context.hpp"
+#include "orca_base/pid.hpp"
+#include "orca_msgs/msg/pid.hpp"
+#include "orca_msgs/msg/motion.hpp"
 #include "orca_shared/model.hpp"
 #include "rclcpp/logger.hpp"
 
@@ -42,58 +45,38 @@ class UnderwaterMotion
 {
   rclcpp::Logger logger_;
   const BaseContext & cxt_;
-
-  // Pose is in the odom frame, velocity, accelerate and thrust are in the base frame
-  rclcpp::Time time_;
-  geometry_msgs::msg::Accel accel_;
-  geometry_msgs::msg::Twist vel_;
-  geometry_msgs::msg::Pose pose_;
-  geometry_msgs::msg::Wrench thrust_;
+  rclcpp::Time prev_time_;
+  orca_msgs::msg::Motion motion_;
+  std::unique_ptr<pid::Controller> pid_z_;
 
   double report_and_clamp(std::string func, std::string name, double v, double minmax);
 
   geometry_msgs::msg::Accel calc_accel(
     const geometry_msgs::msg::Twist & v0,
-    const geometry_msgs::msg::Twist & v1,
-    double dt);
+    const geometry_msgs::msg::Twist & v1);
 
   geometry_msgs::msg::Twist calc_vel(
     const geometry_msgs::msg::Twist & v0,
-    const geometry_msgs::msg::Accel & a,
-    double dt);
+    const geometry_msgs::msg::Accel & a);
 
   geometry_msgs::msg::Pose calc_pose(
     const geometry_msgs::msg::Pose & p0,
-    const geometry_msgs::msg::Twist & v,
-    double dt);
+    const geometry_msgs::msg::Twist & v);
 
 public:
-  UnderwaterMotion(const rclcpp::Logger & logger, const BaseContext & cxt);
+  UnderwaterMotion(const rclcpp::Logger & logger, const BaseContext & cxt,
+    const rclcpp::Time & t, double z);
 
-  const rclcpp::Time & time() {return time_;}
+  const orca_msgs::msg::Motion & motion() const { return motion_; }
 
-  const geometry_msgs::msg::Pose & pose() {return pose_;}
+  const orca_msgs::msg::Pid & pid_z() const { return pid_z_->msg(); }
 
-  const geometry_msgs::msg::Twist & vel() {return vel_;}
+  nav_msgs::msg::Odometry odometry() const;
 
-  const geometry_msgs::msg::Accel & accel() {return accel_;}
-
-  const geometry_msgs::msg::Wrench & thrust() {return thrust_;}
-
-  geometry_msgs::msg::PoseStamped pose_stamped();
-
-  geometry_msgs::msg::TwistStamped vel_stamped();
-
-  geometry_msgs::msg::AccelStamped accel_stamped();
-
-  geometry_msgs::msg::WrenchStamped thrust_stamped();
-
-  nav_msgs::msg::Odometry odometry();
-
-  geometry_msgs::msg::TransformStamped transform_stamped();
+  geometry_msgs::msg::TransformStamped transform_stamped() const;
 
   // Update state from time t-1 to time t
-  void update(const rclcpp::Time & t, const geometry_msgs::msg::Twist & cmd_vel);
+  void update(const rclcpp::Time & t, const geometry_msgs::msg::Twist & cmd_vel, double baro_z);
 };
 
 }  // namespace orca_base

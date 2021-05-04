@@ -21,7 +21,6 @@
 // SOFTWARE.
 
 #include <cmath>
-#include <iostream>
 
 #include "orca_base/pid.hpp"
 #include "orca_shared/util.hpp"
@@ -49,51 +48,54 @@ void Controller::set_target(double target)
     }
   }
 
-  if (std::abs(target - target_) > 0.001) {
-    // std::cout << "old target: " << target_ << ", new target: " << target << std::endl;
-    // std::cout << "prev_error: " << prev_error_ << ", integral: " << integral_ << std::endl;
-
-    target_ = target;
-    prev_error_ = 0;
-    integral_ = 0;
+  if (std::abs(target - msg_.target) > 0.001) {
+    msg_.target = target;
+    msg_.prev_error = 0;
+    msg_.integral = 0;
   }
 }
 
 // Run one calculation
-double Controller::calc(double state, double dt)
+double Controller::calc(builtin_interfaces::msg::Time stamp, double state, double dt)
 {
-  double error = target_ - state;
+  msg_.header.stamp = stamp;
+  msg_.dt = dt;
+  msg_.state = state;
+  msg_.error = msg_.target - state;
 
   if (angle_) {
-    while (error < -M_PI) {
-      error += 2 * M_PI;
+    while (msg_.error < -M_PI) {
+      msg_.error += 2 * M_PI;
 
       // Derivative and integral are poorly defined at the discontinuity
-      prev_error_ = 0;
-      integral_ = 0;
+      msg_.prev_error = 0;
+      msg_.integral = 0;
     }
-    while (error > M_PI) {
-      error -= 2 * M_PI;
+    while (msg_.error > M_PI) {
+      msg_.error -= 2 * M_PI;
 
-      prev_error_ = 0;
-      integral_ = 0;
+      msg_.prev_error = 0;
+      msg_.integral = 0;
     }
   }
 
-  integral_ = integral_ + (error * dt);
+  if (Ki_ != 0) {
+    msg_.integral = msg_.integral + (msg_.error * dt);
 
-  if (i_max_ > 0 && Ki_ != 0) {
-    // Limit the maximum i term (Ki * integral) by clamping the integral
-    integral_ = orca::clamp(integral_, i_max_ / Ki_);
+    if (i_max_ > 0) {
+      // Limit the maximum i term (Ki * integral) by clamping the integral
+      msg_.integral = orca::clamp(msg_.integral, i_max_ / Ki_);
+    }
   }
 
-  double derivative = (error - prev_error_) / dt;
-  prev_error_ = error;
+  msg_.p_term = Kp_ * msg_.error;
+  msg_.i_term = Ki_ * msg_.integral;
+  msg_.d_term = Kd_ * (msg_.error - msg_.prev_error) / dt;
+  msg_.result = msg_.p_term + msg_.i_term + msg_.d_term;
 
-  double result = Kp_ * error + Ki_ * integral_ + Kd_ * derivative;
-  // std::cout << "p_error: " << error << ", i_error: " << integral_ << ", d_error: " << derivative
-  //           << ", result: " << result << std::endl;
-  return result;
+  msg_.prev_error = msg_.error;
+
+  return msg_.result;
 }
 
 }  // namespace pid

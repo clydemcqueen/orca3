@@ -30,6 +30,11 @@ Orca3 is simulated in Gazebo 11. Several Gazebo plugins are provided to support 
 * OrcaBarometerPlugin
 * [Gazebo plugin details](orca_gazebo/README.md)
 
+Orca3 includes experimental hardware drivers that run on a modified BlueROV2:
+* BarometerNode reads the barometer and sends `/barometer` messages
+* DriverNode responds to `/thrust`, `/lights` and `/camera_tilt` messages
+* [Hardware driver details](orca_driver/README.md)
+
 ## Installation
 
 Orca3 has been tested on Ubuntu 20.04 and ROS2 Foxy. See the [Dockerfile](Dockerfile) for installation instructions.
@@ -134,15 +139,9 @@ You should notice a loop closure when the square is completed. The adjustment is
 * [`orca_base` Base controller](orca_base)
 * [`orca_bringup` Launch files](orca_bringup)
 * [`orca_description` URDF file](orca_description)
+* [`orca_driver` Hardware drivers](orca_driver)
 * [`orca_gazebo` Gazebo plugins](orca_gazebo)
-* [`orca_localize` Localiation](orca_localize) 
+* [`orca_localize` Localization](orca_localize) 
 * [`orca_msgs` Custom messages](orca_msgs)
 * [`orca_nav2` Nav2 plugins](orca_nav2)
 * [`orca_shared` Dynamics model, shared utilities](orca_shared)
-
-## Future work
-
-This project is under heavy development as of January 2021. Planned work:
-
-* Field tests!
-* Nav2 recovery plugin(s) for underwater environments

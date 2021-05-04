@@ -26,10 +26,11 @@
 #include "orca_base/underwater_motion.hpp"
 #include "orca_base/pid.hpp"
 #include "orca_base/thrusters.hpp"
+#include "orca_msgs/msg/armed.hpp"
 #include "orca_msgs/msg/barometer.hpp"
+#include "orca_msgs/msg/depth.hpp"
 #include "orca_shared/baro.hpp"
 #include "orca_shared/model.hpp"
-#include "orca_shared/util.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "tf2_ros/transform_broadcaster.h"
 
@@ -38,41 +39,50 @@ namespace orca_base
 
 constexpr int QUEUE_SIZE = 10;
 
-// BaseController subscribes to /cmd_vel and does 2 main things:
+// BaseController subscribes to /armed and /cmd_vel and does 2 main things:
 // -- Publish thrust commands to achieve the target velocity
 // -- Estimate and publish the current pose
 //
 // BaseController also uses the barometer sensor to hold the sub at the target odom.z position
+//
+// BaseController must be armed to publish thrust. For AUV operation this is typically done
+// by setting auto_arm to True. For ROV or mixed AUV+ROV operation the joystick can be used
+// to arm and disarm BaseController.
 
 class BaseController : public rclcpp::Node
 {
   BaseContext cxt_;
   orca::Barometer barometer_;
   Thrusters thrusters_;
+  bool armed_;
 
   // Most recent incoming velocity message
   geometry_msgs::msg::Twist cmd_vel_;
 
-  // Current pose
-  UnderwaterMotion underwater_motion_;
+  // Motion model
+  std::unique_ptr<UnderwaterMotion> underwater_motion_;
 
-  std::unique_ptr<pid::Controller> pid_z_;
+  // Always publish odometry
+  nav_msgs::msg::Odometry odometry_;
+  geometry_msgs::msg::TransformStamped transform_;
 
-  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
+  rclcpp::Subscription<orca_msgs::msg::Armed>::SharedPtr armed_sub_;
   rclcpp::Subscription<orca_msgs::msg::Barometer>::SharedPtr baro_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
 
-  rclcpp::Publisher<geometry_msgs::msg::AccelStamped>::SharedPtr accel_pub_;
-  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr vel_pub_;
-  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;
+  rclcpp::Publisher<orca_msgs::msg::Depth>::SharedPtr depth_pub_;
+  rclcpp::Publisher<orca_msgs::msg::Motion>::SharedPtr motion_pub_;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
+  rclcpp::Publisher<orca_msgs::msg::Pid>::SharedPtr pid_z_pub_;
   rclcpp::Publisher<orca_msgs::msg::Thrust>::SharedPtr thrust_pub_;
 
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
   void validate_parameters()
   {
-    pid_z_ = std::make_unique<pid::Controller>(
-      false, cxt_.pid_z_kp_, cxt_.pid_z_ki_, cxt_.pid_z_kd_, cxt_.pid_z_i_max_);
+    if (cxt_.auto_arm_) {
+      arm();
+    }
   }
 
   void init_parameters()
@@ -98,83 +108,114 @@ class BaseController : public rclcpp::Node
     CXT_MACRO_CHECK_CMDLINE_PARAMETERS((*this), BASE_ALL_PARAMS)
   }
 
-  void publish_odometry()
+  void arm()
   {
-    if (accel_pub_->get_subscription_count() > 0) {
-      accel_pub_->publish(underwater_motion_.accel_stamped());
-    }
-    if (vel_pub_->get_subscription_count() > 0) {
-      vel_pub_->publish(underwater_motion_.vel_stamped());
-    }
-    if (pose_pub_->get_subscription_count() > 0) {
-      pose_pub_->publish(underwater_motion_.pose_stamped());
-    }
-    if (odom_pub_->get_subscription_count() > 0) {
-      odom_pub_->publish(underwater_motion_.odometry());
-    }
-    if (cxt_.publish_tf_) {
-      tf_broadcaster_->sendTransform(underwater_motion_.transform_stamped());
+    RCLCPP_INFO(get_logger(), "armed");
+    armed_ = true;
+  }
+
+  void disarm()
+  {
+    RCLCPP_INFO(get_logger(), "disarmed");
+    armed_ = false;
+
+    // The motion model doesn't track motion while disarmed
+    underwater_motion_ = nullptr;
+  }
+
+  void publish_depth(const rclcpp::Time & t, double baro_z)
+  {
+    if (depth_pub_->get_subscription_count() > 0) {
+      orca_msgs::msg::Depth depth_msg;
+      depth_msg.header.stamp = t;
+      depth_msg.z = baro_z;
+      depth_pub_->publish(depth_msg);
     }
   }
 
-  void publish_thrust(orca_msgs::msg::Barometer::ConstSharedPtr baro_msg)
+  void publish_motion()
+  {
+    if (motion_pub_->get_subscription_count() > 0) {
+      motion_pub_->publish(underwater_motion_->motion());
+    }
+  }
+
+  void publish_odometry(const rclcpp::Time & t)
+  {
+    if (odom_pub_->get_subscription_count() > 0) {
+      odometry_.header.stamp = t;
+      odom_pub_->publish(odometry_);
+    }
+  }
+
+  void publish_pid()
+  {
+    if (cxt_.pid_enabled_ && pid_z_pub_->get_subscription_count() > 0) {
+      pid_z_pub_->publish(underwater_motion_->pid_z());
+    }
+  }
+
+  void publish_tf(const rclcpp::Time & t)
+  {
+    if (cxt_.publish_tf_) {
+      transform_.header.stamp = t;
+      tf_broadcaster_->sendTransform(transform_);
+    }
+  }
+
+  void publish_thrust()
   {
     if (thrust_pub_->get_subscription_count() > 0) {
-      auto dt = 1. / cxt_.controller_frequency_;
-      auto pose = underwater_motion_.pose_stamped();
-      auto thrust = underwater_motion_.thrust();
-
-      // Add hover thrust
-      if (cxt_.hover_thrust_) {
-        thrust.force.z += cxt_.hover_force_z();
-      }
-
-      // Add PID thrust
-      if (cxt_.pid_enabled_) {
-        pid_z_->set_target(pose.pose.position.z);
-        auto curr_z = barometer_.pressure_to_base_link_z(cxt_, baro_msg->pressure);
-        auto accel_z = pid_z_->calc(curr_z, dt);
-        thrust.force.z += cxt_.accel_to_force(accel_z);
-      }
-
-      // Scale by bollard force, clamp to [-1, 1]
-      auto effort = cxt_.wrench_to_effort(thrust);
+      auto motion = underwater_motion_->motion();
+      orca_msgs::msg::Thrust thrust_msg;
+      thrust_msg.header.stamp = motion.header.stamp;
 
       // Convert 4DoF to 6 thrusters in a vector configuration
-      orca_msgs::msg::Thrust thrust_msg;
       bool saturated;
-      thrust_msg.thrust = thrusters_.effort_to_thrust(cxt_, effort, saturated);
+      thrust_msg.thrust = thrusters_.effort_to_thrust(cxt_, motion.effort, saturated);
       if (saturated) {
         RCLCPP_WARN(get_logger(), "thruster(s) saturated");
       }
-      thrust_msg.header.stamp = pose.header.stamp;
+
       thrust_pub_->publish(thrust_msg);
     }
   }
 
 public:
   BaseController()
-  : Node("base_controller"), underwater_motion_(get_logger(), cxt_)
+    : Node("base_controller"), armed_{false}
   {
     // Suppress IDE warnings
-    (void) cmd_vel_sub_;
+    (void) armed_sub_;
     (void) baro_sub_;
+    (void) cmd_vel_sub_;
 
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
 
     init_parameters();
 
-    accel_pub_ = create_publisher<geometry_msgs::msg::AccelStamped>("accel", QUEUE_SIZE);
-    vel_pub_ = create_publisher<geometry_msgs::msg::TwistStamped>("vel", QUEUE_SIZE);
-    pose_pub_ = create_publisher<geometry_msgs::msg::PoseStamped>("pose", QUEUE_SIZE);
+    // Init frames so that we can publish odometry before we have a motion model
+    odometry_.header.frame_id = cxt_.odom_frame_id_;
+    odometry_.child_frame_id = cxt_.base_frame_id_;
+    transform_.header.frame_id = cxt_.odom_frame_id_;
+    transform_.child_frame_id = cxt_.base_frame_id_;
+
+    depth_pub_ = create_publisher<orca_msgs::msg::Depth>("depth", QUEUE_SIZE);
+    motion_pub_ = create_publisher<orca_msgs::msg::Motion>("motion", QUEUE_SIZE);
     odom_pub_ = create_publisher<nav_msgs::msg::Odometry>("odom", QUEUE_SIZE);
+    pid_z_pub_ = create_publisher<orca_msgs::msg::Pid>("pid_z", QUEUE_SIZE);
     thrust_pub_ = create_publisher<orca_msgs::msg::Thrust>("thrust", QUEUE_SIZE);
 
-    cmd_vel_sub_ = create_subscription<geometry_msgs::msg::Twist>(
-      "cmd_vel", QUEUE_SIZE,
-      [this](geometry_msgs::msg::Twist::ConstSharedPtr msg) // NOLINT
+    armed_sub_ = create_subscription<orca_msgs::msg::Armed>(
+      "armed", QUEUE_SIZE,
+      [this](orca_msgs::msg::Armed::ConstSharedPtr msg) // NOLINT
       {
-        cmd_vel_ = *msg;
+        armed_ = msg->armed;
+        if (msg->armed) {
+          arm();
+        } else {
+          disarm();
+        }
       });
 
     // Barometer messages are continuous and reliable, use them to drive the control loop
@@ -182,13 +223,6 @@ public:
       "barometer", QUEUE_SIZE,
       [this](orca_msgs::msg::Barometer::ConstSharedPtr msg) // NOLINT
       {
-        if (!barometer_.initialized()) {
-          // Calibrate the barometer so that baro.z = odom.z = 0 at this pressure
-          // Note that this can only be set once -- parameter changes will not affect PID control
-          barometer_.initialize(cxt_, msg->pressure, 0);
-          RCLCPP_INFO(get_logger(), "baro.z = odom.z = 0 at pressure %g", msg->pressure);
-        }
-
         rclcpp::Time t(msg->header.stamp);
 
         // Overwrite stamp, useful if we're running a simulation on wall time
@@ -196,10 +230,46 @@ public:
           t = now();
         }
 
-        underwater_motion_.update(t, cmd_vel_);
+        if (!barometer_.initialized()) {
+          // Calibrate the barometer so that baro.z = odom.z = 0 at this pressure. This happens
+          // exactly once, presumably at the surface. The base_controller will not arm until this
+          // has happened.
+          barometer_.initialize(cxt_, msg->pressure, 0);
+          RCLCPP_INFO(get_logger(), "baro.z = odom.z = 0 at pressure %g", msg->pressure);
+        }
 
-        publish_odometry();
-        publish_thrust(msg);
+        auto baro_z = barometer_.pressure_to_base_link_z(cxt_, msg->pressure);
+
+        if (armed_) {
+          if (!underwater_motion_) {
+            // Initialize the underwater motion model from the barometer
+            underwater_motion_ = std::make_unique<UnderwaterMotion>(get_logger(), cxt_, t, baro_z);
+          } else {
+            // Update motion t-1 to t
+            underwater_motion_->update(t, cmd_vel_, baro_z);
+          }
+
+          odometry_ = underwater_motion_->odometry();
+          transform_ = underwater_motion_->transform_stamped();
+
+          publish_motion();
+          publish_pid();
+          publish_thrust();
+        }
+
+        // Depth is accurate even when disarmed
+        publish_depth(t, baro_z);
+
+        // Odometry is not updated when disarmed, but publish anyway
+        publish_odometry(t);
+        publish_tf(t);
+      });
+
+    cmd_vel_sub_ = create_subscription<geometry_msgs::msg::Twist>(
+      "cmd_vel", QUEUE_SIZE,
+      [this](geometry_msgs::msg::Twist::ConstSharedPtr msg) // NOLINT
+      {
+        cmd_vel_ = *msg;
       });
 
     RCLCPP_INFO(get_logger(), "base_controller ready");
@@ -212,22 +282,12 @@ public:
 // Main
 //=============================================================================
 
-int main(int argc, char ** argv)
+int main(int argc, char **argv)
 {
-  // Force flush of the stdout buffer
   setvbuf(stdout, nullptr, _IONBF, BUFSIZ);
-
-  // Init ROS
   rclcpp::init(argc, argv);
-
-  // Init node
   auto node = std::make_shared<orca_base::BaseController>();
-
-  // Spin node
   rclcpp::spin(node);
-
-  // Shut down ROS
   rclcpp::shutdown();
-
   return 0;
 }

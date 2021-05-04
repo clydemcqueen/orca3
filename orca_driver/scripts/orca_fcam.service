@@ -1,0 +1,11 @@
+[Unit]
+Description=Orca forward camera
+
+[Service]
+Type=forking
+User=clyde
+SupplementaryGroups=video
+ExecStart=/home/clyde/ros2/orca3_ws/install/orca_driver/lib/orca_driver/start_fcam.sh
+
+[Install]
+WantedBy=multi-user.target

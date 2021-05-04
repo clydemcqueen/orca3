@@ -9,9 +9,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# Suppress warning until ros2_shared is updated for Foxy
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
-
 # Emulate colcon in CLion
 if($ENV{CLION_IDE})
   find_package(fastrtps_cmake_module REQUIRED)
@@ -35,6 +32,8 @@ ament_auto_add_executable(base_controller src/base_controller.cpp src/underwater
 
 ament_auto_add_executable(depth_node src/depth_node.cpp)
 
+ament_auto_add_executable(teleop_node src/teleop_node.cpp)
+
 ament_auto_add_executable(pose_to_path src/pose_to_path_node.cpp)
 
 ament_auto_add_executable(odom_to_path src/odom_to_path_node.cpp)
@@ -44,5 +43,12 @@ if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+# Install scripts
+install(
+  PROGRAMS  # PROGRAMS sets execute bits, FILES clears them
+  scripts/fake_barometer.py
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 ament_auto_package()

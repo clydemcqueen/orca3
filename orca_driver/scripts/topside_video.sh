@@ -1,0 +1,1 @@
+gst-launch-1.0 -e udpsrc port=5600 ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! tee name=fork ! queue ! avdec_h264 ! clockoverlay ! autovideosink fork. ! queue ! splitmuxsink location=video%02d.mov max-size-bytes=100000000

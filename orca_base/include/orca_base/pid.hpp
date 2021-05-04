@@ -23,17 +23,15 @@
 #ifndef ORCA_BASE__PID_HPP_
 #define ORCA_BASE__PID_HPP_
 
+#include "orca_msgs/msg/pid.hpp"
+
 namespace pid
 {
-
-// TODO(clyde): write PID results to message for tuning
 
 class Controller
 {
   bool angle_;  // True if we're controlling an angle [-pi, pi]
-  double target_ = 0;
-  double prev_error_ = 0;
-  double integral_ = 0;
+  orca_msgs::msg::Pid msg_;
   double Kp_;
   double Ki_;
   double Kd_;
@@ -45,9 +43,9 @@ public:
   void set_target(double target);
 
   // Run one calculation
-  double calc(double state, double dt);
+  double calc(builtin_interfaces::msg::Time stamp, double state, double dt);
 
-  double target() const {return target_;}
+  const orca_msgs::msg::Pid & msg() const {return msg_;}
 };
 
 }  // namespace pid

@@ -54,9 +54,9 @@
   <xacro:property name="VOLUME_Z" value="0.06"/>
   <xacro:property name="FORWARD_FORCE" value="50"/>
   <xacro:property name="REVERSE_FORCE" value="40"/>
-  <xacro:property name="HAS_TETHER" default="false"/>
-  <xacro:property name="SURFACE" default="0"/>
-  <xacro:property name="STEREO_BASELINE" default="0.36"/>
+  <xacro:property name="HAS_TETHER" value="false"/>
+  <xacro:property name="SURFACE" value="0"/>
+  <xacro:property name="STEREO_BASELINE" value="0.36"/>
 
   <!-- Physics properties -->
   <xacro:property name="FLUID_DENSITY" value="997"/>
@@ -542,13 +542,13 @@
     <gazebo>
       <plugin name="p3d_test" filename="libgazebo_ros_p3d.so">
         <ros>
-          <argument>odom:=gt_best_effort</argument>
+          <remapping>odom:=gt_best_effort</remapping>
         </ros>
         <update_rate>30.0</update_rate>
         <body_name>base_link</body_name>
         <frame_name>map</frame_name>
-        <xyz_offsets>0 0 0</xyz_offsets>
-        <rpy_offsets>0 0 0</rpy_offsets>
+        <xyz_offset>0 0 0</xyz_offset>
+        <rpy_offset>0 0 0</rpy_offset>
       </plugin>
     </gazebo>
   </xacro:if>

@@ -1,0 +1,56 @@
+# Params for Orca3 nodes
+# Tuned during field tests in Discovery Bay Spring/summer 2021
+# Each ballast weight weighs 0.19kg
+
+baro_filter_node:
+  ros__parameters:
+    ukf_Q: True
+
+joy_node:
+  ros__parameters:
+    dev: "/dev/input/js0"
+    autorepeat_rate: 20.  # Set /joy Hz
+    deadzone: 0.0  # Deadzone > 0 breaks autorepeat_rate
+
+teleop_node:
+  ros__parameters:
+    deadzone: 0.1  # Increased deadzone from 0.05 to 0.1 after FT6
+
+    # ?_vel_ should match in teleop_node and base_controller
+    x_vel: 0.8
+    y_vel: 0.4
+    z_vel: 0.4
+    yaw_vel: 0.4
+
+base_controller:
+  ros__parameters:
+    stamp_msgs_with_current_time: False  # False: use sub clock.now()
+    hover_thrust: False  # Boot ROV with 0 vertical thrust, enable/disable with joystick
+    pid_enabled: False  # Boot ROV with 0 vertical thrust, enable/disable with joystick
+
+    # FT6 ran with model defaults
+    # mdl_mass: 9.75
+    # mdl_volume: 0.01
+    # mdl_thrust_scale: 0.7
+
+    # Tested in FT7
+    mdl_mass: 11.3
+    mdl_volume: 0.01115
+    mdl_thrust_scale: 0.7
+
+    # FT4+ is in saltwater
+    mdl_fluid_density: 1027.  # Saltwater
+
+    # Still working on mdl_drag_coef_z, try this for FT7
+    mdl_drag_coef_z: 1.2
+
+    # ?_vel_ should match in teleop_node and base_controller
+    x_vel: 0.8
+    y_vel: 0.4
+    z_vel: 0.4
+    yaw_vel: 0.4
+
+    x_accel: 0.8
+    y_accel: 0.4
+    z_accel: 0.4
+    yaw_accel: 0.8
