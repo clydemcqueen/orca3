@@ -39,6 +39,7 @@ from nav2_common.launch import RewrittenYaml
 
 # SLAM strategies:
 slams = [
+    'none',  # No slam
     'vlam',  # fiducial_vlam
     'orb',  # orb_slam2_ros
 ]
