@@ -1,6 +1,7 @@
-# All marker locations are fixed (f: 1)
+# Used for field tests... note that the marker_length doesn't match the simulation default
+# Usage: ros2 launch orca_bringup topside_launch.py gscam2:=true slam:=vlam world:=ping_pong
 
-marker_length: 0.1778
+marker_length: 0.16
 markers:
   - id: 0
     u: 1

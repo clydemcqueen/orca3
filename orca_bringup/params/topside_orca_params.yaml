@@ -54,3 +54,61 @@ base_controller:
     y_accel: 0.4
     z_accel: 0.4
     yaw_accel: 0.8
+
+forward_camera/gscam_main:
+  ros__parameters:
+    camera_name: "forward_camera"
+    camera_info_url: "/fix/this/path"
+    gscam_config: "v4l2src device=/dev/video0 do-timestamp=true ! video/x-h264,width=1920,height=1080,framerate=30/1 ! h264parse ! avdec_h264 ! videoconvert"
+    preroll: False
+    use_gst_timestamps: False
+    frame_id: "forward_camera_frame"
+
+vmap_main:
+  ros__parameters:
+    # Publish marker /tf
+    publish_tfs: 1
+
+    # Use a pre-built map
+    make_not_use_map: 0
+
+    # Load map
+    marker_map_load_full_filename: "placeholder"
+
+    # Don"t save the map
+    marker_map_save_full_filename: ""
+
+    # Marker length
+    marker_length: 0.16
+
+forward_camera/vloc_main:
+  ros__parameters:
+    stamp_msgs_with_current_time: 1 # Int can"t be modified by param_rewrites? Hand-edit
+
+    camera_frame_id: "forward_camera_frame"
+
+    # Publish various things
+    publish_camera_pose: 1
+    publish_base_pose: 0
+    publish_tfs: 0
+    publish_tfs_per_marker: 0
+    publish_camera_odom: 0
+    publish_base_odom: 0
+    publish_image_marked: 1
+
+    # Camera pipeline publishes 'reliable'
+    sub_camera_info_best_effort_not_reliable: 0
+    sub_image_raw_best_effort_not_reliable: 0
+
+    # OpenCV4 ArUco corner refinement
+    # 0 = CORNER_REFINE_NONE
+    # 1 = CORNER_REFINE_SUBPIX
+    # 2 = CORNER_REFINE_CONTOUR (default)
+    # 3 = CORNER_REFINE_APRILTAG (best and slowest)
+    corner_refinement_method: 3
+
+fiducial_localizer:
+  ros__parameters:
+    camera_frame_id: "forward_camera_frame"
+    publish_rate: 20
+    good_pose_distance: 2.0

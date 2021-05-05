@@ -65,10 +65,9 @@ def generate_launch_description():
     vlam_map_file = LaunchConfiguration('vlam_map')
     nav2_map_file = LaunchConfiguration('nav2_map')
 
-    # ORB features vocabulary file
-    # This works well in simulation, but I'm sure how it will do in a marine environment
-    orb_slam_dir = get_package_share_directory('orb_slam2_ros')
-    orb_voc_file = os.path.join(orb_slam_dir, 'orb_slam2', 'Vocabulary', 'ORBvoc.txt')
+    # get_package_share_directory('orb_slam2_ros') will fail if orb_slam2_ros isn't installed
+    orb_voc_file = os.path.join('install', 'orb_slam2_ros', 'share', 'orb_slam2_ros',
+                                'orb_slam2', 'Vocabulary', 'ORBvoc.txt')
 
     # Read the params file and make some global substitutions
     configured_orca_params = RewrittenYaml(

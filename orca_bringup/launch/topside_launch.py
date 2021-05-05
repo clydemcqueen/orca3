@@ -41,8 +41,10 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
 
 
 worlds = [
@@ -64,52 +66,73 @@ def generate_launch_description():
 
     orca_params_file = os.path.join(orca_bringup_dir, 'params', 'topside_orca_params.yaml')
     nav2_params_file = os.path.join(orca_bringup_dir, 'params', 'nav2_params.yaml')
+    camera_info_file = 'file://' + os.path.join(orca_bringup_dir, 'cfg', 'forward_1920x1080.yaml')
 
     return LaunchDescription([
         DeclareLaunchArgument(
             'slam',
             default_value='none',
-            description='Choose SLAM strategy: ' + ', '.join(slams)),
+            description='Choose SLAM strategy: ' + ', '.join(slams),
+        ),
 
         DeclareLaunchArgument(
             'nav',
             default_value='False',
-            description='Launch nav?'),
+            description='Launch nav?',
+        ),
 
         DeclareLaunchArgument(
             'world',
             default_value='empty',
-            description='Choose world: ' + ', '.join(worlds)),
+            description='Choose world: ' + ', '.join(worlds),
+        ),
+
+        DeclareLaunchArgument(
+            'gscam2',
+            default_value='False',
+            description='Launch gscam2?',
+        ),
 
         # Bag useful topics
         ExecuteProcess(
-            cmd=['ros2', 'bag', 'record',
-                 '/armed',
-                 '/barometer',
-                 '/camera_tilt',
-                 '/cmd_vel',
-                 '/depth',
-                 '/fiducial_markers',
-                 '/fiducial_observations',
-                 '/filtered_barometer',
-                 '/forward_camera/base_odom',
-                 '/forward_camera/base_pose',
-                 '/forward_camera/camera_odom',
-                 '/forward_camera/camera_pose',
-                 '/joint_states',
-                 '/joy',
-                 '/lights',
-                 '/motion',
-                 '/odom',
-                 '/parameter_events',
-                 '/pid_z',
-                 '/robot_description',
-                 '/rosout',
-                 '/tf',
-                 '/tf_static',
-                 '/thrust',
-                 ],
-            output='screen'
+            cmd=[
+                'ros2', 'bag', 'record',
+                '/armed',
+                '/barometer',
+                '/camera_tilt',
+                '/cmd_vel',
+                '/depth',
+                '/fiducial_markers',
+                '/fiducial_observations',
+                '/filtered_barometer',
+                '/forward_camera/camera_pose',
+                '/joint_states',
+                '/joy',
+                '/lights',
+                '/motion',
+                '/odom',
+                '/parameter_events',
+                '/pid_z',
+                '/robot_description',
+                '/rosout',
+                '/tf',
+                '/tf_static',
+                '/thrust',
+            ],
+            output='screen',
+        ),
+
+        # Convert rtp video to ROS2
+        Node(
+            package='gscam2',
+            executable='gscam_main',
+            output='screen',
+            name='gscam_main',
+            namespace='forward_camera',
+            parameters=[orca_params_file, {
+                'camera_info_url': camera_info_file,
+            }],
+            condition=IfCondition(LaunchConfiguration('gscam2')),
         ),
 
         # Bring up all nodes
@@ -123,5 +146,6 @@ def generate_launch_description():
                 'vlam_map': [orca_bringup_dir, '/worlds/', LaunchConfiguration('world'), '_map.yaml'],
                 'orca_params_file': orca_params_file,
                 'nav2_params_file': nav2_params_file,
-            }.items()),
+            }.items(),
+        ),
     ])

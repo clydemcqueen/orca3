@@ -64,7 +64,7 @@ vmap_main:
     make_not_use_map: 0
 
     # Load map
-    marker_map_load_full_filename: "install/orca_gazebo/share/orca_gazebo/worlds/medium_ring_map.yaml"
+    marker_map_load_full_filename: "placeholder"
 
     # Don't save the map
     marker_map_save_full_filename: ""
