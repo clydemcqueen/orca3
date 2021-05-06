@@ -20,6 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+// TODO keep this?
+
 #include "camera_info_manager/camera_info_manager.hpp"
 #include "cv_bridge/cv_bridge.h"
 #include "image_geometry/stereo_camera_model.h"
