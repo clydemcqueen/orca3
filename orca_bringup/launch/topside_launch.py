@@ -123,6 +123,7 @@ def generate_launch_description():
         ),
 
         # Convert rtp video to ROS2
+        # TODO keep?
         Node(
             package='gscam2',
             executable='gscam_main',
@@ -133,6 +134,18 @@ def generate_launch_description():
                 'camera_info_url': camera_info_file,
             }],
             condition=IfCondition(LaunchConfiguration('gscam2')),
+        ),
+
+        # TODO keep?
+        Node(
+            package='orca_localize',
+            executable='camera_info_publisher',
+            output='screen',
+            name='camera_info_publisher',
+            namespace='forward_camera',
+            parameters=[{
+                'camera_info_url': 'file:///home/clyde/ros2/orca3_ws/desk2_1920x1080.yaml',
+            }],
         ),
 
         # Bring up all nodes
