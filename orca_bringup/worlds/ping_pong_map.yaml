@@ -1,20 +1,15 @@
 # Used for field tests... note that the marker_length doesn't match the simulation default
-# Usage: ros2 launch orca_bringup topside_launch.py gscam2:=true slam:=vlam world:=ping_pong
+# Usage: ros2 launch orca_bringup topside_launch.py slam:=vlam world:=ping_pong
 
 marker_length: 0.16
 markers:
-  - id: 0
-    u: 1
-    f: 1
-    xyz: [1, 0, 0]
-    rpy: [1.5707963267948966, 2.2204460492503126e-16, -1.5707963267948966]
   - id: 1
     u: 1
     f: 1
-    xyz: [5, 0, -2]
+    xyz: [4.85, 0, -0.5]
     rpy: [1.5707963267948966, 2.2204460492503126e-16, -1.5707963267948966]
   - id: 2
     u: 1
     f: 1
-    xyz: [-5, 0, -2]
+    xyz: [-4.85, 0, -0.5]
     rpy: [1.5707963267948968, 2.2204460492503126e-16, 1.5707963267948968]

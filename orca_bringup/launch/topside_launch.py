@@ -136,7 +136,7 @@ def generate_launch_description():
             condition=IfCondition(LaunchConfiguration('gscam2')),
         ),
 
-        # TODO keep?
+        # TODO place behind gst-ros-bridge IfCondition
         Node(
             package='orca_localize',
             executable='camera_info_publisher',
@@ -144,7 +144,7 @@ def generate_launch_description():
             name='camera_info_publisher',
             namespace='forward_camera',
             parameters=[{
-                'camera_info_url': 'file:///home/clyde/ros2/orca3_ws/desk2_1920x1080.yaml',
+                'camera_info_url': camera_info_file,
             }],
         ),
 
