@@ -115,6 +115,7 @@ def generate_launch_description():
                 '/pid_z',
                 '/robot_description',
                 '/rosout',
+                '/status',
                 '/tf',
                 '/tf_static',
                 '/thrust',
