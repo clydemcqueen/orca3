@@ -172,9 +172,7 @@ public:
     // Periodically publish status messages
     status_pub_ = node_->create_publisher<orca_msgs::msg::Status>("status", 10);
     status_msg_.voltage = 14;
-    status_msg_.low_battery = false;
-    status_msg_.leak_detected = false;
-    status_msg_.status = orca_msgs::msg::Status::STATUS_OK;
+    status_msg_.status = orca_msgs::msg::Status::STATUS_READY;
   }
 
   void Init() override
@@ -185,6 +183,8 @@ public:
 
   void OnThrustMsg(const orca_msgs::msg::Thrust::SharedPtr & msg)
   {
+    status_msg_.status = orca_msgs::msg::Status::STATUS_RUNNING;
+
     // Messages sent via the ros2 cli might might be malformed.
     // For a real sub this should abort the dive!
     if (!orca::valid(msg->header.stamp)) {
@@ -221,6 +221,7 @@ public:
       // This is normal, but it might also indicate that a node died.
       RCLCPP_INFO(logger_, "Thrust message timeout");
       thrust_msg_time_ = rclcpp::Time();
+      status_msg_.status = orca_msgs::msg::Status::STATUS_READY;
       AllStop();
     }
 
@@ -233,7 +234,7 @@ public:
     for (const Thruster & t : thrusters_) {
       // Default thruster force points directly up
       ignition::math::Vector3d force =
-      {0.0, 0.0, t.effort * (t.effort < 0 ? t.neg_force : t.pos_force)};
+        {0.0, 0.0, t.effort * (t.effort < 0 ? t.neg_force : t.pos_force)};
 
       // Rotate force into place on the frame
       ignition::math::Quaternion<double> q{t.rpy};

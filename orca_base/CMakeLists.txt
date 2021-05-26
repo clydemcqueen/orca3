@@ -48,6 +48,7 @@ endif()
 install(
   PROGRAMS  # PROGRAMS sets execute bits, FILES clears them
   scripts/fake_barometer.py
+  scripts/fake_driver.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

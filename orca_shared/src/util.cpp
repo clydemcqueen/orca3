@@ -26,10 +26,21 @@
 #include <memory>
 #include <string>
 
+#include "orca_msgs/msg/status.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 
 namespace orca
 {
+
+//=====================================================================================
+// orca_msgs::msg helpers
+//=====================================================================================
+
+bool status_ok(uint32_t status)
+{
+  return status == orca_msgs::msg::Status::STATUS_READY ||
+    status == orca_msgs::msg::Status::STATUS_RUNNING;
+}
 
 //=====================================================================================
 // Geometry
