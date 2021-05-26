@@ -157,10 +157,28 @@ geometry_msgs::msg::TransformStamped UnderwaterMotion::transform_stamped() const
   return result;
 }
 
+// Coast: if cmd_vel is 0, then force acceleration to 0. Only applies to x, y and yaw.
+// Helpful for some ROV operations.
+void coast(const geometry_msgs::msg::Twist & cmd_vel, geometry_msgs::msg::Accel & model_plus_drag)
+{
+  static double epsilon = 0.01;
+  if (std::abs(cmd_vel.linear.x) < epsilon) {
+    model_plus_drag.linear.x = 0;
+  }
+  if (std::abs(cmd_vel.linear.y) < epsilon) {
+    model_plus_drag.linear.y = 0;
+  }
+  if (std::abs(cmd_vel.angular.z) < epsilon) {
+    model_plus_drag.angular.z = 0;
+  }
+}
+
 void UnderwaterMotion::update(const rclcpp::Time & t, const geometry_msgs::msg::Twist & cmd_vel, double baro_z)
 {
   prev_time_ = motion_.header.stamp;
   motion_.header.stamp = t;
+
+  motion_.cmd_vel = cmd_vel;
 
   motion_.dt = (t - prev_time_).seconds();
   if (motion_.dt <= 0 || motion_.dt > 0.1) {
@@ -168,6 +186,7 @@ void UnderwaterMotion::update(const rclcpp::Time & t, const geometry_msgs::msg::
     motion_.dt = 0.05;
   }
 
+  // Pose and vel don't honor coast TODO fix
   motion_.pose = calc_pose(motion_.pose, motion_.vel);
   motion_.vel = calc_vel(motion_.vel, motion_.accel_model);
 
@@ -177,12 +196,21 @@ void UnderwaterMotion::update(const rclcpp::Time & t, const geometry_msgs::msg::
   // Counteract drag
   motion_.accel_drag = -cxt_.drag_accel(motion_.vel);
 
-  // Hover
+  // Combine model and drag
+  auto accel_total = motion_.accel_model + motion_.accel_drag;
+
+  // Experiment for ROV operations
+  if (cxt_.coast_) {
+    coast(cmd_vel, accel_total);
+  }
+
+  // Add hover
   if (cxt_.hover_thrust_) {
     motion_.accel_hover.linear.z = cxt_.hover_accel_z();
   } else {
     motion_.accel_hover.linear.z = 0;
   }
+  accel_total = accel_total + motion_.accel_hover;
 
   // PID thrust
   if (cxt_.pid_enabled_) {
@@ -191,9 +219,8 @@ void UnderwaterMotion::update(const rclcpp::Time & t, const geometry_msgs::msg::
   } else {
     motion_.accel_pid.linear.z = 0;
   }
+  accel_total = accel_total + motion_.accel_pid;
 
-  // Combined thrust
-  auto accel_total = motion_.accel_model + motion_.accel_drag + motion_.accel_hover + motion_.accel_pid;
   motion_.accel_total = accel_total;
   motion_.force = cxt_.accel_to_wrench(accel_total);
   motion_.effort = cxt_.wrench_to_effort(motion_.force);

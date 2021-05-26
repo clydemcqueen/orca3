@@ -63,6 +63,8 @@ namespace orca_base
   /* Windup prevention: max acceleration from i term (m/s^2)  */ \
   CXT_MACRO_MEMBER(hover_thrust, bool, true) \
   /* Add hover thrust */ \
+  CXT_MACRO_MEMBER(coast, bool, false) \
+  /* Coast to decelerate (vs powered decel), useful for ROV ops */ \
 /* End of list */
 
 #undef CXT_MACRO_MEMBER
