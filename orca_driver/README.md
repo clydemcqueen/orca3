@@ -107,6 +107,8 @@ source install/local_setup.bash
 
 ## ROV Operation
 
+> TODO update to include topside window & keyboard shortcuts
+
 ### ROS nodes
 
 On the UP board:

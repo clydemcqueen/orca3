@@ -151,7 +151,7 @@ def generate_launch_description():
 
         # Subscribe to /joy and publish /cmd_vel
         Node(
-            package='orca_base',
+            package='orca_topside',
             executable='teleop_node',
             output='screen',
             name='teleop_node',

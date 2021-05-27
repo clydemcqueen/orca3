@@ -20,8 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef ORCA_BASE__JOYSTICK_HPP_
-#define ORCA_BASE__JOYSTICK_HPP_
+#ifndef ORCA_TOPSIDE__XBOX_HPP_
+#define ORCA_TOPSIDE__XBOX_HPP_
 
 // XBox One joystick axes and buttons
 const int JOY_AXIS_LEFT_LR = 0;         // Left stick left/right; 1.0 is left and -1.0 is right
@@ -44,4 +44,4 @@ const int JOY_BUTTON_LOGO = 8;          // XBox logo button
 const int JOY_BUTTON_LEFT_STICK = 9;    // Left stick button
 const int JOY_BUTTON_RIGHT_STICK = 10;  // Right stick button
 
-#endif  // ORCA_BASE__JOYSTICK_HPP_
+#endif  // ORCA_TOPSIDE__XBOX_HPP_

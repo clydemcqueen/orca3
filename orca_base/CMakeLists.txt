@@ -32,8 +32,6 @@ ament_auto_add_executable(base_controller src/base_controller.cpp src/underwater
 
 ament_auto_add_executable(depth_node src/depth_node.cpp)
 
-ament_auto_add_executable(teleop_node src/teleop_node.cpp)
-
 ament_auto_add_executable(pose_to_path src/pose_to_path_node.cpp)
 
 ament_auto_add_executable(odom_to_path src/odom_to_path_node.cpp)

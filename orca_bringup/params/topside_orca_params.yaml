@@ -16,17 +16,18 @@ teleop_node:
   ros__parameters:
     deadzone: 0.1  # Increased deadzone from 0.05 to 0.1 after FT6
 
-    # ?_vel_ should match in teleop_node and base_controller
-    x_vel: 0.8
-    y_vel: 0.4
-    z_vel: 0.4
-    yaw_vel: 0.4
+    # vel_?_ should match in teleop_node and base_controller
+    vel_x: 0.8
+    vel_y: 0.4
+    vel_z: 0.4
+    vel_yaw: 0.8  # Increase 0.4 to 0.8 after FT11
 
 base_controller:
   ros__parameters:
     stamp_msgs_with_current_time: False  # False: use sub clock.now()
     hover_thrust: False  # Boot ROV with 0 vertical thrust, enable/disable with joystick
     pid_enabled: False  # Boot ROV with 0 vertical thrust, enable/disable with joystick
+    coast: True  # Experimental 'coast' mode, added after FT11
 
     # FT6 ran with model defaults
     # mdl_mass: 9.75
@@ -44,11 +45,11 @@ base_controller:
     # Still working on mdl_drag_coef_z, try this for FT7
     mdl_drag_coef_z: 1.2
 
-    # ?_vel_ should match in teleop_node and base_controller
+    # vel_?_ should match in teleop_node and base_controller
     x_vel: 0.8
     y_vel: 0.4
     z_vel: 0.4
-    yaw_vel: 0.4
+    yaw_vel: 0.8  # Increase 0.4 to 0.8 after FT11
 
     x_accel: 0.8
     y_accel: 0.4
