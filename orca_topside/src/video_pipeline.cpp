@@ -20,27 +20,30 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include "orca_topside/video_pipeline.hpp"
+
 #include <iostream>
 #include <utility>
 
-#include "orca_topside/video_pipeline.hpp"
+#include "orca_topside/gst_util.hpp"
 #include "orca_topside/gst_widget.hpp"
 #include "orca_topside/teleop_node.hpp"
 
 namespace orca_topside
 {
 
-VideoPipeline::VideoPipeline(std::shared_ptr<TeleopNode> node):
+VideoPipeline::VideoPipeline(std::shared_ptr<TeleopNode> node, std::string gst_source_bin,
+  std::string gst_display_bin, std::string gst_record_bin, bool sync):
   node_(std::move(node)),
+  gst_source_bin_(std::move(gst_source_bin)),
+  gst_display_bin_(std::move(gst_display_bin)),
+  gst_record_bin_(std::move(gst_record_bin)),
+  sync_(sync),
   initialized_(false),
   record_status_(RecordStatus::stopped),
   pipeline_(nullptr),
-  source_(nullptr),
-  tee_(nullptr),
-  display_valve_(nullptr),
   display_bin_(nullptr),
   display_sink_(nullptr),
-  record_valve_(nullptr),
   record_bin_(nullptr),
   widget_(nullptr)
 {
@@ -48,44 +51,44 @@ VideoPipeline::VideoPipeline(std::shared_ptr<TeleopNode> node):
     gst_init(nullptr, nullptr);
   }
 
-  auto source_bin = node_->cxt().gst_source_bin_.c_str();
-  if (!strlen(source_bin)) {
+  if (gst_source_bin_.empty()) {
     g_critical("empty source_bin");
     return;
   }
 
   GError *error = nullptr;
-  if (!(source_ = gst_parse_bin_from_description(source_bin, true, &error))) {
+  if (!(source_bin_ = gst_parse_bin_from_description(gst_source_bin_.c_str(), true, &error))) {
     g_critical("parse source bin failed: %s", error->message);
     return;
   }
 
   pipeline_ = gst_pipeline_new(nullptr);
   tee_ = gst_element_factory_make("tee", nullptr);
-  GstElement *display_queue = gst_element_factory_make("queue", nullptr);
+  display_queue_ = gst_element_factory_make("queue", nullptr);
   display_valve_ = gst_element_factory_make("valve", "display_valve");
-  GstElement *record_queue = gst_element_factory_make("queue", nullptr);
+  record_queue_ = gst_element_factory_make("queue", nullptr);
   record_valve_ = gst_element_factory_make("valve", nullptr);
 
-  if (!pipeline_ || !tee_ || !display_queue || !display_valve_ || !record_queue || !record_valve_) {
+  if (!pipeline_ || !tee_ || !display_queue_ || !display_valve_ || !record_queue_ ||
+    !record_valve_) {
     g_critical("create failed");
     return;
   }
 
-  gst_bin_add_many(GST_BIN(pipeline_), source_, tee_, display_queue, display_valve_, record_queue,
+  gst_bin_add_many(GST_BIN(pipeline_), source_bin_, tee_, display_queue_, display_valve_, record_queue_,
     record_valve_, nullptr);
 
-  if (!gst_element_link(source_, tee_)) {
+  if (!gst_element_link(source_bin_, tee_)) {
     g_critical("link source -> tee failed");
     return;
   }
 
-  if (!gst_element_link_many(tee_, display_queue, display_valve_, nullptr)) {
+  if (!gst_element_link_many(tee_, display_queue_, display_valve_, nullptr)) {
     g_critical("link tee -> display_queue -> display_valve failed");
     return;
   }
 
-  if (!gst_element_link_many(tee_, record_queue, record_valve_, nullptr)) {
+  if (!gst_element_link_many(tee_, record_queue_, record_valve_, nullptr)) {
     g_critical("link tee -> record_queue -> record_valve failed");
     return;
   }
@@ -117,7 +120,7 @@ VideoPipeline::VideoPipeline(std::shared_ptr<TeleopNode> node):
     return;
   }
 
-  std::cout << "orca pipeline running" << std::endl;
+  RCLCPP_INFO(node_->get_logger(), "pipeline running: %s", gst_source_bin_.c_str());
   initialized_ = true;
 }
 
@@ -128,7 +131,7 @@ GstWidget *VideoPipeline::start_display()
     return nullptr;
   }
 
-  auto display_bin = node_->cxt().gst_display_bin_.c_str();
+  auto display_bin = gst_display_bin_.c_str();
   if (!strlen(display_bin)) {
     g_critical("empty display_bin");
     return nullptr;
@@ -151,7 +154,7 @@ GstWidget *VideoPipeline::start_display()
   }
 
   // If sync is turned on display stop/start fails. Timestamp bug?
-  gst_base_sink_set_sync(GST_BASE_SINK(display_sink_), FALSE);
+  gst_base_sink_set_sync(GST_BASE_SINK(display_sink_), sync_);
 
   gst_bin_add_many(GST_BIN(pipeline_), display_bin_, display_sink_, nullptr);
 
@@ -172,10 +175,9 @@ GstWidget *VideoPipeline::start_display()
     return nullptr;
   }
 
-  widget_ = new GstWidget();
-  widget_->run(display_sink_);
+  widget_ = new GstWidget(display_sink_);
 
-  std::cout << "display started" << std::endl;
+  RCLCPP_INFO(node_->get_logger(), "display started");
   return widget_;
 }
 
@@ -207,7 +209,7 @@ void VideoPipeline::stop_display()
     g_critical("play failed");
   }
 
-  std::cout << "display stopped" << std::endl;
+  RCLCPP_INFO(node_->get_logger(), "display stopped");
 }
 
 void VideoPipeline::toggle_record()
@@ -237,7 +239,7 @@ void VideoPipeline::toggle_record()
 // got_eos || stopped -> running
 bool VideoPipeline::start_recording()
 {
-  auto record_bin = node_->cxt().gst_record_bin_.c_str();
+  auto record_bin = gst_record_bin_.c_str();
   if (!strlen(record_bin)) {
     g_critical("empty record_bin");
     return false;
@@ -246,7 +248,7 @@ bool VideoPipeline::start_recording()
   auto t = std::time(nullptr);
   char buffer[200];
   std::strftime(buffer, sizeof(buffer), record_bin, std::localtime(&t));
-  std::cout << buffer << std::endl;
+  RCLCPP_INFO(node_->get_logger(), buffer);
 
   GError *error = nullptr;
   if (!(record_bin_ = gst_parse_bin_from_description(buffer, true, &error))) {
@@ -267,7 +269,7 @@ bool VideoPipeline::start_recording()
   g_object_set(record_valve_, "drop", FALSE, nullptr);
 
   record_status_ = RecordStatus::running;
-  std::cout << "record: running" << std::endl;
+  RCLCPP_INFO(node_->get_logger(), "record: running");
 
   return true;
 }
@@ -278,7 +280,7 @@ void VideoPipeline::stop_recording()
   g_object_set(record_valve_, "drop", TRUE, nullptr);
 
   record_status_ = RecordStatus::waiting_for_eos;
-  std::cout << "record: waiting for eos" << std::endl;
+  RCLCPP_INFO(node_->get_logger(), "record: waiting for eos");
 
   // Unlink and send eos; this will close the file
   unlink_and_send_eos(record_valve_);
@@ -293,7 +295,7 @@ void VideoPipeline::clean_up_recording()
   record_bin_ = nullptr;
 
   record_status_ = RecordStatus::stopped;
-  std::cout << "record: stopped" << std::endl;
+  RCLCPP_INFO(node_->get_logger(), "record: stopped");
 }
 
 void VideoPipeline::unlink_and_send_eos(GstElement *segment)
@@ -368,6 +370,18 @@ void VideoPipeline::handle_eos(gpointer data)
     video_pipeline->record_status_ = RecordStatus::got_eos;
     std::cout << "record: got eos" << std::endl;
   }
+}
+
+void VideoPipeline::print_caps()
+{
+  gst_util::print_caps("source_bin", source_bin_);
+  gst_util::print_caps("tee", tee_);
+  gst_util::print_caps("display_queue", display_queue_);
+  gst_util::print_caps("display_valve", display_valve_);
+  gst_util::print_caps("record_queue", record_queue_);
+  gst_util::print_caps("record_valve", record_valve_);
+  gst_util::print_caps("display_sink", display_sink_);
+  gst_util::print_caps("display_bin", display_bin_);
 }
 
 }  // namespace orca_topside

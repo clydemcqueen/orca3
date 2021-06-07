@@ -53,14 +53,20 @@ class VideoPipeline
   };
 
   std::shared_ptr<TeleopNode> node_;
+  std::string gst_source_bin_;
+  std::string gst_display_bin_;
+  std::string gst_record_bin_;
+  bool sync_;
   bool initialized_;
   RecordStatus record_status_;
   GstElement *pipeline_;
-  GstElement *source_;
+  GstElement *source_bin_;
   GstElement *tee_;
+  GstElement *display_queue_;
   GstElement *display_valve_;
   GstElement *display_bin_;
   GstElement *display_sink_;
+  GstElement *record_queue_;
   GstElement *record_valve_;
   GstElement *record_bin_;
   GstWidget *widget_;
@@ -73,9 +79,9 @@ class VideoPipeline
   static gboolean on_bus_message(GstBus *bus, GstMessage *msg, gpointer data);
   static void handle_eos(gpointer data);
 
-
 public:
-  explicit VideoPipeline(std::shared_ptr<TeleopNode> node);
+  VideoPipeline(std::shared_ptr<TeleopNode> node, std::string gst_source_bin,
+    std::string gst_display_bin, std::string gst_record_bin, bool sync);
 
   // Caller should add the widget to an application
   // VideoPipeline maintains ownership of the widget
@@ -90,6 +96,9 @@ public:
   void toggle_record();
 
   bool recording() const { return record_status_ == RecordStatus::running; }
+
+  // Debugging
+  void print_caps();
 };
 
 }  // namespace orca_topside

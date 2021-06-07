@@ -60,9 +60,18 @@ class TopsideWidget;
   CXT_MACRO_MEMBER(inc_vel_z, double, 0.1) \
   CXT_MACRO_MEMBER(inc_vel_yaw, double, 0.1) \
  \
-  CXT_MACRO_MEMBER(gst_source_bin, std::string, "videotestsrc ! video/x-raw,format=BGRx,width=800,height=600 ! tee name=foo ! ximagesink foo. ! videoconvert") \
-  CXT_MACRO_MEMBER(gst_display_bin, std::string, "clockoverlay ! videoconvert ! capsfilter caps=video/x-raw,format=RGB") \
-  CXT_MACRO_MEMBER(gst_record_bin, std::string, "") \
+  CXT_MACRO_MEMBER(gst_source_bin_f, std::string, "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=1600,height=900,framerate=20/1") \
+  CXT_MACRO_MEMBER(gst_display_bin_f, std::string, "textoverlay text=\"forward\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center") \
+  CXT_MACRO_MEMBER(gst_record_bin_f, std::string, "") \
+  CXT_MACRO_MEMBER(sync_f, bool, true) \
+  CXT_MACRO_MEMBER(gst_source_bin_l, std::string, "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=400,height=300,framerate=20/1") \
+  CXT_MACRO_MEMBER(gst_display_bin_l, std::string, "textoverlay text=\"left\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center") \
+  CXT_MACRO_MEMBER(gst_record_bin_l, std::string, "")                                   \
+  CXT_MACRO_MEMBER(sync_l, bool, true) \
+  CXT_MACRO_MEMBER(gst_source_bin_r, std::string, "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=400,height=300,framerate=20/1") \
+  CXT_MACRO_MEMBER(gst_display_bin_r, std::string, "textoverlay text=\"right\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center") \
+  CXT_MACRO_MEMBER(gst_record_bin_r, std::string, "")                                   \
+  CXT_MACRO_MEMBER(sync_r, bool, true) \
 /* End of list */
 
 #undef CXT_MACRO_MEMBER

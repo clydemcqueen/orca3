@@ -61,12 +61,13 @@ protected:
   void keyPressEvent(QKeyEvent *event) override;
 
 private:
-  void start_display();
-  void stop_display();
-
   std::shared_ptr<TeleopNode> node_;
-  std::shared_ptr<VideoPipeline> video_pipeline_;
-  GstWidget *gst_widget_{};
+  std::shared_ptr<VideoPipeline> video_pipeline_f_;
+  std::shared_ptr<VideoPipeline> video_pipeline_l_;
+  std::shared_ptr<VideoPipeline> video_pipeline_r_;
+  GstWidget *gst_widget_f_{};
+  GstWidget *gst_widget_l_{};
+  GstWidget *gst_widget_r_{};
   QLabel *armed_label_;
   QLabel *hold_label_;
   QLabel *depth_label_;

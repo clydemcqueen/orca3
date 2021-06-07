@@ -40,25 +40,17 @@ class GstWidget : public QWidget
 Q_OBJECT
 
 public:
-  explicit GstWidget(QWidget *parent = nullptr);
-  ~GstWidget() override;
-
-  // bool create_pipeline(const std::string& description);
-
-  // Attach to sink and process frames in a separate thread
-  void run(GstElement *sink);
+  explicit GstWidget(GstElement *sink, QWidget *parent = nullptr);
 
 protected:
   void paintEvent(QPaintEvent *) override;
 
-private:
+private slots:
   void process_frame();
 
 private:
   GstElement *sink_;
-  std::thread thread_;
-  std::atomic<bool> stop_signal_;
-  int width_, height_;
+  gsize expected_size_;
   QImage *image_;
 };
 

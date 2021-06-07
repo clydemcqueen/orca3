@@ -70,6 +70,17 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   trim_z_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   trim_yaw_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
 
+  set_armed(node_->armed());
+  set_hold(node_->hold());
+  set_depth(0);
+  set_lights(node_->lights());
+  set_status(orca_msgs::msg::Status::STATUS_NONE, 0);
+  set_tilt(node_->tilt());
+  set_trim_x(node_->trim_x());
+  set_trim_y(node_->trim_y());
+  set_trim_z(node_->trim_z());
+  set_trim_yaw(node_->trim_yaw());
+
   QBoxLayout *status_layout = new QHBoxLayout;
   status_layout->addWidget(armed_label_);
   status_layout->addWidget(hold_label_);
@@ -82,23 +93,29 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   status_layout->addWidget(trim_z_label_);
   status_layout->addWidget(trim_y_label_);
 
+  video_pipeline_f_ = std::make_shared<VideoPipeline>(node_, node_->cxt().gst_source_bin_f_, node_->cxt().gst_display_bin_f_, node_->cxt().gst_record_bin_f_, node_->cxt().sync_f_);
+  video_pipeline_l_ = std::make_shared<VideoPipeline>(node_, node_->cxt().gst_source_bin_l_, node_->cxt().gst_display_bin_l_, node_->cxt().gst_record_bin_l_, node_->cxt().sync_l_);
+  video_pipeline_r_ = std::make_shared<VideoPipeline>(node_, node_->cxt().gst_source_bin_r_, node_->cxt().gst_display_bin_r_, node_->cxt().gst_record_bin_r_, node_->cxt().sync_r_);
+
+  gst_widget_f_ = video_pipeline_f_->start_display();
+  gst_widget_l_ = video_pipeline_l_->start_display();
+  gst_widget_r_ = video_pipeline_r_->start_display();
+
+  // TODO params
+  gst_widget_f_->setMinimumSize(1600, 900);
+  gst_widget_l_->setMinimumSize(400, 300);
+  gst_widget_r_->setMinimumSize(400, 300);
+
+  // Overlapping camera widgets; last widget added is on top
+  auto camera_layout = new QGridLayout;
+  camera_layout->addWidget(gst_widget_f_, 0, 0);
+  camera_layout->addWidget(gst_widget_l_, 0, 0, Qt::AlignLeft | Qt::AlignTop);
+  camera_layout->addWidget(gst_widget_r_, 0, 0, Qt::AlignRight | Qt::AlignTop);
+
   auto main_layout = new QVBoxLayout;
   main_layout->addLayout(status_layout);
+  main_layout->addLayout(camera_layout);
   setLayout(main_layout);
-
-  set_armed(node_->armed());
-  set_hold(node_->hold());
-  set_depth(0);
-  set_lights(node_->lights());
-  set_status(orca_msgs::msg::Status::STATUS_NONE, 0);
-  set_tilt(node_->tilt());
-  set_trim_x(node_->trim_x());
-  set_trim_y(node_->trim_y());
-  set_trim_z(node_->trim_z());
-  set_trim_yaw(node_->trim_yaw());
-
-  video_pipeline_ = std::make_shared<VideoPipeline>(node_);
-  start_display();
 }
 
 void TopsideWidget::set_armed(bool armed)
@@ -110,6 +127,13 @@ void TopsideWidget::set_armed(bool armed)
     armed_label_->setStyleSheet("background-color: yellow; color: black");
     armed_label_->setText("Disarmed");
   }
+
+#if 0
+  // Debugging: print gstreamer caps after the first frame has arrived
+  if (video_pipeline_f_) {
+    video_pipeline_f_->print_caps();
+  }
+#endif
 }
 
 void TopsideWidget::set_hold(bool enabled)
@@ -233,7 +257,8 @@ void TopsideWidget::keyPressEvent(QKeyEvent *event)
       node_->set_hold(!node_->hold());
       return;
     case Qt::Key_NumberSign:
-      video_pipeline_->toggle_record();
+      // TODO record l and r
+      video_pipeline_f_->toggle_record();
       return;
 
     case Qt::Key_Plus:
@@ -290,22 +315,6 @@ void TopsideWidget::keyPressEvent(QKeyEvent *event)
       QWidget::keyPressEvent(event);
       return;
   }
-}
-
-void TopsideWidget::start_display()
-{
-  gst_widget_ = video_pipeline_->start_display();
-  if (gst_widget_) {
-    gst_widget_->setMinimumSize(300, 300);
-    layout()->addWidget(gst_widget_);
-  }
-}
-
-void TopsideWidget::stop_display()
-{
-  layout()->removeWidget(gst_widget_);
-  gst_widget_ = nullptr;
-  video_pipeline_->stop_display();
 }
 
 }  // namespace orca_topside
