@@ -52,6 +52,8 @@ class VideoPipeline
     running, waiting_for_eos, got_eos, stopped
   };
 
+  std::string name_;
+  bool fix_pts_;
   std::shared_ptr<TeleopNode> node_;
   std::string gst_source_bin_;
   std::string gst_display_bin_;
@@ -77,10 +79,11 @@ class VideoPipeline
 
   static void unlink_and_send_eos(GstElement *segment);
   static gboolean on_bus_message(GstBus *bus, GstMessage *msg, gpointer data);
+  static GstPadProbeReturn on_tee_buffer(GstPad *, GstPadProbeInfo *info, gpointer data);
   static void handle_eos(gpointer data);
 
 public:
-  VideoPipeline(std::shared_ptr<TeleopNode> node, std::string gst_source_bin,
+  VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node, std::string gst_source_bin,
     std::string gst_display_bin, std::string gst_record_bin, bool sync);
 
   // Caller should add the widget to an application

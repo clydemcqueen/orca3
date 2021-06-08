@@ -93,9 +93,9 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   status_layout->addWidget(trim_z_label_);
   status_layout->addWidget(trim_y_label_);
 
-  video_pipeline_f_ = std::make_shared<VideoPipeline>(node_, node_->cxt().gst_source_bin_f_, node_->cxt().gst_display_bin_f_, node_->cxt().gst_record_bin_f_, node_->cxt().sync_f_);
-  video_pipeline_l_ = std::make_shared<VideoPipeline>(node_, node_->cxt().gst_source_bin_l_, node_->cxt().gst_display_bin_l_, node_->cxt().gst_record_bin_l_, node_->cxt().sync_l_);
-  video_pipeline_r_ = std::make_shared<VideoPipeline>(node_, node_->cxt().gst_source_bin_r_, node_->cxt().gst_display_bin_r_, node_->cxt().gst_record_bin_r_, node_->cxt().sync_r_);
+  video_pipeline_f_ = std::make_shared<VideoPipeline>("forward", node_, node_->cxt().gst_source_bin_f_, node_->cxt().gst_display_bin_f_, node_->cxt().gst_record_bin_f_, node_->cxt().sync_f_);
+  video_pipeline_l_ = std::make_shared<VideoPipeline>("left", node_, node_->cxt().gst_source_bin_l_, node_->cxt().gst_display_bin_l_, node_->cxt().gst_record_bin_l_, node_->cxt().sync_l_);
+  video_pipeline_r_ = std::make_shared<VideoPipeline>("right", node_, node_->cxt().gst_source_bin_r_, node_->cxt().gst_display_bin_r_, node_->cxt().gst_record_bin_r_, node_->cxt().sync_r_);
 
   gst_widget_f_ = video_pipeline_f_->start_display();
   gst_widget_l_ = video_pipeline_l_->start_display();
@@ -249,6 +249,7 @@ void TopsideWidget::keyPressEvent(QKeyEvent *event)
   }
 
   if (!node_->armed()) {
+    std::cout << "disarmed, ignoring keyboard" << std::endl;
     return;
   }
 
@@ -256,9 +257,15 @@ void TopsideWidget::keyPressEvent(QKeyEvent *event)
     case Qt::Key_At:
       node_->set_hold(!node_->hold());
       return;
-    case Qt::Key_NumberSign:
-      // TODO record l and r
+
+    case Qt::Key_F1:
       video_pipeline_f_->toggle_record();
+      return;
+    case Qt::Key_F2:
+      video_pipeline_l_->toggle_record();
+      return;
+    case Qt::Key_F3:
+      video_pipeline_r_->toggle_record();
       return;
 
     case Qt::Key_Plus:
@@ -312,6 +319,7 @@ void TopsideWidget::keyPressEvent(QKeyEvent *event)
       return;
 
     default:
+      std::cout << "unmapped key: " << event->key() << std::endl;
       QWidget::keyPressEvent(event);
       return;
   }

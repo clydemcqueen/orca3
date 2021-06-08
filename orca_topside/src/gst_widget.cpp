@@ -101,10 +101,13 @@ void GstWidget::process_frame()
 
 void GstWidget::paintEvent(QPaintEvent *)
 {
+  QRect target(QPoint(0, 0), size());
+  QPainter painter(this);
+
   if (image_) {
-    QRect target(QPoint(0, 0), size());
-    QPainter painter(this);
     painter.drawImage(target, *image_);
+  } else {
+    painter.fillRect(target, Qt::GlobalColor::black);
   }
 }
 

@@ -32,8 +32,10 @@
 namespace orca_topside
 {
 
-VideoPipeline::VideoPipeline(std::shared_ptr<TeleopNode> node, std::string gst_source_bin,
-  std::string gst_display_bin, std::string gst_record_bin, bool sync):
+VideoPipeline::VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node,
+  std::string gst_source_bin, std::string gst_display_bin, std::string gst_record_bin, bool sync):
+  name_(std::move(name)),
+  fix_pts_(false),
   node_(std::move(node)),
   gst_source_bin_(std::move(gst_source_bin)),
   gst_display_bin_(std::move(gst_display_bin)),
@@ -75,8 +77,8 @@ VideoPipeline::VideoPipeline(std::shared_ptr<TeleopNode> node, std::string gst_s
     return;
   }
 
-  gst_bin_add_many(GST_BIN(pipeline_), source_bin_, tee_, display_queue_, display_valve_, record_queue_,
-    record_valve_, nullptr);
+  gst_bin_add_many(GST_BIN(pipeline_), source_bin_, tee_, display_queue_, display_valve_,
+    record_queue_, record_valve_, nullptr);
 
   if (!gst_element_link(source_bin_, tee_)) {
     g_critical("link source -> tee failed");
@@ -96,6 +98,20 @@ VideoPipeline::VideoPipeline(std::shared_ptr<TeleopNode> node, std::string gst_s
   g_object_set(display_valve_, "drop", TRUE, nullptr);
   g_object_set(record_valve_, "drop", TRUE, nullptr);
 
+  // Add a pad probe on the tee sink. We'll use this to examine buffer pts and dts values.
+  GstPad *tee_sink;
+  if ((tee_sink = gst_element_get_static_pad(tee_, "sink")) == nullptr) {
+    g_critical("get tee sink pad failed");
+    return;
+  }
+
+  if (!gst_pad_add_probe(tee_sink, GstPadProbeType::GST_PAD_PROBE_TYPE_BUFFER, on_tee_buffer,
+    this,
+    nullptr)) {
+    g_critical("add pad probe failed");
+    return;
+  }
+
   // Make sure pipeline will forward all messages from children, useful for tracking EOS state
   g_object_set(pipeline_, "message-forward", TRUE, nullptr);
 
@@ -105,9 +121,18 @@ VideoPipeline::VideoPipeline(std::shared_ptr<TeleopNode> node, std::string gst_s
     return;
   }
 
-  // I'm not entirely sure how this works, but listen to some bus messages
+  // Enable 'sync-message' emission: this causes the 'sync-message' signal to be synchronously
+  // emitted whenever a message (e.g., eos) is posted on the bus.
   gst_bus_enable_sync_message_emission(message_bus);
-  g_signal_connect(message_bus, "sync-message", G_CALLBACK(on_bus_message), this);
+
+  // Connect the 'sync-message' signal to on_bus_message(). The callback will be called from the
+  // thread that posted the message _after_ the built-in handler runs. Currently there is only 1 app
+  // thread (the Qt UI thread).
+  if (!g_signal_connect_after(message_bus, "sync-message", G_CALLBACK(on_bus_message), this)) {
+    g_critical("signal connect failed");
+    return;
+  }
+
   gst_object_unref(message_bus);
 
   if (gst_element_set_state(pipeline_, GST_STATE_PAUSED) == GST_STATE_CHANGE_FAILURE) {
@@ -153,7 +178,8 @@ GstWidget *VideoPipeline::start_display()
     return nullptr;
   }
 
-  // If sync is turned on display stop/start fails. Timestamp bug?
+  // Sync MUST be turned on for non-streaming source, e.g., videotestsrc.
+  // But if sync is turned on display stop/start fails. :-(
   gst_base_sink_set_sync(GST_BASE_SINK(display_sink_), sync_);
 
   gst_bin_add_many(GST_BIN(pipeline_), display_bin_, display_sink_, nullptr);
@@ -245,6 +271,7 @@ bool VideoPipeline::start_recording()
     return false;
   }
 
+  // Call strftime() to replace placeholders in record_bin string, e.g. "%Y-%m-%d_%H-%M-%S"
   auto t = std::time(nullptr);
   char buffer[200];
   std::strftime(buffer, sizeof(buffer), record_bin, std::localtime(&t));
@@ -329,6 +356,26 @@ void VideoPipeline::unlink_and_send_eos(GstElement *segment)
 gboolean VideoPipeline::on_bus_message(GstBus *, GstMessage *msg, gpointer data)
 {
   switch (GST_MESSAGE_TYPE(msg)) {
+    case GST_MESSAGE_ERROR: {
+      GError *err = nullptr;
+      gchar *dbg_info = nullptr;
+      gst_message_parse_error(msg, &err, &dbg_info);
+      g_printerr("ERROR from element %s: %s\n", GST_OBJECT_NAME (msg->src), err->message);
+      g_printerr("Debug info: %s\n", (dbg_info) ? dbg_info : "none");
+      g_error_free(err);
+      g_free(dbg_info);
+      break;
+    }
+    case GST_MESSAGE_WARNING: {
+      GError *err = nullptr;
+      gchar *dbg_info = nullptr;
+      gst_message_parse_warning(msg, &err, &dbg_info);
+      g_printerr("WARNING from element %s: %s\n", GST_OBJECT_NAME (msg->src), err->message);
+      g_printerr("Debug info: %s\n", (dbg_info) ? dbg_info : "none");
+      g_error_free(err);
+      g_free(dbg_info);
+      break;
+    }
     case GST_MESSAGE_EOS:
       handle_eos(data);
       break;
@@ -361,8 +408,42 @@ gboolean VideoPipeline::on_bus_message(GstBus *, GstMessage *msg, gpointer data)
   return TRUE;
 }
 
+// Sit on the sink pad of the tee and copy dts -> pts if required.
+// See: https://gitlab.freedesktop.org/gstreamer/gst-plugins-good/-/issues/410
+GstPadProbeReturn VideoPipeline::on_tee_buffer(GstPad *, GstPadProbeInfo *info, gpointer data)
+{
+  auto video_pipeline = (VideoPipeline *) data;
+
+  GstBuffer *buffer = GST_PAD_PROBE_INFO_BUFFER(info);
+
+  // Buffer may not be writable
+  buffer = gst_buffer_make_writable(buffer);
+  if (buffer == nullptr) {
+    return GstPadProbeReturn::GST_PAD_PROBE_OK;
+  }
+
+  if (buffer->pts == GST_CLOCK_TIME_NONE) {
+    if (!video_pipeline->fix_pts_) {
+      // Warn once
+      RCLCPP_WARN(video_pipeline->node_->get_logger(), "[ONCE] no pts on %s, will copy dts",
+        video_pipeline->name_.c_str());
+
+      if (buffer->dts == GST_CLOCK_TIME_NONE) {
+        RCLCPP_WARN(video_pipeline->node_->get_logger(), "[ONCE] no dts on %s, recording will fail",
+          video_pipeline->name_.c_str());
+      }
+
+      video_pipeline->fix_pts_ = true;
+    }
+    buffer->pts = buffer->dts;
+  }
+
+  return GstPadProbeReturn::GST_PAD_PROBE_OK;
+}
+
 // We can't manipulate the pipeline from a streaming thread, so postpone the cleanup
 // record: waiting_for_eos -> got_eos
+// TODO streaming thread is now the UI thread, so I could simplify this
 void VideoPipeline::handle_eos(gpointer data)
 {
   auto video_pipeline = (VideoPipeline *) data;
