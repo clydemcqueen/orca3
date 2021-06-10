@@ -22,6 +22,7 @@
 
 #include "orca_topside/video_pipeline.hpp"
 
+#include <QTimer>
 #include <iostream>
 #include <utility>
 
@@ -31,6 +32,24 @@
 
 namespace orca_topside
 {
+
+void VideoPipeline::fps_calculator::push_new(const rclcpp::Time & stamp)
+{
+  stamps_.push(stamp);
+  pop_old(stamp);
+}
+
+void VideoPipeline::fps_calculator::pop_old(const rclcpp::Time & stamp)
+{
+  while (!stamps_.empty() && stamp - stamps_.front() > rclcpp::Duration(1, 0)) {
+    stamps_.pop();
+  }
+}
+
+int VideoPipeline::fps_calculator::fps() const
+{
+  return (int) stamps_.size();
+}
 
 VideoPipeline::VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node,
   std::string gst_source_bin, std::string gst_display_bin, std::string gst_record_bin, bool sync):
@@ -54,13 +73,13 @@ VideoPipeline::VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node,
   }
 
   if (gst_source_bin_.empty()) {
-    g_critical("empty source_bin");
+    g_critical("%s empty source_bin", name_.c_str());
     return;
   }
 
   GError *error = nullptr;
   if (!(source_bin_ = gst_parse_bin_from_description(gst_source_bin_.c_str(), true, &error))) {
-    g_critical("parse source bin failed: %s", error->message);
+    g_critical("%s parse source bin failed: %s", name_.c_str(), error->message);
     return;
   }
 
@@ -73,7 +92,7 @@ VideoPipeline::VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node,
 
   if (!pipeline_ || !tee_ || !display_queue_ || !display_valve_ || !record_queue_ ||
     !record_valve_) {
-    g_critical("create failed");
+    g_critical("%s create failed", name_.c_str());
     return;
   }
 
@@ -81,17 +100,17 @@ VideoPipeline::VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node,
     record_queue_, record_valve_, nullptr);
 
   if (!gst_element_link(source_bin_, tee_)) {
-    g_critical("link source -> tee failed");
+    g_critical("%s link source -> tee failed", name_.c_str());
     return;
   }
 
   if (!gst_element_link_many(tee_, display_queue_, display_valve_, nullptr)) {
-    g_critical("link tee -> display_queue -> display_valve failed");
+    g_critical("%s link tee -> display_queue -> display_valve failed", name_.c_str());
     return;
   }
 
   if (!gst_element_link_many(tee_, record_queue_, record_valve_, nullptr)) {
-    g_critical("link tee -> record_queue -> record_valve failed");
+    g_critical("%s link tee -> record_queue -> record_valve failed", name_.c_str());
     return;
   }
 
@@ -101,14 +120,14 @@ VideoPipeline::VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node,
   // Add a pad probe on the tee sink. We'll use this to examine buffer pts and dts values.
   GstPad *tee_sink;
   if ((tee_sink = gst_element_get_static_pad(tee_, "sink")) == nullptr) {
-    g_critical("get tee sink pad failed");
+    g_critical("%s get tee sink pad failed", name_.c_str());
     return;
   }
 
   if (!gst_pad_add_probe(tee_sink, GstPadProbeType::GST_PAD_PROBE_TYPE_BUFFER, on_tee_buffer,
     this,
     nullptr)) {
-    g_critical("add pad probe failed");
+    g_critical("%s add pad probe failed", name_.c_str());
     return;
   }
 
@@ -117,7 +136,7 @@ VideoPipeline::VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node,
 
   GstBus *message_bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline_));
   if (!message_bus) {
-    g_critical("get bus failed");
+    g_critical("%s get bus failed", name_.c_str());
     return;
   }
 
@@ -129,52 +148,56 @@ VideoPipeline::VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node,
   // thread that posted the message _after_ the built-in handler runs. Currently there is only 1 app
   // thread (the Qt UI thread).
   if (!g_signal_connect_after(message_bus, "sync-message", G_CALLBACK(on_bus_message), this)) {
-    g_critical("signal connect failed");
+    g_critical("%s signal connect failed", name_.c_str());
     return;
   }
 
   gst_object_unref(message_bus);
 
   if (gst_element_set_state(pipeline_, GST_STATE_PAUSED) == GST_STATE_CHANGE_FAILURE) {
-    g_critical("pause failed");
+    g_critical("%s pause failed", name_.c_str());
     return;
   }
 
   if (gst_element_set_state(pipeline_, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) {
-    g_critical("play failed");
+    g_critical("%s play failed", name_.c_str());
     return;
   }
 
-  RCLCPP_INFO(node_->get_logger(), "pipeline running: %s", gst_source_bin_.c_str());
+  auto timer = new QTimer(this);
+  connect(timer, &QTimer::timeout, this, QOverload<>::of(&VideoPipeline::spin));
+  timer->start(20);
+
+  RCLCPP_INFO(node_->get_logger(), "%s pipeline running %s", name_.c_str(), gst_source_bin_.c_str());
   initialized_ = true;
 }
 
 GstWidget *VideoPipeline::start_display()
 {
   if (!initialized_) {
-    g_critical("not initialized");
+    g_critical("%s not initialized", name_.c_str());
     return nullptr;
   }
 
   auto display_bin = gst_display_bin_.c_str();
   if (!strlen(display_bin)) {
-    g_critical("empty display_bin");
+    g_critical("%s empty display_bin", name_.c_str());
     return nullptr;
   }
 
   if (gst_element_set_state(pipeline_, GST_STATE_PAUSED) == GST_STATE_CHANGE_FAILURE) {
-    g_critical("pause failed");
+    g_critical("%s pause failed", name_.c_str());
     return nullptr;
   }
 
   GError *error = nullptr;
   if (!(display_bin_ = gst_parse_bin_from_description(display_bin, true, &error))) {
-    g_critical("parse display bin failed: %s", error->message);
+    g_critical("%s parse display bin failed: %s", name_.c_str(), error->message);
     return nullptr;
   }
 
   if (!(display_sink_ = gst_element_factory_make("appsink", nullptr))) {
-    g_critical("create failed: ");
+    g_critical("%s create failed", name_.c_str());
     return nullptr;
   }
 
@@ -185,32 +208,32 @@ GstWidget *VideoPipeline::start_display()
   gst_bin_add_many(GST_BIN(pipeline_), display_bin_, display_sink_, nullptr);
 
   if (!gst_element_link(display_valve_, display_bin_)) {
-    g_critical("link display valve -> display bin failed");
+    g_critical("%s link display valve -> display bin failed", name_.c_str());
     return nullptr;
   }
 
   if (!gst_element_link(display_bin_, display_sink_)) {
-    g_critical("link display bin -> display sink failed");
+    g_critical("%s link display bin -> display sink failed", name_.c_str());
     return nullptr;
   }
 
   g_object_set(display_valve_, "drop", FALSE, nullptr);
 
   if (gst_element_set_state(pipeline_, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) {
-    g_critical("play failed");
+    g_critical("%s play failed", name_.c_str());
     return nullptr;
   }
 
   widget_ = new GstWidget(display_sink_);
 
-  RCLCPP_INFO(node_->get_logger(), "display started");
+  RCLCPP_INFO(node_->get_logger(), "%s display started", name_.c_str());
   return widget_;
 }
 
 void VideoPipeline::stop_display()
 {
   if (!initialized_) {
-    g_critical("not initialized");
+    g_critical("%s not initialized", name_.c_str());
     return;
   }
 
@@ -218,7 +241,7 @@ void VideoPipeline::stop_display()
   widget_ = nullptr;
 
   if (gst_element_set_state(pipeline_, GST_STATE_PAUSED) == GST_STATE_CHANGE_FAILURE) {
-    g_critical("pause failed");
+    g_critical("%s pause failed", name_.c_str());
   }
 
   g_object_set(display_valve_, "drop", TRUE, nullptr);
@@ -232,32 +255,40 @@ void VideoPipeline::stop_display()
   display_bin_ = nullptr;
 
   if (gst_element_set_state(pipeline_, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) {
-    g_critical("play failed");
+    g_critical("%s play failed", name_.c_str());
   }
 
-  RCLCPP_INFO(node_->get_logger(), "display stopped");
+  RCLCPP_INFO(node_->get_logger(), "%s display stopped", name_.c_str());
 }
 
 void VideoPipeline::toggle_record()
 {
   if (!initialized_) {
-    g_critical("not initialized");
+    g_critical("%s not initialized", name_.c_str());
     return;
   }
 
   switch (record_status_) {
     case RecordStatus::stopped:
-      start_recording();
+      if (fps() > 10) {
+        start_recording();
+      } else {
+        RCLCPP_WARN(node_->get_logger(), "%s fps too low, can't record", name_.c_str());
+      }
       break;
     case RecordStatus::running:
       stop_recording();
       break;
     case RecordStatus::waiting_for_eos:
-      g_critical("still waiting for eos");
+      g_critical("%s still waiting for eos", name_.c_str());
       break;
     case RecordStatus::got_eos:
       clean_up_recording();
-      start_recording();
+      if (fps() > 10) {
+        start_recording();
+      } else {
+        RCLCPP_WARN(node_->get_logger(), "%s fps too low, can't record", name_.c_str());
+      }
       break;
   }
 }
@@ -267,7 +298,7 @@ bool VideoPipeline::start_recording()
 {
   auto record_bin = gst_record_bin_.c_str();
   if (!strlen(record_bin)) {
-    g_critical("empty record_bin");
+    g_critical("%s empty record_bin", name_.c_str());
     return false;
   }
 
@@ -279,14 +310,14 @@ bool VideoPipeline::start_recording()
 
   GError *error = nullptr;
   if (!(record_bin_ = gst_parse_bin_from_description(buffer, true, &error))) {
-    g_critical("parse record bin failed: %s", error->message);
+    g_critical("%s parse record bin failed: %s", name_.c_str(), error->message);
     return false;
   }
 
   gst_bin_add(GST_BIN(pipeline_), record_bin_);
 
   if (!gst_element_link(record_valve_, record_bin_)) {
-    g_critical("link record valve -> record bin failed");
+    g_critical("%s link record valve -> record bin failed", name_.c_str());
     return false;
   }
 
@@ -296,7 +327,7 @@ bool VideoPipeline::start_recording()
   g_object_set(record_valve_, "drop", FALSE, nullptr);
 
   record_status_ = RecordStatus::running;
-  RCLCPP_INFO(node_->get_logger(), "record: running");
+  RCLCPP_INFO(node_->get_logger(), "record: %s running", name_.c_str());
 
   return true;
 }
@@ -307,7 +338,7 @@ void VideoPipeline::stop_recording()
   g_object_set(record_valve_, "drop", TRUE, nullptr);
 
   record_status_ = RecordStatus::waiting_for_eos;
-  RCLCPP_INFO(node_->get_logger(), "record: waiting for eos");
+  RCLCPP_INFO(node_->get_logger(), "record: %s waiting for eos", name_.c_str());
 
   // Unlink and send eos; this will close the file
   unlink_and_send_eos(record_valve_);
@@ -322,7 +353,7 @@ void VideoPipeline::clean_up_recording()
   record_bin_ = nullptr;
 
   record_status_ = RecordStatus::stopped;
-  RCLCPP_INFO(node_->get_logger(), "record: stopped");
+  RCLCPP_INFO(node_->get_logger(), "record: %s stopped", name_.c_str());
 }
 
 void VideoPipeline::unlink_and_send_eos(GstElement *segment)
@@ -414,6 +445,8 @@ GstPadProbeReturn VideoPipeline::on_tee_buffer(GstPad *, GstPadProbeInfo *info, 
 {
   auto video_pipeline = (VideoPipeline *) data;
 
+  video_pipeline->fps_calculator_.push_new(video_pipeline->node_->now());
+
   GstBuffer *buffer = GST_PAD_PROBE_INFO_BUFFER(info);
 
   // Buffer may not be writable
@@ -449,7 +482,7 @@ void VideoPipeline::handle_eos(gpointer data)
   auto video_pipeline = (VideoPipeline *) data;
   if (video_pipeline->record_status_ == RecordStatus::waiting_for_eos) {
     video_pipeline->record_status_ = RecordStatus::got_eos;
-    std::cout << "record: got eos" << std::endl;
+    RCLCPP_INFO(video_pipeline->node_->get_logger(), "record: %s got eos", video_pipeline->name_.c_str());
   }
 }
 
@@ -463,6 +496,12 @@ void VideoPipeline::print_caps()
   gst_util::print_caps("record_valve", record_valve_);
   gst_util::print_caps("display_sink", display_sink_);
   gst_util::print_caps("display_bin", display_bin_);
+}
+
+void VideoPipeline::spin()
+{
+  // Handle the case where frames stop arriving
+  fps_calculator_.pop_old(node_->now());
 }
 
 }  // namespace orca_topside

@@ -57,8 +57,20 @@ public:
   void set_trim_z(double v);
   void set_trim_yaw(double v);
 
+  static void update_pipeline(const std::shared_ptr<VideoPipeline> & pipeline, QLabel *label,
+    const char *prefix);
+
+  void update_pipeline_f() { update_pipeline(video_pipeline_f_, pipeline_f_label_, "F"); }
+
+  void update_pipeline_l() { update_pipeline(video_pipeline_l_, pipeline_l_label_, "L"); }
+
+  void update_pipeline_r() { update_pipeline(video_pipeline_r_, pipeline_r_label_, "R"); }
+
 protected:
   void keyPressEvent(QKeyEvent *event) override;
+
+private slots:
+  void update_fps();
 
 private:
   std::shared_ptr<TeleopNode> node_;
@@ -72,6 +84,9 @@ private:
   QLabel *hold_label_;
   QLabel *depth_label_;
   QLabel *lights_label_;
+  QLabel *pipeline_f_label_;
+  QLabel *pipeline_l_label_;
+  QLabel *pipeline_r_label_;
   QLabel *status_label_;
   QLabel *tilt_label_;
   QLabel *trim_x_label_;

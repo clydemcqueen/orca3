@@ -47,11 +47,17 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   trim_y_label_ = new QLabel;
   trim_z_label_ = new QLabel;
   trim_yaw_label_ = new QLabel;
+  pipeline_f_label_ = new QLabel;
+  pipeline_l_label_ = new QLabel;
+  pipeline_r_label_ = new QLabel;
 
   armed_label_->setAlignment(Qt::AlignCenter);
   hold_label_->setAlignment(Qt::AlignCenter);
   depth_label_->setAlignment(Qt::AlignCenter);
   lights_label_->setAlignment(Qt::AlignCenter);
+  pipeline_f_label_->setAlignment(Qt::AlignCenter);
+  pipeline_l_label_->setAlignment(Qt::AlignCenter);
+  pipeline_r_label_->setAlignment(Qt::AlignCenter);
   status_label_->setAlignment(Qt::AlignCenter);
   tilt_label_->setAlignment(Qt::AlignCenter);
   trim_x_label_->setAlignment(Qt::AlignCenter);
@@ -63,6 +69,9 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   hold_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   depth_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   lights_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
+  pipeline_f_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
+  pipeline_l_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
+  pipeline_r_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   status_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   tilt_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   trim_x_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
@@ -85,6 +94,9 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   status_layout->addWidget(armed_label_);
   status_layout->addWidget(hold_label_);
   status_layout->addWidget(status_label_);
+  status_layout->addWidget(pipeline_l_label_);
+  status_layout->addWidget(pipeline_f_label_);
+  status_layout->addWidget(pipeline_r_label_);
   status_layout->addWidget(lights_label_);
   status_layout->addWidget(tilt_label_);
   status_layout->addWidget(depth_label_);
@@ -93,9 +105,14 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   status_layout->addWidget(trim_z_label_);
   status_layout->addWidget(trim_y_label_);
 
-  video_pipeline_f_ = std::make_shared<VideoPipeline>("forward", node_, node_->cxt().gst_source_bin_f_, node_->cxt().gst_display_bin_f_, node_->cxt().gst_record_bin_f_, node_->cxt().sync_f_);
-  video_pipeline_l_ = std::make_shared<VideoPipeline>("left", node_, node_->cxt().gst_source_bin_l_, node_->cxt().gst_display_bin_l_, node_->cxt().gst_record_bin_l_, node_->cxt().sync_l_);
-  video_pipeline_r_ = std::make_shared<VideoPipeline>("right", node_, node_->cxt().gst_source_bin_r_, node_->cxt().gst_display_bin_r_, node_->cxt().gst_record_bin_r_, node_->cxt().sync_r_);
+  video_pipeline_f_ = std::make_shared<VideoPipeline>("forward", node_,
+    node_->cxt().gst_source_bin_f_, node_->cxt().gst_display_bin_f_, node_->cxt().gst_record_bin_f_,
+    node_->cxt().sync_f_);
+  video_pipeline_l_ = std::make_shared<VideoPipeline>("left", node_, node_->cxt().gst_source_bin_l_,
+    node_->cxt().gst_display_bin_l_, node_->cxt().gst_record_bin_l_, node_->cxt().sync_l_);
+  video_pipeline_r_ = std::make_shared<VideoPipeline>("right", node_,
+    node_->cxt().gst_source_bin_r_, node_->cxt().gst_display_bin_r_, node_->cxt().gst_record_bin_r_,
+    node_->cxt().sync_r_);
 
   gst_widget_f_ = video_pipeline_f_->start_display();
   gst_widget_l_ = video_pipeline_l_->start_display();
@@ -116,6 +133,10 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   main_layout->addLayout(status_layout);
   main_layout->addLayout(camera_layout);
   setLayout(main_layout);
+
+  auto timer = new QTimer(this);
+  connect(timer, &QTimer::timeout, this, QOverload<>::of(&TopsideWidget::update_fps));
+  timer->start(1000);
 }
 
 void TopsideWidget::set_armed(bool armed)
@@ -237,6 +258,24 @@ void TopsideWidget::set_trim_yaw(double v)
   trim_yaw_label_->setText(message);
 }
 
+void TopsideWidget::update_pipeline(const std::shared_ptr<VideoPipeline> & pipeline, QLabel *label,
+  const char *prefix)
+{
+  auto fps = pipeline->fps();
+  auto recording = pipeline->recording();
+
+  if (fps < 10) {
+    label->setStyleSheet("background-color: yellow; color: black");
+  } else if (recording) {
+    label->setStyleSheet("background-color: blue; color: white");
+  } else {
+    label->setStyleSheet("background-color: greenyellow; color: black");
+  }
+
+  auto message = QString("%1 %2").arg(prefix).arg(fps);
+  label->setText(message);
+}
+
 void TopsideWidget::keyPressEvent(QKeyEvent *event)
 {
   if (event->key() == Qt::Key_Exclam) {
@@ -260,12 +299,15 @@ void TopsideWidget::keyPressEvent(QKeyEvent *event)
 
     case Qt::Key_F1:
       video_pipeline_f_->toggle_record();
+      update_pipeline_f();
       return;
     case Qt::Key_F2:
       video_pipeline_l_->toggle_record();
+      update_pipeline_l();
       return;
     case Qt::Key_F3:
       video_pipeline_r_->toggle_record();
+      update_pipeline_r();
       return;
 
     case Qt::Key_Plus:
@@ -282,7 +324,7 @@ void TopsideWidget::keyPressEvent(QKeyEvent *event)
       node_->inc_lights();
       return;
 
-    // Left stick:
+      // Left stick:
     case Qt::Key_I:
       node_->inc_trim_z();
       return;
@@ -300,7 +342,7 @@ void TopsideWidget::keyPressEvent(QKeyEvent *event)
       node_->cancel_trim_y();
       break;
 
-    // Right stick:
+      // Right stick:
     case Qt::Key_E:
       node_->inc_trim_x();
       return;
@@ -323,6 +365,13 @@ void TopsideWidget::keyPressEvent(QKeyEvent *event)
       QWidget::keyPressEvent(event);
       return;
   }
+}
+
+void TopsideWidget::update_fps()
+{
+  update_pipeline_f();
+  update_pipeline_l();
+  update_pipeline_r();
 }
 
 }  // namespace orca_topside

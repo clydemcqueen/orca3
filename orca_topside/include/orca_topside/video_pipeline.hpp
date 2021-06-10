@@ -24,10 +24,14 @@
 #define ORCA_TOPSIDE__VIDEO_PIPELINE_HPP_
 
 #include <memory>
+#include <queue>
 
 extern "C" {
 #include "gst/gst.h"
 }
+
+#include "rclcpp/time.hpp"
+#include <QObject>
 
 // Build a video pipeline that can display and/or record H264 video:
 //
@@ -45,15 +49,28 @@ class GstWidget;
 
 class TeleopNode;
 
-class VideoPipeline
+class VideoPipeline : public QObject
 {
+  Q_OBJECT
+
   enum class RecordStatus
   {
     running, waiting_for_eos, got_eos, stopped
   };
 
-  std::string name_;
-  bool fix_pts_;
+  class fps_calculator
+  {
+    std::queue<rclcpp::Time> stamps_;
+
+  public:
+    void push_new(const rclcpp::Time & stamp);
+    void pop_old(const rclcpp::Time & stamp);
+    int fps() const;
+  };
+
+  std::string name_;  // For debugging
+  bool fix_pts_;  // True if we're copying dts -> pts
+  fps_calculator fps_calculator_;
   std::shared_ptr<TeleopNode> node_;
   std::string gst_source_bin_;
   std::string gst_display_bin_;
@@ -82,9 +99,14 @@ class VideoPipeline
   static GstPadProbeReturn on_tee_buffer(GstPad *, GstPadProbeInfo *info, gpointer data);
   static void handle_eos(gpointer data);
 
+private slots:
+  void spin();
+
 public:
   VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node, std::string gst_source_bin,
     std::string gst_display_bin, std::string gst_record_bin, bool sync);
+
+  int fps() const { return fps_calculator_.fps(); }
 
   // Caller should add the widget to an application
   // VideoPipeline maintains ownership of the widget
