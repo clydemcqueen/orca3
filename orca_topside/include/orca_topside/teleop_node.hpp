@@ -60,6 +60,16 @@ class TopsideWidget;
   CXT_MACRO_MEMBER(inc_vel_z, double, 0.1) \
   CXT_MACRO_MEMBER(inc_vel_yaw, double, 0.1) \
  \
+  CXT_MACRO_MEMBER(lcam, bool, false) /* Has a left camera */ \
+  CXT_MACRO_MEMBER(rcam, bool, false) /* Has a right camera */ \
+ \
+  CXT_MACRO_MEMBER(fcam_display_w, int, 1600) \
+  CXT_MACRO_MEMBER(fcam_display_h, int, 900) \
+  CXT_MACRO_MEMBER(lcam_display_w, int, 400) \
+  CXT_MACRO_MEMBER(lcam_display_h, int, 300) \
+  CXT_MACRO_MEMBER(rcam_display_w, int, 400) \
+  CXT_MACRO_MEMBER(rcam_display_h, int, 300) \
+ \
   CXT_MACRO_MEMBER(gst_source_bin_f, std::string, "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=1600,height=900,framerate=20/1") \
   CXT_MACRO_MEMBER(gst_display_bin_f, std::string, "textoverlay text=\"forward\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center") \
   CXT_MACRO_MEMBER(gst_record_bin_f, std::string, "") \

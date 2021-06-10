@@ -22,6 +22,9 @@ teleop_node:
     vel_z: 0.4
     vel_yaw: 0.8  # Increase 0.4 to 0.8 after FT11
 
+    lcam: True
+    rcam: True
+
     # Gstreamer bin parser seems to have trouble with trailing quotes, so don't end with a quote
     gst_source_bin_f: "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=1600,height=900,framerate=20/1"
     gst_display_bin_f: "textoverlay text=\"forward\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center"
