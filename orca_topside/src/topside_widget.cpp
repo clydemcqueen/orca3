@@ -189,7 +189,7 @@ void TopsideWidget::set_hold(bool enabled)
 
 void TopsideWidget::set_depth(double depth)
 {
-  auto message = QString("Depth %1m").arg(depth, -1, 'f', 1);
+  auto message = QString("Z %1m").arg(depth, -1, 'f', 1);
   depth_label_->setText(message);
 }
 
@@ -198,10 +198,10 @@ void TopsideWidget::set_lights(int lights)
   QString message;
   if (lights) {
     lights_label_->setStyleSheet("background-color: white; color: black");
-    message = QString("Lights %1%").arg(lights);
+    message = QString("Lights %1").arg(lights);
   } else {
     lights_label_->setStyleSheet("background-color: black; color: white");
-    message = QString("Lights off");
+    message = QString("Lights 0");
   }
   lights_label_->setText(message);
 }
@@ -244,9 +244,9 @@ void TopsideWidget::set_tilt(int tilt)
 {
   QString message;
   if (tilt > 0) {
-    message = QString("Tilt up %1°").arg(tilt);
+    message = QString("Up %1°").arg(tilt);
   } else if (tilt < 0) {
-    message = QString("Tilt down %1°").arg(-tilt);
+    message = QString("Down %1°").arg(-tilt);
   } else {
     message = QString("No tilt");
   }
@@ -255,19 +255,19 @@ void TopsideWidget::set_tilt(int tilt)
 
 void TopsideWidget::set_trim_x(double v)
 {
-  auto message = QString("Forward %1").arg(v, -1, 'f', 1);
+  auto message = QString("Fwd %1").arg(v, -1, 'f', 1);
   trim_x_label_->setText(message);
 }
 
 void TopsideWidget::set_trim_y(double v)
 {
-  auto message = QString("Strafe %1").arg(v, -1, 'f', 1);
+  auto message = QString("Str %1").arg(v, -1, 'f', 1);
   trim_y_label_->setText(message);
 }
 
 void TopsideWidget::set_trim_z(double v)
 {
-  auto message = QString("Vertical %1").arg(v, -1, 'f', 1);
+  auto message = QString("Vrt %1").arg(v, -1, 'f', 1);
   trim_z_label_->setText(message);
 }
 

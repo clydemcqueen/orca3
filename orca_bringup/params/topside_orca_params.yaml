@@ -32,8 +32,8 @@ teleop_node:
     gst_source_bin_l: "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=400,height=300,framerate=20/1"
     gst_display_bin_l: "textoverlay text=\"left\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center"
 
-    gst_source_bin_r: "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=400,height=300,framerate=20/1"
-    gst_display_bin_r: "textoverlay text=\"right\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center"
+#    gst_source_bin_r: "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=400,height=300,framerate=20/1"
+#    gst_display_bin_r: "textoverlay text=\"right\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center"
 
     # h264parse element is required before and after the tee & valves -- not sure why
 #    gst_source_bin_f: "v4l2src device=/dev/video0 do-timestamp=true ! capsfilter caps=video/x-h264,width=1920,height=1080,framerate=30/1 ! h264parse"
@@ -46,10 +46,10 @@ teleop_node:
 #    gst_record_bin_l: "h264parse ! mp4mux ! filesink location=lcam_%Y-%m-%d_%H-%M-%S.mp4"
 #    sync_l: false
 
-#    gst_source_bin_r: "udpsrc port=5602 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse"
-#    gst_display_bin_r: "h264parse ! avdec_h264 ! timeoverlay halignment=center ! videoconvert ! capsfilter caps=video/x-raw,format=RGB"
-#    gst_record_bin_r: "h264parse ! mp4mux ! filesink location=rcam_%Y-%m-%d_%H-%M-%S.mp4"
-#    sync_r: false
+    gst_source_bin_r: "udpsrc port=5602 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse"
+    gst_display_bin_r: "h264parse ! avdec_h264 ! timeoverlay halignment=center ! videoconvert ! capsfilter caps=video/x-raw,format=RGB"
+    gst_record_bin_r: "h264parse ! mp4mux ! filesink location=rcam_%Y-%m-%d_%H-%M-%S.mp4"
+    sync_r: false
 
 base_controller:
   ros__parameters:

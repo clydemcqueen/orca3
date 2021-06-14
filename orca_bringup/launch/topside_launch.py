@@ -30,6 +30,9 @@
 # Test w/ fake barometer:
 # ros2 run orca_base fake_barometer.py
 
+# Test w/ fake driver:
+# ros2 run orca_base fake_driver.py
+
 # ROV operations:
 # ros2 launch orca_bringup topside_launch.py
 

@@ -19,7 +19,6 @@
   <depend>geometry_msgs</depend>
   <depend>orca_msgs</depend>
   <depend>orca_shared</depend>
-  <depend>Qt5Widgets</depend>
   <depend>rclcpp</depend>
   <depend>ros2_shared</depend>
 
