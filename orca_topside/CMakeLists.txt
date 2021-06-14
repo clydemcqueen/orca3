@@ -47,11 +47,13 @@ add_executable(
   src/node_spinner.cpp
   src/teleop_node.cpp
   src/teleop_main.cpp
+  src/topside_layout.cpp
   src/topside_widget.cpp
   src/video_pipeline.cpp
   include/orca_topside/gst_widget.hpp
   include/orca_topside/node_spinner.hpp
   include/orca_topside/teleop_node.hpp
+  include/orca_topside/topside_layout.hpp
   include/orca_topside/topside_widget.hpp
   include/orca_topside/video_pipeline.hpp
 )

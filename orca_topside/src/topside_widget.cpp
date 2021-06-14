@@ -28,6 +28,7 @@
 
 #include "orca_topside/gst_widget.hpp"
 #include "orca_topside/teleop_node.hpp"
+#include "orca_topside/topside_layout.hpp"
 
 namespace orca_topside
 {
@@ -88,12 +89,10 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
     node_->cxt().gst_source_bin_f_, node_->cxt().gst_display_bin_f_,
     node_->cxt().gst_record_bin_f_, node_->cxt().sync_f_);
 
-  gst_widget_f_ = video_pipeline_f_->start_display();
-  gst_widget_f_->setMinimumSize(node_->cxt().fcam_display_w_, node_->cxt().fcam_display_h_);
-
   // Overlapping camera widgets; last widget added is on top
-  auto camera_layout = new QGridLayout;
-  camera_layout->addWidget(gst_widget_f_, 0, 0, Qt::AlignCenter | Qt::AlignBottom);
+  auto gst_widget_f = video_pipeline_f_->start_display();
+  auto cam_layout = new TopsideLayout(node_->cxt().small_widget_size_);
+  cam_layout->addWidget(gst_widget_f, TopsideLayout::HD_16x9, Qt::AlignHCenter | Qt::AlignBottom);
 
   if (node_->cxt().lcam_) {
     pipeline_l_label_ = new QLabel;
@@ -104,10 +103,8 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
       node_->cxt().gst_source_bin_l_, node_->cxt().gst_display_bin_l_,
       node_->cxt().gst_record_bin_l_, node_->cxt().sync_l_);
 
-    gst_widget_l_ = video_pipeline_l_->start_display();
-    gst_widget_l_->setMinimumSize(node_->cxt().lcam_display_w_, node_->cxt().lcam_display_h_);
-
-    camera_layout->addWidget(gst_widget_l_, 0, 0, Qt::AlignLeft | Qt::AlignTop);
+    auto gst_widget_l = video_pipeline_l_->start_display();
+    cam_layout->addWidget(gst_widget_l, TopsideLayout::SD_4x3, Qt::AlignLeft | Qt::AlignTop);
   } else {
     pipeline_l_label_ = nullptr;
   }
@@ -121,10 +118,8 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
       node_->cxt().gst_source_bin_r_, node_->cxt().gst_display_bin_r_,
       node_->cxt().gst_record_bin_r_, node_->cxt().sync_r_);
 
-    gst_widget_r_ = video_pipeline_r_->start_display();
-    gst_widget_r_->setMinimumSize(node_->cxt().rcam_display_w_, node_->cxt().rcam_display_h_);
-
-    camera_layout->addWidget(gst_widget_r_, 0, 0, Qt::AlignRight | Qt::AlignTop);
+    auto gst_widget_r = video_pipeline_r_->start_display();
+    cam_layout->addWidget(gst_widget_r, TopsideLayout::SD_4x3, Qt::AlignRight | Qt::AlignTop);
   } else {
     pipeline_r_label_ = nullptr;
   }
@@ -150,7 +145,7 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
 
   auto main_layout = new QVBoxLayout;
   main_layout->addLayout(status_layout);
-  main_layout->addLayout(camera_layout);
+  main_layout->addLayout(cam_layout);
   setLayout(main_layout);
 
   auto timer = new QTimer(this);
