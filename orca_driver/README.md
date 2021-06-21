@@ -105,62 +105,14 @@ colcon build
 source install/local_setup.bash
 ~~~
 
-## ROV Operation
-
-> TODO update to include topside window & keyboard shortcuts
-
-### ROS nodes
-
-On the UP board:
+## Launch on boot
 
 ~~~
-cd ~/ros2/orca3_ws
-source install/setup.bash
-ros2 launch orca_bringup rov_sub_launch.py
+# Launch ROS nodes:
+sudo cp ~/ros2/orca3_ws/src/orca3/orca_driver/scripts/orca_driver.service /lib/systemd/system
+sudo systemctl enable orca_driver.service
+
+# Launch gstreamer pipeline:
+sudo cp ~/ros2/orca3_ws/src/orca3/orca_driver/scripts/orca_fcam.service /lib/systemd/system
+sudo systemctl enable orca_fcam.service
 ~~~
-
-On the topside computer:
-
-~~~
-cd ~/ros2/orca3_ws
-source install/setup.bash
-ros2 launch orca_bringup rov_topside_launch.py
-~~~
-
-### Gstreamer pipelines
-
-On the UP board:
-
-~~~
-# Use the IP address of the topside computer:
-gst-launch-1.0 -v v4l2src device=/dev/video2 do-timestamp=true ! queue ! video/x-h264,width=1920,height=1080,framerate=30/1 ! h264parse ! queue ! rtph264pay config-interval=10 pt=96 ! udpsink host=192.168.86.105 port=5600
-~~~
-
-On the topside computer:
-
-~~~
-gst-launch-1.0 udpsrc port=5600 ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! avdec_h264 ! autovideosink
-~~~
-
-
-### Joystick
-
-The `teleop_node` subscribes to the `/joy` topic and generates messages on the `/armed`, `/cmd_vel`,
-`/lights` and `/camera_tilt` topics for the `base_controller`.
-It was written for an XBox joystick. Controls:
-* The menu button arms the ROV, the window button disarms the ROV
-* The left stick sets desired velocity forward / reverse and yaw left / yaw right
-* The right stick sets desired velocity up / down and strafe left / strafe right
-* Trim up / down adds or subtracts vertical velocity in 0.1 m/s increments
-* Trim left / right controls the lights
-* Left and right bumper buttons controls the camera tilt in 5 degree increments
-* A and B enable and disable the vertical hover thrust
-* X and Y enable and disable the vertical PID controller
-
-The `base_controller` boots with hover thrust and PID control turned off.
-They can be turned on once the ROV is in the water.
-
-The `base_controller` will limit acceleration and velocity.
-
-The ROS-provided `teleop_twist_joy` node supports more joysticks, but it doesn't support
-camera tilt, the lights, the vertical trim, and most importantly hover and PID control.
