@@ -238,10 +238,10 @@ void TopsideWidget::set_status(uint32_t status, double voltage)
 void TopsideWidget::set_tilt(int tilt)
 {
   QString message;
-  if (tilt > 0) {
-    message = QString("Up %1°").arg(tilt);
-  } else if (tilt < 0) {
-    message = QString("Down %1°").arg(-tilt);
+  if (tilt < 0) {
+    message = QString("Up %1°").arg(-tilt);
+  } else if (tilt > 0) {
+    message = QString("Down %1°").arg(tilt);
   } else {
     message = QString("No tilt");
   }
