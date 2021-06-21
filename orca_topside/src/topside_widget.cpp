@@ -76,7 +76,7 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
 
   set_armed(node_->armed());
   set_hold(node_->hold());
-  set_depth(0);
+  set_depth(0, 0);
   set_lights(node_->lights());
   set_status(orca_msgs::msg::Status::STATUS_NONE, 0);
   set_tilt(node_->tilt());
@@ -182,9 +182,11 @@ void TopsideWidget::set_hold(bool enabled)
   }
 }
 
-void TopsideWidget::set_depth(double depth)
+void TopsideWidget::set_depth(double target, double actual)
 {
-  auto message = QString("Z %1m").arg(depth, -1, 'f', 1);
+  auto message = QString("Z %1m [%2m]")
+    .arg(actual, -1, 'f', 1)
+    .arg(target, -1, 'f', 1);
   depth_label_->setText(message);
 }
 
@@ -212,7 +214,9 @@ void TopsideWidget::set_status(uint32_t status, double voltage)
       break;
     case orca_msgs::msg::Status::STATUS_READY:
     case orca_msgs::msg::Status::STATUS_RUNNING:
-      if (voltage < 16) {
+      if (voltage < node_->cxt().voltage_alert_) {
+        status_label_->setStyleSheet("background-color: red; color: white");
+      } else if (voltage < node_->cxt().voltage_warn_) {
         status_label_->setStyleSheet("background-color: yellow; color: black");
       } else {
         status_label_->setStyleSheet("background-color: greenyellow; color: black");

@@ -49,7 +49,7 @@ public:
   void set_armed(bool armed);
   void set_hold(bool enabled);
   void set_tilt(int tilt);
-  void set_depth(double depth);
+  void set_depth(double target, double actual);
   void set_lights(int lights);
   void set_status(uint32_t status, double voltage);
   void set_trim_x(double v);

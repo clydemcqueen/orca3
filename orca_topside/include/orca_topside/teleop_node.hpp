@@ -28,6 +28,7 @@
 #include "orca_msgs/msg/camera_tilt.hpp"
 #include "orca_msgs/msg/depth.hpp"
 #include "orca_msgs/msg/lights.hpp"
+#include "orca_msgs/msg/motion.hpp"
 #include "orca_msgs/msg/status.hpp"
 #include "orca_topside/xbox.hpp"
 #include "rclcpp/parameter_client.hpp"
@@ -48,6 +49,9 @@ class TopsideWidget;
   CXT_MACRO_MEMBER(status_timeout_ms, int, 500) /* Status message timeout in ms  */ \
   CXT_MACRO_MEMBER(deadzone, float, 0.05f) /* Ignore small joystick inputs  */ \
  \
+  CXT_MACRO_MEMBER(voltage_warn, double, 15.5) \
+  CXT_MACRO_MEMBER(voltage_alert, double, 14.5) \
+ \
   CXT_MACRO_MEMBER(vel_x, double, 1.0) /* Scale joystick input */ \
   CXT_MACRO_MEMBER(vel_y, double, 0.5) \
   CXT_MACRO_MEMBER(vel_z, double, 0.5) \
@@ -58,7 +62,7 @@ class TopsideWidget;
   CXT_MACRO_MEMBER(inc_vel_x, double, 0.1) \
   CXT_MACRO_MEMBER(inc_vel_y, double, 0.1) \
   CXT_MACRO_MEMBER(inc_vel_z, double, 0.1) \
-  CXT_MACRO_MEMBER(inc_vel_yaw, double, 0.1) \
+  CXT_MACRO_MEMBER(inc_vel_yaw, double, 0.05) \
  \
   CXT_MACRO_MEMBER(lcam, bool, false) /* Has a left camera */ \
   CXT_MACRO_MEMBER(rcam, bool, false) /* Has a right camera */ \
@@ -107,6 +111,7 @@ class TeleopNode : public rclcpp::Node
   const int joy_button_vel_z_trim_cancel_ = JOY_BUTTON_LOGO;
 
   sensor_msgs::msg::Joy joy_msg_;  // Compare 2 joy msgs to sense button transitions
+  orca_msgs::msg::Motion motion_msg_;  // Display target vs actual pose.z
   orca_msgs::msg::Status status_msg_;  // Raise alarm if status msgs stop arriving
 
   bool armed_{};          // True: keyboard and joystick active
@@ -126,6 +131,7 @@ class TeleopNode : public rclcpp::Node
 
   rclcpp::Subscription<orca_msgs::msg::Depth>::SharedPtr depth_sub_;
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
+  rclcpp::Subscription<orca_msgs::msg::Motion>::SharedPtr motion_sub_;
   rclcpp::Subscription<orca_msgs::msg::Status>::SharedPtr status_sub_;
 
   rclcpp::Publisher<orca_msgs::msg::Armed>::SharedPtr armed_pub_;

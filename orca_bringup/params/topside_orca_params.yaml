@@ -14,7 +14,7 @@ joy_node:
 
 teleop_node:
   ros__parameters:
-    deadzone: 0.1  # Increased deadzone from 0.05 to 0.1 after FT6
+    deadzone: 0.1  # Increased joystick deadzone from 0.05 to 0.1 after FT6
 
     # vel_?_ should match in teleop_node and base_controller
     vel_x: 0.8
@@ -22,8 +22,8 @@ teleop_node:
     vel_z: 0.4
     vel_yaw: 0.8  # Increase 0.4 to 0.8 after FT11
 
-    lcam: True
-    rcam: True
+    lcam: False
+    rcam: False
     small_widget_size: 500
 
     # Gstreamer bin parser seems to have trouble with trailing quotes, so don't end with a quote
@@ -74,6 +74,9 @@ base_controller:
 
     # Still working on mdl_drag_coef_z, try this for FT7
     mdl_drag_coef_z: 1.2
+
+    # Increase thruster PWM deadzone based on FT12
+    mdl_thrust_dz_pwm: 40
 
     # vel_?_ should match in teleop_node and base_controller
     x_vel: 0.8

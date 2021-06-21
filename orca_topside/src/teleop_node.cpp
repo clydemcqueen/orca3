@@ -187,7 +187,7 @@ TeleopNode::TeleopNode()
     [this](orca_msgs::msg::Depth::ConstSharedPtr msg)
     {
       if (view_) {
-        view_->set_depth(msg->z);
+        view_->set_depth(motion_msg_.pose.position.z, msg->z);
       }
     });
 
@@ -253,6 +253,12 @@ TeleopNode::TeleopNode()
       }
 
       joy_msg_ = *msg;
+    });
+
+  motion_sub_ = create_subscription<orca_msgs::msg::Motion>("motion", 10,
+    [this](orca_msgs::msg::Motion::ConstSharedPtr msg)
+    {
+      motion_msg_ = *msg;
     });
 
   status_sub_ = create_subscription<orca_msgs::msg::Status>("status", 10,
