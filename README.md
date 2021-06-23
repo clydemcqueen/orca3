@@ -145,3 +145,4 @@ You should notice a loop closure when the square is completed. The adjustment is
 * [`orca_msgs` Custom messages](orca_msgs)
 * [`orca_nav2` Nav2 plugins](orca_nav2)
 * [`orca_shared` Dynamics model, shared utilities](orca_shared)
+* [`orca_topside` Qt5 + GStreamer + ROS2 app for teleoperation (ROV operation)](orca_topside)

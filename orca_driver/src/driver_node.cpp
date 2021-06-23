@@ -165,13 +165,8 @@ class DriverNode : public rclcpp::Node
     spin_timer_ = create_wall_timer(std::chrono::milliseconds{cxt_.timer_period_ms_},
       [this]()
       {
-        if (!maestro_.ready()) {
-          return;
-        }
-
-        if (!read_battery() || !read_leak() || !read_temp()) {
-          // Huge problem, we're done
-          abort();
+        if (!maestro_.ready() || !read_battery() || !read_leak()) {
+          // Dive aborted
           return;
         }
 
@@ -181,7 +176,7 @@ class DriverNode : public rclcpp::Node
           RCLCPP_INFO(get_logger(), "thrust timeout");
           thrust_msg_time_ = rclcpp::Time();
           all_stop();
-          set_status(orca_msgs::msg::Status::STATUS_OK);
+          set_status(orca_msgs::msg::Status::STATUS_READY);
         }
 
         status_msg_.header.stamp = now();
@@ -191,13 +186,14 @@ class DriverNode : public rclcpp::Node
     );
   }
 
-  // Connect to Maestro and run pre-dive checks, return true if successful
+  // Connect to the Maestro
   bool connect_controller()
   {
     maestro_.connect(cxt_.maestro_port_);
     if (!maestro_.ready()) {
       RCLCPP_ERROR(get_logger(), "could not open port %s, connected? member of dialout?",
         cxt_.maestro_port_.c_str());
+      abort(orca_msgs::msg::Status::STATUS_ABORT_HARDWARE);
       return false;
     }
     RCLCPP_INFO(get_logger(), "port %s open", cxt_.maestro_port_.c_str());
@@ -216,6 +212,7 @@ class DriverNode : public rclcpp::Node
           RCLCPP_ERROR(get_logger(), "thruster %d didn't initialize properly (and possibly others)",
             i + 1);
           maestro_.disconnect();
+          abort(orca_msgs::msg::Status::STATUS_ABORT_HARDWARE);
           return false;
         }
       }
@@ -224,7 +221,7 @@ class DriverNode : public rclcpp::Node
     return true;
   }
 
-  void set_status(uint8_t status)
+  void set_status(uint32_t status)
   {
     // Note: mraa bug might log bogus error messages, ignore these
     // https://github.com/eclipse/mraa/issues/957
@@ -236,18 +233,12 @@ class DriverNode : public rclcpp::Node
       LED_CONNECTED_OFF();
       LED_PROBLEM_OFF();
 
-      switch (status_msg_.status) {
-        case orca_msgs::msg::Status::STATUS_OK:
-          LED_READY_ON();
-          break;
-        case orca_msgs::msg::Status::STATUS_CONNECTED:
-          LED_CONNECTED_ON();
-          break;
-        case orca_msgs::msg::Status::STATUS_ABORT:
-          LED_PROBLEM_ON();
-          break;
-        default:
-          break;
+      if (status_msg_.status == orca_msgs::msg::Status::STATUS_READY) {
+        LED_READY_ON();
+      } else if (status_msg_.status == orca_msgs::msg::Status::STATUS_RUNNING) {
+        LED_CONNECTED_ON();
+      } else if (status_msg_.status >= orca_msgs::msg::Status::STATUS_ABORT_HARDWARE) {
+        LED_PROBLEM_ON();
       }
     }
   }
@@ -280,15 +271,22 @@ class DriverNode : public rclcpp::Node
         !maestro_.getAnalog(static_cast<uint8_t>(cxt_.voltage_channel_), value)) {
         RCLCPP_ERROR(get_logger(), "could not read the battery, correct bus? member of i2c?");
         status_msg_.voltage = 0;
-        status_msg_.low_battery = true;
+
+#if 0
+        abort(orca_msgs::msg::Status::STATUS_ABORT_HARDWARE);
         return false;
+#else
+        // Bug: high thrust use occasionally causes getAnalog to fail
+        // Ignore this for now TODO fix
+        return true;
+#endif
       }
 
       status_msg_.voltage = value * cxt_.voltage_multiplier_;
-      status_msg_.low_battery = static_cast<uint8_t>(status_msg_.voltage < cxt_.voltage_min_);
-      if (status_msg_.low_battery) {
+      if (status_msg_.voltage < cxt_.voltage_min_) {
         RCLCPP_ERROR(get_logger(), "battery voltage %g is below minimum %g", status_msg_.voltage,
           cxt_.voltage_min_);
+        abort(orca_msgs::msg::Status::STATUS_ABORT_LOW_BATTERY);
         return false;
       }
     }
@@ -300,42 +298,17 @@ class DriverNode : public rclcpp::Node
   bool read_leak()
   {
     if (cxt_.read_leak_ && cxt_.maestro_port_ != FAKE_PORT) {
-      bool value = false;
+      bool leak = false;
       if (!maestro_.ready() ||
-        !maestro_.getDigital(static_cast<uint8_t>(cxt_.leak_channel_), value)) {
+        !maestro_.getDigital(static_cast<uint8_t>(cxt_.leak_channel_), leak)) {
         RCLCPP_ERROR(get_logger(), "could not read the leak sensor");
-        status_msg_.leak_detected = true;
+        abort(orca_msgs::msg::Status::STATUS_ABORT_HARDWARE);
         return false;
       }
 
-      status_msg_.leak_detected = static_cast<uint8_t>(value);
-      if (status_msg_.leak_detected) {
+      if (leak) {
         RCLCPP_ERROR(get_logger(), "leak detected");
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  // Read temp sensor, return true if everything is OK
-  bool read_temp()
-  {
-    if (cxt_.read_temp_ && cxt_.maestro_port_ != FAKE_PORT) {
-      // Raspberry Pi CPU is thermal_zone0
-      static const char *PROC_TEMP = "/sys/class/thermal/thermal_zone0/temp";
-      std::ifstream file(PROC_TEMP);
-      if (!file.is_open()) {
-        RCLCPP_ERROR(get_logger(), "%s is missing", PROC_TEMP);
-        return false;
-      }
-      std::string line;
-      std::getline(file, line);
-      try {
-        status_msg_.cpu_temp = std::stoi(line, nullptr);
-      }
-      catch (const std::exception & e) {
-        RCLCPP_ERROR(get_logger(), "stoi failed");
+        abort(orca_msgs::msg::Status::STATUS_ABORT_LEAK);
         return false;
       }
     }
@@ -356,10 +329,10 @@ class DriverNode : public rclcpp::Node
   }
 
   // Abnormal exit
-  void abort()
+  void abort(uint32_t status)
   {
     RCLCPP_ERROR(get_logger(), "aborting dive");
-    set_status(orca_msgs::msg::Status::STATUS_ABORT);
+    set_status(status);
     all_stop();
     maestro_.disconnect();
   }
@@ -394,7 +367,7 @@ public:
         thrust_msg_lag_ = valid(msg->header.stamp) ? (now() - msg->header.stamp).seconds() : 0;
 
         if (maestro_.ready()) {
-          set_status(orca_msgs::msg::Status::STATUS_CONNECTED);
+          set_status(orca_msgs::msg::Status::STATUS_RUNNING);
 
           for (size_t i = 0; i < 6; ++i) {
             set_thruster(thrusters_[i], msg->thrust[i]);
@@ -424,12 +397,10 @@ public:
         }
       });
 
-    // Initialize all hardware
-    if (!connect_controller() || !read_battery() || !read_leak()) {
-      abort();
-    } else {
-      set_status(orca_msgs::msg::Status::STATUS_OK);
-      RCLCPP_INFO(get_logger(), "driver_node running");
+    // Connect to controller and run pre-dive checks
+    if (connect_controller() && read_battery() && read_leak()) {
+      set_status(orca_msgs::msg::Status::STATUS_READY);
+      RCLCPP_INFO(get_logger(), "driver_node ready");
     }
   }
 

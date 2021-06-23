@@ -22,7 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""Launch sub for ROV operations."""
+"""Launch sub nodes."""
 
 from launch import LaunchDescription
 from launch_ros.actions import Node

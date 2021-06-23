@@ -57,19 +57,48 @@ class BagParser:
                 timestamp, data in rows]
 
 
+def print_usage():
+    print('Print all messages:')
+    print('    ros2 run orca_bringup /path/bag.db3')
+
+    print('Print messages from only1, only2, ...:')
+    print('    ros2 run orca_bringup /path/bag.db3 [only only1 [only2 ...]]')
+
+    print('Ignore messages from ignore1, ignore2, ...:')
+    print('    ros2 run orca_bringup /path/bag.db3 [ignore ignore1 [ignore2 ...]]')
+
+
 def main(args: List):
-    print(args)
-    if len(args) != 2:
-        print('Usage: python3 install/orca_bringup/lib/orca_bringup/dump_rosout.py /path/bag.db3')
+    if len(args) < 2 or len(args) == 3:
+        print_usage()
         return
 
+    only = []
+    ignore = []
+
+    if len(args) > 2:
+        modifier = args[2]
+        if modifier != 'only' and modifier != 'ignore':
+            print_usage()
+            return
+
+        for arg in args[3:]:
+            if modifier == 'only':
+                print('Only', arg)
+                only.append(arg)
+            else:
+                print('Ignore', arg)
+                ignore.append(arg)
+
     print('Open', args[1])
+    print('----------------------------------------------------')
     parser = BagParser(args[1])
     rosout = parser.get_messages('/rosout')
     for msg in rosout:
-        stamp = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(msg[0] / 1e9))
         log: Log = msg[1]
-        print(stamp, ':', log.name, ':', log.msg)
+        if (len(only) and log.name in only) or (not len(only) and log.name not in ignore):
+            stamp = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(msg[0] / 1e9))
+            print(stamp, ':', log.name, ':', log.msg)
 
 
 if __name__ == '__main__':

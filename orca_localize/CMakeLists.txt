@@ -25,6 +25,8 @@ endif()
 find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 
+ament_auto_add_executable(camera_info_publisher src/camera_info_publisher.cpp)
+
 ament_auto_add_executable(fiducial_localizer src/fiducial_localizer.cpp)
 
 ament_auto_add_executable(orb_slam2_localizer src/orb_slam2_localizer.cpp)

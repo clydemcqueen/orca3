@@ -23,53 +23,40 @@
 # SOFTWARE.
 
 """
-Generate fake /barometer messages, useful for testing ROV topside nodes.
+Generate fake /status messages, useful for testing ROV topside nodes.
 
 Usage:
--- ros2 run orca_base fake_barometer.py
+-- ros2 run orca_base fake_driver.py
 """
-
-from orca_msgs.msg import Barometer
+import orca_msgs.msg
+from orca_msgs.msg import Status
 import rclpy
 import rclpy.logging
 from rclpy.node import Node
 
 TIMER_PERIOD = 0.05
-PRESSURE_AIR = 100000.
-PRESSURE_2 = 105000.
 
 
-class FakeBarometer(Node):
+class FakeDriver(Node):
 
     def __init__(self):
-        super().__init__('fake_barometer')
+        super().__init__('fake_driver')
 
-        self._barometer_pub = self.create_publisher(Barometer, '/barometer', 10)
-
-        # First message should be "air pressure" to calibrate base_controller
-        msg = Barometer()
-        msg.header.stamp = self.get_clock().now().to_msg()
-        msg.pressure = PRESSURE_AIR
-        self._barometer_pub.publish(msg)
-
+        self._status_pub = self.create_publisher(Status, '/status', 10)
         self._timer = self.create_timer(TIMER_PERIOD, self.timer_callback)
 
     def timer_callback(self):
-        msg = Barometer()
+        msg = Status()
         msg.header.stamp = self.get_clock().now().to_msg()
-        msg.pressure_variance = 1.
-
-        if msg.header.stamp.sec % 10 >= 5:
-            msg.pressure = PRESSURE_AIR
-        else:
-            msg.pressure = PRESSURE_2
-        self._barometer_pub.publish(msg)
+        msg.status = orca_msgs.msg.Status.STATUS_READY
+        msg.voltage = 16.
+        self._status_pub.publish(msg)
 
 
 def main():
     rclpy.init()
 
-    node = FakeBarometer()
+    node = FakeDriver()
 
     try:
         rclpy.spin(node)

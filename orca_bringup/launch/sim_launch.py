@@ -58,6 +58,7 @@ worlds = [
 slams = [
     'vlam',  # fiducial_vlam
     'orb',  # orb_slam2_ros
+    'none',  # No slam
 ]
 
 
@@ -69,6 +70,7 @@ def generate_launch_description():
     orca_bringup_launch_dir = os.path.join(orca_bringup_dir, 'launch')
 
     urdf_file = os.path.join(orca_description_dir, 'urdf', 'hw7.urdf')
+    orca_params_file = os.path.join(orca_bringup_dir, 'params', 'sim_orca_params.yaml')
     nav2_params_file = os.path.join(orca_bringup_dir, 'params', 'nav2_params.yaml')
 
     return LaunchDescription([
@@ -90,7 +92,7 @@ def generate_launch_description():
 
         DeclareLaunchArgument(
             'world',
-            default_value=worlds[0],
+            default_value='empty',
             description='Choose world: ' + ', '.join(worlds)),
 
         DeclareLaunchArgument(
@@ -199,7 +201,9 @@ def generate_launch_description():
                 'use_sim_time': LaunchConfiguration('use_sim_time'),
                 'slam': LaunchConfiguration('slam'),
                 'nav': LaunchConfiguration('nav'),
+                # PythonExpression substitution will do a deferred string join:
                 'vlam_map': [orca_gazebo_dir, '/worlds/', LaunchConfiguration('world'), '_map.yaml'],
+                'orca_params_file': orca_params_file,
                 'nav2_params_file': nav2_params_file,
             }.items()),
     ])

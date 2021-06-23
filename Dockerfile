@@ -24,6 +24,12 @@ RUN apt-get upgrade -y
 RUN apt-get install -y python3-pip
 RUN yes | pip3 install transformations
 
+# Required for orca_topside
+RUN apt-get install -y libgstreamer1.0-0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
+ gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-doc gstreamer1.0-tools \
+ gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio \
+ libgstreamer-plugins-base1.0-dev
+
 WORKDIR /work/orca_ws/src
 
 ARG TARGET_ROS_DISTRO
@@ -35,7 +41,7 @@ ARG SIM_FIDUCIAL_BRANCH
 ARG UKF_BRANCH
 
 RUN git clone https://github.com/clydemcqueen/orca3.git -b $ORCA3_BRANCH
-# TODO touch orca_driver/COLCON_IGNORE
+RUN touch orca3/orca_driver/COLCON_IGNORE
 RUN git clone https://github.com/ptrmu/fiducial_vlam.git -b $FIDUCIAL_VLAM_BRANCH
 RUN git clone https://github.com/clydemcqueen/orb_slam_2_ros.git -b $ORB_SLAM2_ROS_BRANCH
 RUN git clone https://github.com/ptrmu/ros2_shared.git -b $ROS2_SHARED_BRANCH
@@ -46,4 +52,4 @@ WORKDIR /work/orca_ws
 
 RUN rosdep install -y --from-paths . --ignore-src
 
-RUN /bin/bash -c "source /opt/ros/$TARGET_ROS_DISTRO/setup.bash && colcon build"
+# RUN /bin/bash -c "source /opt/ros/$TARGET_ROS_DISTRO/setup.bash && colcon build"

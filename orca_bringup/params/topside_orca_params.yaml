@@ -1,0 +1,153 @@
+# Params for Orca3 nodes
+# Tuned during field tests in Discovery Bay Spring/summer 2021
+# Each ballast weight weighs 0.19kg
+
+baro_filter_node:
+  ros__parameters:
+    ukf_Q: True
+
+joy_node:
+  ros__parameters:
+    dev: "/dev/input/js0"
+    autorepeat_rate: 20.  # Set /joy Hz
+    deadzone: 0.0  # Deadzone > 0 breaks autorepeat_rate
+
+teleop_node:
+  ros__parameters:
+    deadzone: 0.1  # Increased joystick deadzone from 0.05 to 0.1 after FT6
+
+    # vel_?_ should match in teleop_node and base_controller
+    vel_x: 0.8
+    vel_y: 0.4
+    vel_z: 0.4
+    vel_yaw: 0.8  # Increase 0.4 to 0.8 after FT11
+
+    lcam: False
+    rcam: False
+    small_widget_size: 500
+
+    # Gstreamer bin parser seems to have trouble with trailing quotes, so don't end with a quote
+    gst_source_bin_f: "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=1600,height=900,framerate=20/1"
+    gst_display_bin_f: "textoverlay text=\"forward\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center"
+
+    gst_source_bin_l: "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=400,height=300,framerate=20/1"
+    gst_display_bin_l: "textoverlay text=\"left\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center"
+
+    gst_source_bin_r: "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=400,height=300,framerate=20/1"
+    gst_display_bin_r: "textoverlay text=\"right\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center"
+
+    # h264parse element is required before and after the tee & valves -- not sure why
+#    gst_source_bin_f: "udpsrc port=5600 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse"
+#    gst_display_bin_f: "h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB"
+#    gst_record_bin_f: "h264parse ! mp4mux ! filesink location=fcam_%Y-%m-%d_%H-%M-%S.mp4"
+#    sync_f: false
+
+#    gst_source_bin_l: "udpsrc port=5601 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse"
+#    gst_display_bin_l: "h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB"
+#    gst_record_bin_l: "h264parse ! mp4mux ! filesink location=lcam_%Y-%m-%d_%H-%M-%S.mp4"
+#    sync_l: false
+
+#    gst_source_bin_r: "udpsrc port=5602 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse"
+#    gst_display_bin_r: "h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB"
+#    gst_record_bin_r: "h264parse ! mp4mux ! filesink location=rcam_%Y-%m-%d_%H-%M-%S.mp4"
+#    sync_r: false
+
+base_controller:
+  ros__parameters:
+    stamp_msgs_with_current_time: False  # False: use sub clock.now()
+    hover_thrust: False  # Boot ROV with 0 vertical thrust, enable/disable with joystick
+    pid_enabled: False  # Boot ROV with 0 vertical thrust, enable/disable with joystick
+    coast: True  # Experimental 'coast' mode, added after FT11
+
+    # FT6 ran with model defaults
+    # mdl_mass: 9.75
+    # mdl_volume: 0.01
+    # mdl_thrust_scale: 0.7
+
+    # Tested in FT7
+    mdl_mass: 11.3
+    mdl_volume: 0.01115
+    mdl_thrust_scale: 0.7
+
+    # FT4+ is in saltwater
+    mdl_fluid_density: 1027.  # Saltwater
+
+    # Still working on mdl_drag_coef_z, try this for FT7
+    mdl_drag_coef_z: 1.2
+
+    # Increase thruster PWM deadzone based on FT12
+    mdl_thrust_dz_pwm: 40
+
+    # vel_?_ should match in teleop_node and base_controller
+    x_vel: 0.8
+    y_vel: 0.4
+    z_vel: 0.4
+    yaw_vel: 0.8  # Increase 0.4 to 0.8 after FT11
+
+    x_accel: 0.8
+    y_accel: 0.4
+    z_accel: 0.4
+    yaw_accel: 0.8
+
+    pid_z_kp: 0.8  # Increase 0.5 to 0.8 after FT12
+    pid_z_ki: 0.0
+    pid_z_kd: 0.0
+    pid_z_i_max: 0.1
+
+forward_camera/gscam_main:
+  ros__parameters:
+    camera_name: "forward_camera"
+    camera_info_url: "/fix/this/path"
+    gscam_config: "v4l2src device=/dev/video0 do-timestamp=true ! video/x-h264,width=1920,height=1080,framerate=30/1 ! h264parse ! avdec_h264 ! videoconvert"
+    preroll: False
+    use_gst_timestamps: False
+    frame_id: "forward_camera_frame"
+
+vmap_main:
+  ros__parameters:
+    # Publish marker /tf
+    publish_tfs: 1
+
+    # Use a pre-built map
+    make_not_use_map: 0
+
+    # Load map
+    marker_map_load_full_filename: "placeholder"
+
+    # Don"t save the map
+    marker_map_save_full_filename: ""
+
+    # Marker length
+    marker_length: 0.16
+
+forward_camera/vloc_main:
+  ros__parameters:
+    stamp_msgs_with_current_time: 1 # Int can"t be modified by param_rewrites? Hand-edit
+
+    camera_frame_id: "forward_camera_frame"
+
+    # Publish various things
+    publish_camera_pose: 1
+    publish_base_pose: 0
+    publish_tfs: 0
+    publish_tfs_per_marker: 0
+    publish_camera_odom: 0
+    publish_base_odom: 0
+    publish_image_marked: 1
+
+    # Camera pipeline publishes 'reliable'
+    sub_camera_info_best_effort_not_reliable: 0
+    sub_image_raw_best_effort_not_reliable: 0
+
+    # OpenCV4 ArUco corner refinement
+    # 0 = CORNER_REFINE_NONE
+    # 1 = CORNER_REFINE_SUBPIX
+    # 2 = CORNER_REFINE_CONTOUR (default)
+    # 3 = CORNER_REFINE_APRILTAG (best and slowest)
+    corner_refinement_method: 3
+
+fiducial_localizer:
+  ros__parameters:
+    camera_frame_id: "forward_camera_frame"
+    publish_rate: 20
+    good_pose_distance: 2.0

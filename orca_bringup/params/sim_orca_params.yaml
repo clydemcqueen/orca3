@@ -19,13 +19,15 @@ joy_node:
 teleop_node:
   ros__parameters:
     use_sim_time: False
+    stamp_msgs_with_current_time: True
+    show_window: False
     deadzone: 0.05  # Deadzone: ignore small joystick motions
 
-    # ?_vel_ should match in teleop_node and base_controller
-    x_vel: 1.0
-    y_vel: 0.5
-    z_vel: 0.5
-    yaw_vel: 1.0
+    # vel_?_ should match in teleop_node and base_controller
+    vel_x: 1.0
+    vel_y: 0.5
+    vel_z: 0.5
+    vel_yaw: 1.0
 
 base_controller:
   ros__parameters:
@@ -40,7 +42,7 @@ base_controller:
     hover_thrust: True  # Add hover thrust
     pid_enabled: True  # Hold vertical position at odom.z
 
-    # ?_vel_ should match in teleop_node and base_controller
+    # vel_?_ should match in teleop_node and base_controller
     x_vel: 1.0
     y_vel: 0.5
     z_vel: 0.5
@@ -64,7 +66,7 @@ vmap_main:
     make_not_use_map: 0
 
     # Load map
-    marker_map_load_full_filename: "install/orca_gazebo/share/orca_gazebo/worlds/medium_ring_map.yaml"
+    marker_map_load_full_filename: "placeholder"
 
     # Don't save the map
     marker_map_save_full_filename: ""
