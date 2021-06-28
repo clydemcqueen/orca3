@@ -27,20 +27,20 @@ teleop_node:
     small_widget_size: 500
 
     # Gstreamer bin parser seems to have trouble with trailing quotes, so don't end with a quote
-    gst_source_bin_f: "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=1600,height=900,framerate=20/1"
-    gst_display_bin_f: "textoverlay text=\"forward\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center"
+#    gst_source_bin_f: "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=1600,height=900,framerate=20/1"
+#    gst_display_bin_f: "textoverlay text=\"forward\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center"
 
-    gst_source_bin_l: "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=400,height=300,framerate=20/1"
-    gst_display_bin_l: "textoverlay text=\"left\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center"
+#    gst_source_bin_l: "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=400,height=300,framerate=20/1"
+#    gst_display_bin_l: "textoverlay text=\"left\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center"
 
-    gst_source_bin_r: "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=400,height=300,framerate=20/1"
-    gst_display_bin_r: "textoverlay text=\"right\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center"
+#    gst_source_bin_r: "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=400,height=300,framerate=20/1"
+#    gst_display_bin_r: "textoverlay text=\"right\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center"
 
     # h264parse element is required before and after the tee & valves -- not sure why
-#    gst_source_bin_f: "udpsrc port=5600 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse"
-#    gst_display_bin_f: "h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB"
-#    gst_record_bin_f: "h264parse ! mp4mux ! filesink location=fcam_%Y-%m-%d_%H-%M-%S.mp4"
-#    sync_f: false
+    gst_source_bin_f: "udpsrc port=5600 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse"
+    gst_display_bin_f: "h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB"
+    gst_record_bin_f: "h264parse ! mp4mux ! filesink location=fcam_%Y-%m-%d_%H-%M-%S.mp4"
+    sync_f: false
 
 #    gst_source_bin_l: "udpsrc port=5601 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse"
 #    gst_display_bin_l: "h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB"
