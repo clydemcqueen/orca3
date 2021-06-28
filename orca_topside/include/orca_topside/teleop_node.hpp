@@ -104,6 +104,8 @@ class TeleopNode : public rclcpp::Node
   const int joy_button_arm_ = JOY_BUTTON_MENU;
   const int joy_button_hold_disable_ = JOY_BUTTON_A;
   const int joy_button_hold_enable_ = JOY_BUTTON_B;
+  const int joy_button_stick_z_disable_ = JOY_BUTTON_X;
+  const int joy_button_stick_z_enable_ = JOY_BUTTON_Y;
   const int joy_button_camera_tilt_up_ = JOY_BUTTON_LEFT_BUMPER;
   const int joy_button_camera_tilt_down_ = JOY_BUTTON_RIGHT_BUMPER;
   const int joy_axis_lights_ = JOY_AXIS_TRIM_LR;
@@ -116,6 +118,7 @@ class TeleopNode : public rclcpp::Node
 
   bool armed_{};          // True: keyboard and joystick active
   bool hold_{};           // True: hover and pid enabled
+  bool stick_z_{};        // True: the z stick is enabled
   int tilt_target_{};     // Target camera tilt angle [-45, 45]
   int tilt_current_{};    // Current camera tilt angle
   int lights_{};          // Lights value [0, 100]
@@ -160,6 +163,7 @@ class TeleopNode : public rclcpp::Node
 
   bool armed() const { return armed_; }
   bool hold() const { return hold_; }
+  bool stick_z() const { return stick_z_; }
   int tilt() const { return tilt_target_; }
   int lights() const { return lights_; }
   double trim_x() const { return trim_x_; }
@@ -171,6 +175,7 @@ class TeleopNode : public rclcpp::Node
   void disarm();
   void stop();
   void set_hold(bool enable);
+  void set_stick_z(bool enable);
   void inc_tilt();
   void dec_tilt();
   void inc_lights();

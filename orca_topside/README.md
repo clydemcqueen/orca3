@@ -41,9 +41,15 @@ and upper-right corners.
 * The right stick sets desired velocity up / down and strafe left / strafe right
 * Trim up / down adds or subtracts vertical velocity in 0.1 m/s increments
 * Trim left / right controls the lights
+* The logo button cancels vertical trim
 * Left and right bumper buttons controls the camera tilt in 15 degree increments
 * A selects _float_ (hover thrust and PID controller disabled)
 * B selects _hold_ (hover thrust and PID controller enabled)
+* X disables the right stick up / down motion.
+  This makes it easy to strafe while holding a vertical position.
+  Use trim to control vertical velocity and position.
+  The default is disabled.
+* Y enables the right stick up / down motion
 
 ## Keyboard controls
 

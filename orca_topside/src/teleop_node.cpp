@@ -213,6 +213,13 @@ TeleopNode::TeleopNode()
         set_hold(true);
       }
 
+      // Enable/disable the z stick
+      if (button_down(msg, joy_msg_, joy_button_stick_z_disable_)) {
+        set_stick_z(false);
+      } else if (button_down(msg, joy_msg_, joy_button_stick_z_enable_)) {
+        set_stick_z(true);
+      }
+
       // Camera tilt
       if (button_down(msg, joy_msg_, joy_button_camera_tilt_down_)) {
         dec_tilt();
@@ -234,8 +241,8 @@ TeleopNode::TeleopNode()
         orca::deadzone(joy_msg_.axes[joy_axis_x_], cxt_.deadzone_) * cxt_.vel_x_;
       stick_vel_.linear.y =
         orca::deadzone(joy_msg_.axes[joy_axis_y_], cxt_.deadzone_) * cxt_.vel_y_;
-      stick_vel_.linear.z =
-        orca::deadzone(joy_msg_.axes[joy_axis_z_], cxt_.deadzone_) * cxt_.vel_z_;
+      stick_vel_.linear.z = stick_z_ ?
+        orca::deadzone(joy_msg_.axes[joy_axis_z_], cxt_.deadzone_) * cxt_.vel_z_ : 0;
       stick_vel_.angular.z =
         orca::deadzone(joy_msg_.axes[joy_axis_yaw_], cxt_.deadzone_) * cxt_.vel_yaw_;
 
@@ -330,6 +337,14 @@ void TeleopNode::set_hold(bool enable)
       view_) {
       view_->set_hold(enable);
     }
+  }
+}
+
+void TeleopNode::set_stick_z(bool enable)
+{
+  if (stick_z_ != enable) {
+    stick_z_ = enable;
+    RCLCPP_INFO(get_logger(), stick_z_ ? "z stick enabled" : "z stick disabled");
   }
 }
 

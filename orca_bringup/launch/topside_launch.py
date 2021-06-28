@@ -24,19 +24,13 @@
 
 """Launch topside nodes."""
 
-# Test w/ no barometer:
-# ros2 topic pub -r 20 -p 20 /barometer orca_msgs/msg/Barometer {}
-
-# Test w/ fake barometer:
-# ros2 run orca_base fake_barometer.py
-
-# Test w/ fake driver:
-# ros2 run orca_base fake_driver.py
+# Test w/ fake barometer and driver:
+# ros2 launch orca_bringup topside_launch.py fake:=True
 
 # ROV operations:
 # ros2 launch orca_bringup topside_launch.py
 
-# AUV running ping-pong:
+# AUV running ping-pong (NOT WORKING):
 # ros2 launch orca_bringup topside_launch.py world:=ping_pong nav:=True slam:=vlam
 
 import os
@@ -69,7 +63,7 @@ def generate_launch_description():
 
     orca_params_file = os.path.join(orca_bringup_dir, 'params', 'topside_orca_params.yaml')
     nav2_params_file = os.path.join(orca_bringup_dir, 'params', 'nav2_params.yaml')
-    camera_info_file = 'file://' + os.path.join(orca_bringup_dir, 'cfg', 'forward_1920x1080.yaml')
+    # camera_info_file = 'file://' + os.path.join(orca_bringup_dir, 'cfg', 'forward_1920x1080.yaml')
 
     return LaunchDescription([
         DeclareLaunchArgument(
@@ -91,9 +85,9 @@ def generate_launch_description():
         ),
 
         DeclareLaunchArgument(
-            'gscam2',
+            'fake',
             default_value='False',
-            description='Launch gscam2?',
+            description='Launch fake_barometer and fake_driver?',
         ),
 
         # Bag useful topics
@@ -126,30 +120,22 @@ def generate_launch_description():
             output='screen',
         ),
 
-        # Convert rtp video to ROS2
-        # TODO keep?
+        # Fake barometer for testing orca_topside
         Node(
-            package='gscam2',
-            executable='gscam_main',
+            package='orca_base',
+            executable='fake_barometer.py',
             output='screen',
-            name='gscam_main',
-            namespace='forward_camera',
-            parameters=[orca_params_file, {
-                'camera_info_url': camera_info_file,
-            }],
-            condition=IfCondition(LaunchConfiguration('gscam2')),
+            name='fake_barometer',
+            condition=IfCondition(LaunchConfiguration('fake')),
         ),
 
-        # TODO place behind gst-ros-bridge IfCondition
+        # Fake driver for testing orca_topside
         Node(
-            package='orca_localize',
-            executable='camera_info_publisher',
+            package='orca_base',
+            executable='fake_driver.py',
             output='screen',
-            name='camera_info_publisher',
-            namespace='forward_camera',
-            parameters=[{
-                'camera_info_url': camera_info_file,
-            }],
+            name='fake_driver',
+            condition=IfCondition(LaunchConfiguration('fake')),
         ),
 
         # Bring up all nodes
