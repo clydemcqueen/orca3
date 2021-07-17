@@ -45,10 +45,7 @@ In a terminal run:
 
 ~~~
 cd ~/ros2/orca_ws
-source /opt/ros/foxy/setup.bash
-source install/local_setup.bash
-export GAZEBO_MODEL_PATH=${PWD}/install/sim_fiducial/share/sim_fiducial/models
-source /usr/share/gazebo/setup.sh
+source src/orca3/setup.bash
 ros2 launch orca_bringup sim_launch.py gzclient:=True rviz:=True slam:=vlam world:=ping_pong
 ~~~
 
@@ -65,6 +62,8 @@ There are two more AUV markers 2 meters below the surface, facing each other 10 
 Execute a mission by calling the `FollowWaypoints` action in a second terminal:
 
 ~~~
+cd ~/ros2/orca_ws
+source src/orca3/setup.bash
 # Aligns with markers on the ping-pong map
 ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses: [\
 {header: {frame_id: 'map'}, pose: {position: {x: 4, z: -2}}},\
@@ -87,10 +86,7 @@ In a terminal run:
 
 ~~~
 cd ~/ros2/orca_ws
-source /opt/ros/foxy/setup.bash
-source install/local_setup.bash
-export GAZEBO_MODEL_PATH=${PWD}/install/sim_fiducial/share/sim_fiducial/models
-source /usr/share/gazebo/setup.sh
+source src/orca3/setup.bash
 ros2 launch orca_bringup sim_launch.py gzclient:=True rviz:=True slam:=orb world:=empty
 ~~~
 
@@ -105,6 +101,8 @@ The pointcloud shows the ORB features recognized by `orb_slam2_ros`.
 Execute a mission by calling the `FollowWaypoints` action in a second terminal:
 
 ~~~
+cd ~/ros2/orca_ws
+source src/orca3/setup.bash
 # Run a 6m x 6m box 1.5m above the seafloor, will do a loop closure
 ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses: [\
 {header: {frame_id: 'map'}, pose: {position: {x: 3, y: 3, z: -2.5}}},\

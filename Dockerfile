@@ -5,8 +5,6 @@
 
 # Example run command using Rocker (see https://github.com/osrf/rocker):
 # rocker --x11 --nvidia orca3:foxy
-# source src/orca3/setup.bash
-# ros2 launch orca_bringup sim_launch.py gzclient:=False rviz:=True slam:=orb world:=empty
 
 ARG TARGET_ROS_DISTRO=foxy
 ARG ORCA3_BRANCH=main
@@ -53,3 +51,11 @@ WORKDIR /work/orca_ws
 RUN rosdep install -y --from-paths . --ignore-src
 
 RUN /bin/bash -c "source /opt/ros/$TARGET_ROS_DISTRO/setup.bash && colcon build"
+
+# Simulation with fiducial_vlam:
+# source src/orca3/setup.bash
+# ros2 launch orca_bringup sim_launch.py gzclient:=True rviz:=True slam:=vlam world:=ping_pong
+
+# Simulation with orb_slam2_ros:
+# source src/orca3/setup.bash
+# ros2 launch orca_bringup sim_launch.py gzclient:=True rviz:=True slam:=orb world:=empty
