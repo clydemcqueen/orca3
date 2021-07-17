@@ -52,4 +52,4 @@ WORKDIR /work/orca_ws
 
 RUN rosdep install -y --from-paths . --ignore-src
 
-# RUN /bin/bash -c "source /opt/ros/$TARGET_ROS_DISTRO/setup.bash && colcon build"
+RUN /bin/bash -c "source /opt/ros/$TARGET_ROS_DISTRO/setup.bash && colcon build"
