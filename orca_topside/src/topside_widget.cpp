@@ -90,9 +90,9 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
     node_->cxt().gst_record_bin_f_, node_->cxt().sync_f_);
 
   // Overlapping camera widgets; last widget added is on top
-  auto gst_widget_f = video_pipeline_f_->start_display();
-  auto cam_layout = new TopsideLayout(node_->cxt().small_widget_size_);
-  cam_layout->addWidget(gst_widget_f, TopsideLayout::HD_16x9, Qt::AlignHCenter | Qt::AlignBottom);
+  gst_widget_f_ = video_pipeline_f_->start_display();
+  cam_layout_ = new TopsideLayout(node_->cxt().small_widget_size_);
+  cam_layout_->addWidget(gst_widget_f_, TopsideLayout::HD_16x9, Qt::AlignHCenter | Qt::AlignTop);
 
   if (node_->cxt().lcam_) {
     pipeline_l_label_ = new QLabel;
@@ -103,8 +103,8 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
       node_->cxt().gst_source_bin_l_, node_->cxt().gst_display_bin_l_,
       node_->cxt().gst_record_bin_l_, node_->cxt().sync_l_);
 
-    auto gst_widget_l = video_pipeline_l_->start_display();
-    cam_layout->addWidget(gst_widget_l, TopsideLayout::SD_4x3, Qt::AlignLeft | Qt::AlignTop);
+    gst_widget_l_ = video_pipeline_l_->start_display();
+    cam_layout_->addWidget(gst_widget_l_, TopsideLayout::SD_4x3, Qt::AlignLeft | Qt::AlignTop);
   } else {
     pipeline_l_label_ = nullptr;
   }
@@ -118,8 +118,8 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
       node_->cxt().gst_source_bin_r_, node_->cxt().gst_display_bin_r_,
       node_->cxt().gst_record_bin_r_, node_->cxt().sync_r_);
 
-    auto gst_widget_r = video_pipeline_r_->start_display();
-    cam_layout->addWidget(gst_widget_r, TopsideLayout::SD_4x3, Qt::AlignRight | Qt::AlignTop);
+    gst_widget_r_ = video_pipeline_r_->start_display();
+    cam_layout_->addWidget(gst_widget_r_, TopsideLayout::SD_4x3, Qt::AlignRight | Qt::AlignTop);
   } else {
     pipeline_r_label_ = nullptr;
   }
@@ -145,7 +145,7 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
 
   auto main_layout = new QVBoxLayout;
   main_layout->addLayout(status_layout);
-  main_layout->addLayout(cam_layout);
+  main_layout->addLayout(cam_layout_);
   setLayout(main_layout);
 
   auto timer = new QTimer(this);
@@ -336,6 +336,27 @@ void TopsideWidget::keyPressEvent(QKeyEvent *event)
       if (video_pipeline_r_) {
         video_pipeline_r_->toggle_record();
         update_pipeline_r();
+      } else {
+        std::cout << "no right camera, ignoring" << std::endl;
+      }
+      return;
+
+      // Re-arrange camera layout to highlight one camera; order is L F R
+    case Qt::Key_F4:
+      if (video_pipeline_l_) {
+        cam_layout_->set_main_widget(gst_widget_l_);
+        return;
+      } else {
+        std::cout << "no left camera, ignoring" << std::endl;
+      }
+      return;
+    case Qt::Key_F5:
+      cam_layout_->set_main_widget(gst_widget_f_);
+      return;
+    case Qt::Key_F6:
+      if (video_pipeline_r_) {
+        cam_layout_->set_main_widget(gst_widget_r_);
+        return;
       } else {
         std::cout << "no right camera, ignoring" << std::endl;
       }
