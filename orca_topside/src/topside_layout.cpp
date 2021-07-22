@@ -1,4 +1,7 @@
 #include <iostream>
+
+#include <QWidget>
+
 #include "orca_topside/topside_layout.hpp"
 
 namespace orca_topside
@@ -26,6 +29,28 @@ void TopsideLayout::addWidget(QWidget *widget, AspectRatio aspect_ratio, Qt::Ali
 void TopsideLayout::addItem(QLayoutItem *item, AspectRatio aspect_ratio, Qt::Alignment alignment)
 {
   widgets_.append(new ItemWrapper(item, aspect_ratio, alignment));
+}
+
+void TopsideLayout::set_main_widget(QWidget *widget)
+{
+  if (widgets_.size() < 2) {
+    std::cout << "nothing to do" << std::endl;
+    return;
+  }
+
+  for (int i = 1; i < widgets_.size(); ++i) {
+    if (widgets_[i]->item->widget() == widget) {
+      // Place at the bottom of the z-order
+      widget->lower();
+
+      // Move to index 0
+      widgets_.move(i, 0);
+      break;
+    }
+  }
+
+  // Redraw
+  update();
 }
 
 void TopsideLayout::addItem(QLayoutItem *item)
