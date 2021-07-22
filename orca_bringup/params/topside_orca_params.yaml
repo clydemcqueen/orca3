@@ -89,9 +89,16 @@ base_controller:
     z_accel: 0.4
     yaw_accel: 0.8
 
-    pid_z_kp: 0.8  # Increase 0.5 to 0.8 after FT12
-    pid_z_ki: 0.0
-    pid_z_kd: 0.0
+    # FT14:
+    # pid_z_kp: 0.8
+    # pid_z_ki: 0.0
+    # pid_z_kd: 0.0
+    # pid_z_i_max: 0.1
+
+    # FT15:
+    pid_z_kp: 0.48
+    pid_z_ki: 0.21
+    pid_z_kd: 0.28
     pid_z_i_max: 0.1
 
 forward_camera/gscam_main:
