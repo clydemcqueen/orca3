@@ -138,6 +138,28 @@ def generate_launch_description():
             condition=IfCondition(LaunchConfiguration('fake')),
         ),
 
+        # TODO remove
+        Node(
+            package='image_transport',
+            executable='republish',
+            output='screen',
+            name='republish_node',
+            namespace='forward',
+            arguments=[
+                'h264',  # Input
+                'raw',  # Output
+            ], remappings=[
+                ('in', 'image_raw'),
+                ('in/compressed', 'image_raw/compressed'),
+                ('in/theora', 'image_raw/theora'),
+                ('in/h264', 'image_raw/h264'),
+                ('out', 'repub_raw'),
+                ('out/compressed', 'repub_raw/compressed'),
+                ('out/theora', 'repub_raw/theora'),
+                ('out/theora', 'repub_raw/h264'),
+            ],
+        ),
+
         # Bring up all nodes
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(orca_bringup_launch_dir, 'bringup.py')),

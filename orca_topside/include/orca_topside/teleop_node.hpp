@@ -24,6 +24,7 @@
 #define ORCA_TOPSIDE__TELEOP_NODE_HPP_
 
 #include "geometry_msgs/msg/twist.hpp"
+#include "h264_msgs/msg/packet.hpp"
 #include "orca_msgs/msg/armed.hpp"
 #include "orca_msgs/msg/camera_tilt.hpp"
 #include "orca_msgs/msg/depth.hpp"
@@ -67,6 +68,10 @@ class TopsideWidget;
   CXT_MACRO_MEMBER(lcam, bool, false) /* Has a left camera */ \
   CXT_MACRO_MEMBER(rcam, bool, false) /* Has a right camera */ \
   CXT_MACRO_MEMBER(small_widget_size, int, 400) /* lcam and rcam widget size */ \
+ \
+  CXT_MACRO_MEMBER(ftopic, std::string, "forward") /* Forward camera namespace */ \
+  CXT_MACRO_MEMBER(ltopic, std::string, "left") /* Left camera namespace */ \
+  CXT_MACRO_MEMBER(rtopic, std::string, "right") /* Right camera namespace */ \
  \
   CXT_MACRO_MEMBER(gst_source_bin_f, std::string, "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=1600,height=900,framerate=20/1") \
   CXT_MACRO_MEMBER(gst_display_bin_f, std::string, "textoverlay text=\"forward\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center") \
@@ -142,6 +147,10 @@ class TeleopNode : public rclcpp::Node
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
   rclcpp::Publisher<orca_msgs::msg::Lights>::SharedPtr lights_pub_;
 
+  rclcpp::Publisher<h264_msgs::msg::Packet>::SharedPtr forward_pub_;
+  rclcpp::Publisher<h264_msgs::msg::Packet>::SharedPtr left_pub_;
+  rclcpp::Publisher<h264_msgs::msg::Packet>::SharedPtr right_pub_;
+
   std::shared_ptr<rclcpp::AsyncParametersClient> base_controller_client_;
 
   void validate_parameters();
@@ -192,6 +201,8 @@ class TeleopNode : public rclcpp::Node
   void inc_trim_yaw(bool publish = true);
   void dec_trim_yaw(bool publish = true);
   void cancel_trim_yaw(bool publish = true);
+
+  void publish_packet(std::string name, const h264_msgs::msg::Packet &packet);
 };
 
 }  // namespace orca_topside

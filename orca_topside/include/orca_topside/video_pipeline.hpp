@@ -33,19 +33,21 @@ extern "C" {
 #include "rclcpp/time.hpp"
 #include <QObject>
 
-// Build a video pipeline that can display and/or record H264 video:
+// Build a video pipeline that can display, record and/or publish ROS messages:
 //
-//                     +--> queue --> valve [ --> decoder --> GStreamer widget ]
+//     H264 source --> tee --> queue --> valve [ --> decoder --> GStreamer widget ]
 //                     |
-//     H264 source --> tee
-//                     |
-//                     +--> queue --> valve [ --> multiplexer --> file sink ]
+//                     +--> tee --> queue --> valve [ --> multiplexer --> file sink ]
+//                          |
+//                          +--> queue -> valve [ --> ROS H264 publisher ]
 //
 
 namespace orca_topside
 {
 
 class GstWidget;
+
+class ImagePublisher;
 
 class TeleopNode;
 
@@ -68,7 +70,7 @@ class VideoPipeline : public QObject
     int fps() const;
   };
 
-  std::string name_;  // For debugging
+  std::string topic_;  // Image topic
   bool fix_pts_;  // True if we're copying dts -> pts
   fps_calculator fps_calculator_;
   std::shared_ptr<TeleopNode> node_;
@@ -80,7 +82,8 @@ class VideoPipeline : public QObject
   RecordStatus record_status_;
   GstElement *pipeline_;
   GstElement *source_bin_;
-  GstElement *tee_;
+  GstElement *tee1_;
+  GstElement *tee2_;
   GstElement *display_queue_;
   GstElement *display_valve_;
   GstElement *display_bin_;
@@ -88,6 +91,9 @@ class VideoPipeline : public QObject
   GstElement *record_queue_;
   GstElement *record_valve_;
   GstElement *record_bin_;
+  GstElement *publish_queue_;
+  GstElement *publish_valve_;
+  std::shared_ptr<ImagePublisher> publish_sink_;
   GstWidget *widget_;
 
   bool start_recording();
@@ -121,6 +127,11 @@ public:
   void toggle_record();
 
   bool recording() const { return record_status_ == RecordStatus::running; }
+
+  // Turn publishing on/off
+  void toggle_publish();
+
+  bool publishing() const { return publish_sink_.get(); }
 
   // Debugging
   void print_caps();

@@ -30,6 +30,7 @@ pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
 pkg_check_modules(GST_APP REQUIRED gstreamer-app-1.0)
 
 find_package(ament_cmake REQUIRED)
+find_package(h264_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(orca_msgs REQUIRED)
 find_package(orca_shared REQUIRED)
@@ -44,6 +45,7 @@ add_executable(
   teleop_node
   src/gst_util.cpp
   src/gst_widget.cpp
+  src/image_publisher.cpp
   src/node_spinner.cpp
   src/teleop_node.cpp
   src/teleop_main.cpp
@@ -51,6 +53,7 @@ add_executable(
   src/topside_widget.cpp
   src/video_pipeline.cpp
   include/orca_topside/gst_widget.hpp
+  include/orca_topside/image_publisher.hpp
   include/orca_topside/node_spinner.hpp
   include/orca_topside/teleop_node.hpp
   include/orca_topside/topside_layout.hpp
@@ -62,6 +65,7 @@ ament_target_dependencies(
   teleop_node
   geometry_msgs
   GST_APP
+  h264_msgs
   orca_msgs
   orca_shared
   Qt5Widgets

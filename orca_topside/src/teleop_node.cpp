@@ -134,6 +134,19 @@ void TeleopNode::publish_lights()
   lights_pub_->publish(msg);
 }
 
+void TeleopNode::publish_packet(std::string topic, const h264_msgs::msg::Packet &packet)
+{
+  if (topic == cxt_.ftopic_) {
+    forward_pub_->publish(packet);
+  } else if (topic == cxt_.ltopic_) {
+    left_pub_->publish(packet);
+  } else if (topic == cxt_.rtopic_) {
+    right_pub_->publish(packet);
+  } else {
+    RCLCPP_ERROR(get_logger(), "bad topic name %s", topic.c_str());
+  }
+}
+
 bool TeleopNode::set_base_controller_param(const std::string & param, bool value)
 {
   if (!base_controller_client_) {
@@ -173,6 +186,7 @@ TeleopNode::TeleopNode()
 {
   (void) depth_sub_;
   (void) joy_sub_;
+  (void) motion_sub_;
   (void) status_sub_;
   (void) spin_timer_;
 
@@ -182,6 +196,10 @@ TeleopNode::TeleopNode()
   camera_tilt_pub_ = create_publisher<orca_msgs::msg::CameraTilt>("camera_tilt", 10);
   cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
   lights_pub_ = create_publisher<orca_msgs::msg::Lights>("lights", 10);
+
+  forward_pub_ = create_publisher<h264_msgs::msg::Packet>(cxt_.ftopic_ + "/image_raw/h264", 10);
+  left_pub_ = create_publisher<h264_msgs::msg::Packet>(cxt_.ltopic_ + "/image_raw/h264", 10);
+  right_pub_ = create_publisher<h264_msgs::msg::Packet>(cxt_.rtopic_ + "/image_raw/h264", 10);
 
   depth_sub_ = create_subscription<orca_msgs::msg::Depth>("depth", 10,
     [this](orca_msgs::msg::Depth::ConstSharedPtr msg)

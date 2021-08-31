@@ -85,7 +85,7 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   set_trim_z(node_->trim_z());
   set_trim_yaw(node_->trim_yaw());
 
-  video_pipeline_f_ = std::make_shared<VideoPipeline>("forward", node_,
+  video_pipeline_f_ = std::make_shared<VideoPipeline>(node_->cxt().ftopic_, node_,
     node_->cxt().gst_source_bin_f_, node_->cxt().gst_display_bin_f_,
     node_->cxt().gst_record_bin_f_, node_->cxt().sync_f_);
 
@@ -99,7 +99,7 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
     pipeline_l_label_->setAlignment(Qt::AlignCenter);
     pipeline_l_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
 
-    video_pipeline_l_ = std::make_shared<VideoPipeline>("left", node_,
+    video_pipeline_l_ = std::make_shared<VideoPipeline>(node_->cxt().ltopic_, node_,
       node_->cxt().gst_source_bin_l_, node_->cxt().gst_display_bin_l_,
       node_->cxt().gst_record_bin_l_, node_->cxt().sync_l_);
 
@@ -114,7 +114,7 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
     pipeline_r_label_->setAlignment(Qt::AlignCenter);
     pipeline_r_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
 
-    video_pipeline_r_ = std::make_shared<VideoPipeline>("right", node_,
+    video_pipeline_r_ = std::make_shared<VideoPipeline>(node_->cxt().rtopic_, node_,
       node_->cxt().gst_source_bin_r_, node_->cxt().gst_display_bin_r_,
       node_->cxt().gst_record_bin_r_, node_->cxt().sync_r_);
 
@@ -357,6 +357,28 @@ void TopsideWidget::keyPressEvent(QKeyEvent *event)
       if (video_pipeline_r_) {
         cam_layout_->set_main_widget(gst_widget_r_);
         return;
+      } else {
+        std::cout << "no right camera, ignoring" << std::endl;
+      }
+      return;
+
+      // Toggle publishing status; order is L F R
+    case Qt::Key_F7:
+      if (video_pipeline_l_) {
+        video_pipeline_l_->toggle_publish();
+        update_pipeline_l();
+      } else {
+        std::cout << "no left camera, ignoring" << std::endl;
+      }
+      return;
+    case Qt::Key_F8:
+      video_pipeline_f_->toggle_publish();
+      update_pipeline_f();
+      return;
+    case Qt::Key_F9:
+      if (video_pipeline_r_) {
+        video_pipeline_r_->toggle_publish();
+        update_pipeline_r();
       } else {
         std::cout << "no right camera, ignoring" << std::endl;
       }
