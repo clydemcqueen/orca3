@@ -33,13 +33,19 @@ teleop_node:
     # Desk camera:
     gst_source_bin_f: "v4l2src device=/dev/video0 do-timestamp=true ! video/x-h264,width=1920,height=1080,framerate=30/1 ! h264parse"
 
-    # Build 3 cameras:
-#    gst_source_bin_f: "udpsrc port=5600 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse"
-#    gst_source_bin_l: "udpsrc port=5601 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse"
-#    gst_source_bin_r: "udpsrc port=5602 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse"
+    # BR USB camera:
+#    gst_source_bin_f: "v4l2src device=/dev/video2 do-timestamp=true ! video/x-h264,width=1920,height=1080,framerate=30/1 ! h264parse"
 
-    gst_display_bin_f: "h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB"
-    gst_record_bin_f: "h264parse ! mp4mux ! filesink location=fcam_%Y-%m-%d_%H-%M-%S.mp4"
+    # Build 3 cameras:
+    # Be sure to add "stream-format=byte-stream,alignment=au" to the caps string
+#    gst_source_bin_f: "udpsrc port=5600 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse"
+#    gst_source_bin_f: "udpsrc port=5600 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au"
+#    gst_source_bin_l: "udpsrc port=5601 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au"
+#    gst_source_bin_r: "udpsrc port=5602 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au"
+
+    # TODO should not need queue and h264parse again
+    gst_display_bin_f: "queue ! h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB"
+    gst_record_bin_f: "queue ! h264parse ! mp4mux ! filesink location=fcam_%Y-%m-%d_%H-%M-%S.mp4"
     sync_f: false
 
 #    gst_display_bin_l: "h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB"

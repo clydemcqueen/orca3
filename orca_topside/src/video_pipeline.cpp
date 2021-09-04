@@ -26,7 +26,6 @@
 #include <iostream>
 #include <utility>
 
-#include "orca_topside/gst_util.hpp"
 #include "orca_topside/gst_widget.hpp"
 #include "orca_topside/image_publisher.hpp"
 #include "orca_topside/teleop_node.hpp"
@@ -182,6 +181,11 @@ VideoPipeline::VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node,
   auto timer = new QTimer(this);
   connect(timer, &QTimer::timeout, this, QOverload<>::of(&VideoPipeline::spin));
   timer->start(20);
+
+#ifdef GST_TOOLS
+  caps_reporter_ = std::make_shared<gst_tools::CapsReporter>(pipeline_, 10, true);
+  message_watcher_ = std::make_shared<gst_tools::MessageWatcher>(pipeline_);
+#endif
 
   RCLCPP_INFO(node_->get_logger(), "%s pipeline running %s", topic_.c_str(), gst_source_bin_.c_str());
   initialized_ = true;
@@ -517,19 +521,6 @@ void VideoPipeline::handle_eos(gpointer data)
     video_pipeline->record_status_ = RecordStatus::got_eos;
     RCLCPP_INFO(video_pipeline->node_->get_logger(), "record: %s got eos", video_pipeline->topic_.c_str());
   }
-}
-
-void VideoPipeline::print_caps()
-{
-  gst_util::print_caps("source_bin", source_bin_);
-  gst_util::print_caps("tee1", tee1_);
-  gst_util::print_caps("tee2", tee2_);
-  gst_util::print_caps("display_queue", display_queue_);
-  gst_util::print_caps("display_valve", display_valve_);
-  gst_util::print_caps("display_sink", display_sink_);
-  gst_util::print_caps("display_bin", display_bin_);
-  gst_util::print_caps("publish_queue", publish_queue_);
-  gst_util::print_caps("publish_valve", publish_valve_);
 }
 
 void VideoPipeline::spin()

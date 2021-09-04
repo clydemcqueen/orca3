@@ -30,6 +30,10 @@ extern "C" {
 #include "gst/gst.h"
 }
 
+#ifdef GST_TOOLS
+#include "gst_tools/gst_tools.hpp"
+#endif
+
 #include "rclcpp/time.hpp"
 #include <QObject>
 
@@ -96,6 +100,12 @@ class VideoPipeline : public QObject
   std::shared_ptr<ImagePublisher> publish_sink_;
   GstWidget *widget_;
 
+#ifdef GST_TOOLS
+  // Debugging gstreamer
+  std::shared_ptr<gst_tools::CapsReporter> caps_reporter_;
+  std::shared_ptr<gst_tools::MessageWatcher> message_watcher_;
+#endif
+
   bool start_recording();
   void stop_recording();
   void clean_up_recording();
@@ -132,9 +142,6 @@ public:
   void toggle_publish();
 
   bool publishing() const { return publish_sink_.get(); }
-
-  // Debugging
-  void print_caps();
 };
 
 }  // namespace orca_topside

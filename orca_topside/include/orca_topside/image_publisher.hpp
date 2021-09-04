@@ -43,19 +43,19 @@ class ImagePublisher
   std::string topic_;
   std::shared_ptr<TeleopNode> node_;
   GstElement *pipeline_;
-  GstElement *upstream_;
-
-  // GStreamer appsink element
   GstElement *sink_;
 
   // Poll GStreamer on a separate thread
   std::thread pipeline_thread_;
   std::atomic<bool> stop_signal_;
 
+  // Sequence number
+  int seq_;
+
   void process_frame();
 
 public:
-  ImagePublisher(std::string name, std::shared_ptr<TeleopNode> node, bool sync,
+  ImagePublisher(std::string topic, std::shared_ptr<TeleopNode> node, bool sync,
     GstElement *pipeline, GstElement *upstream);
 
   ~ImagePublisher();

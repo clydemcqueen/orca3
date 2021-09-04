@@ -29,13 +29,14 @@
 namespace orca_topside
 {
 
-ImagePublisher::ImagePublisher(std::string name, std::shared_ptr<TeleopNode> node, bool sync,
+// This leaks memory when things fail, but should not leak when everything is working
+ImagePublisher::ImagePublisher(std::string topic, std::shared_ptr<TeleopNode> node, bool sync,
   GstElement *pipeline, GstElement *upstream):
-  topic_(std::move(name)),
+  topic_(std::move(topic)),
   node_(std::move(node)),
   pipeline_(pipeline),
-  upstream_(upstream),
-  stop_signal_(false)
+  stop_signal_(false),
+  seq_(0)
 {
   sink_ = gst_element_factory_make("appsink", nullptr);
 
@@ -44,7 +45,12 @@ ImagePublisher::ImagePublisher(std::string name, std::shared_ptr<TeleopNode> nod
     return;
   }
 
-  // Require h264 video
+  // TODO huge memory leak when publishing stops
+
+  // H264 over RTP must be stream-format=byte-stream,alignment=au so that gstreamer will recombine
+  // the packets into a single buffer. I don't know why, but the negotiation seems to silently fail.
+  RCLCPP_INFO(node_->get_logger(), "silent failure? note that appsink requires stream-format=byte-stream,alignment=au");
+  // auto caps = gst_caps_new_simple("video/x-h264,stream-format=byte-stream,alignment=au", nullptr, nullptr);
   auto caps = gst_caps_new_simple("video/x-h264", nullptr, nullptr);
   gst_app_sink_set_caps(GST_APP_SINK(sink_), caps);
   gst_caps_unref(caps);
@@ -60,10 +66,8 @@ ImagePublisher::ImagePublisher(std::string name, std::shared_ptr<TeleopNode> nod
 
   gst_bin_add(GST_BIN(pipeline_), sink_);
 
-  if (!gst_element_link(upstream_, sink_)) {
+  if (!gst_element_link(upstream, sink_)) {
     g_critical("%s link prev_elt -> sink failed", topic_.c_str());
-    gst_bin_remove(GST_BIN(pipeline_), sink_);
-    sink_ = nullptr;
     return;
   }
 
@@ -96,8 +100,9 @@ ImagePublisher::~ImagePublisher()
   }
 
   if (sink_) {
-    gst_element_unlink(upstream_, sink_);
-    gst_bin_remove(GST_BIN(pipeline_), sink_);
+    gst_bin_remove(GST_BIN(pipeline_), sink_); // Unlink and remove from bin
+    gst_element_set_state(sink_, GST_STATE_NULL); // Free up all resources
+    gst_object_unref(sink_);
     sink_ = nullptr;
   }
 
@@ -124,10 +129,7 @@ void copy_buffer(GstBuffer *buffer, std::vector<unsigned char>& dest)
 
 void ImagePublisher::process_frame()
 {
-  // This should block until a new frame is awake, this way, we'll run at the
-  // actual capture framerate of the device.
-  // TODO use timeout to handle the case where there's no data
-  // RCLCPP_DEBUG(get_logger(), "Getting data...");
+  // This should block until a new frame is awake
   GstSample *sample = gst_app_sink_pull_sample(GST_APP_SINK(sink_));
 
   if (!sample) {
@@ -139,31 +141,27 @@ void ImagePublisher::process_frame()
 
   GstBuffer *buffer = gst_sample_get_buffer(sample);
 
-  // Stop on end of stream
   if (!buffer) {
     RCLCPP_INFO(node_->get_logger(), "Stream ended, pause for 1s");
+    gst_sample_unref(sample);
     using namespace std::chrono_literals;
     std::this_thread::sleep_for(1s);
     return;
   }
 
-  auto buffer_size = gst_buffer_get_size(buffer);
-
-  static int seq = 0;
-  seq++;
-  if (seq % 60 == 0) {
-    RCLCPP_INFO(node_->get_logger(), "%d h264 frames", seq);
+  // Keep a sequence number, handy for debugging
+  if (++seq_ % 60 == 0) {
+    RCLCPP_INFO(node_->get_logger(), "%s %d h264 frames", topic_.c_str(), seq_);
   }
 
   h264_msgs::msg::Packet packet;
   packet.header.stamp = node_->now();
-  packet.seq = seq;
-  packet.data.resize(buffer_size);
+  packet.seq = seq_;
+  packet.data.resize(gst_buffer_get_size(buffer));
   copy_buffer(buffer, packet.data);
-
   node_->publish_packet(topic_, packet);
 
-  // Release the buffer
+  // Cleanup
   gst_sample_unref(sample);
 }
 

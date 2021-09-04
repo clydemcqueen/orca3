@@ -11,6 +11,7 @@ endif ()
 
 # Emulate colcon in CLion
 if ($ENV{CLION_IDE})
+  set(gst_tools_DIR "${PROJECT_SOURCE_DIR}/../../../install/gst_tools/share/gst_tools/cmake")
   set(orca_msgs_DIR "${PROJECT_SOURCE_DIR}/../../../install/orca_msgs/share/orca_msgs/cmake")
   set(orca_shared_DIR "${PROJECT_SOURCE_DIR}/../../../install/orca_shared/share/orca_shared/cmake")
   set(ros2_shared_DIR "${PROJECT_SOURCE_DIR}/../../../install/ros2_shared/share/ros2_shared/cmake")
@@ -30,6 +31,7 @@ pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
 pkg_check_modules(GST_APP REQUIRED gstreamer-app-1.0)
 
 find_package(ament_cmake REQUIRED)
+find_package(gst_tools)
 find_package(h264_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(orca_msgs REQUIRED)
@@ -43,7 +45,6 @@ include_directories(include)
 # Add the .h files so that MOC finds them
 add_executable(
   teleop_node
-  src/gst_util.cpp
   src/gst_widget.cpp
   src/image_publisher.cpp
   src/node_spinner.cpp
@@ -72,6 +73,11 @@ ament_target_dependencies(
   rclcpp
   ros2_shared
 )
+
+if (gst_tools_FOUND)
+  ament_target_dependencies(teleop_node gst_tools)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGST_TOOLS")
+endif()
 
 install(
   TARGETS teleop_node

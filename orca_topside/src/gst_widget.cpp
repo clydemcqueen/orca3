@@ -25,8 +25,6 @@
 #include <iostream>
 #include <QtWidgets>
 
-#include "orca_topside/gst_util.hpp"
-
 namespace orca_topside
 {
 
