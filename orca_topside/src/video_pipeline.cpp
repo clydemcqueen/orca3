@@ -83,9 +83,9 @@ VideoPipeline::VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node,
     return;
   }
 
+  // Create pipeline and elements
   pipeline_ = gst_pipeline_new(nullptr);
-  tee1_ = gst_element_factory_make("tee", "tee1");
-  tee2_ = gst_element_factory_make("tee", "tee2");
+  tee_ = gst_element_factory_make("tee", "tee");
   display_queue_ = gst_element_factory_make("queue", "display_queue");
   display_valve_ = gst_element_factory_make("valve", "display_valve");
   record_queue_ = gst_element_factory_make("queue", "record_queue");
@@ -93,52 +93,56 @@ VideoPipeline::VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node,
   publish_queue_ = gst_element_factory_make("queue", "publish_queue");
   publish_valve_ = gst_element_factory_make("valve", "publish_valve");
 
-  if (!pipeline_ || !tee1_ || !tee2_ || !display_queue_ || !display_valve_ || !record_queue_ ||
+  if (!pipeline_ || !tee_ || !display_queue_ || !display_valve_ || !record_queue_ ||
     !record_valve_ || !publish_queue_ || !publish_valve_) {
     g_critical("%s create failed", topic_.c_str());
     return;
   }
 
-  gst_bin_add_many(GST_BIN(pipeline_), source_bin_, tee1_, tee2_, display_queue_, display_valve_,
+  gst_bin_add_many(GST_BIN(pipeline_), source_bin_, tee_, display_queue_, display_valve_,
     record_queue_, record_valve_, publish_queue_, publish_valve_, nullptr);
 
-  if (!gst_element_link(source_bin_, tee1_)) {
-    g_critical("%s link source -> tee1 failed", topic_.c_str());
+  if (!gst_element_link(source_bin_, tee_) ||
+    !gst_element_link(display_queue_, display_valve_) ||
+    !gst_element_link(record_queue_, record_valve_) ||
+    !gst_element_link(publish_queue_, publish_valve_)) {
+    g_critical("%s element link failed", topic_.c_str());
     return;
   }
 
-  if (!gst_element_link(tee1_, tee2_)) {
-    g_critical("%s link tee1 -> tee2 failed", topic_.c_str());
+  // Request tee.src pads
+  tee_display_pad_ = gst_element_get_request_pad (tee_, "src_%u");
+  tee_record_pad_ = gst_element_get_request_pad (tee_, "src_%u");
+  tee_publish_pad_ = gst_element_get_request_pad (tee_, "src_%u");
+
+  auto queue_display_pad = gst_element_get_static_pad (display_queue_, "sink");
+  auto queue_record_pad = gst_element_get_static_pad (record_queue_, "sink");
+  auto queue_publish_pad = gst_element_get_static_pad (publish_queue_, "sink");
+
+  // Link tee.src pads to queue sink pads
+  if (gst_pad_link(tee_display_pad_, queue_display_pad) != GST_PAD_LINK_OK ||
+    gst_pad_link(tee_record_pad_, queue_record_pad) != GST_PAD_LINK_OK ||
+    gst_pad_link(tee_publish_pad_, queue_publish_pad) != GST_PAD_LINK_OK) {
+    g_critical("%s pad link failed", topic_.c_str());
     return;
   }
 
-  if (!gst_element_link_many(tee1_, display_queue_, display_valve_, nullptr)) {
-    g_critical("%s link tee1 -> display_queue -> display_valve failed", topic_.c_str());
-    return;
-  }
-
-  if (!gst_element_link_many(tee2_, record_queue_, record_valve_, nullptr)) {
-    g_critical("%s link tee2 -> record_queue -> record_valve failed", topic_.c_str());
-    return;
-  }
-
-  if (!gst_element_link_many(tee2_, publish_queue_, publish_valve_, nullptr)) {
-    g_critical("%s link tee2 -> publish_queue -> publish_valve failed", topic_.c_str());
-    return;
-  }
+  gst_object_unref (queue_display_pad);
+  gst_object_unref (queue_record_pad);
+  gst_object_unref (queue_publish_pad);
 
   g_object_set(display_valve_, "drop", TRUE, nullptr);
   g_object_set(record_valve_, "drop", TRUE, nullptr);
   g_object_set(publish_valve_, "drop", TRUE, nullptr);
 
-  // Add a pad probe on the tee1 sink. We'll use this to examine buffer pts and dts values.
-  GstPad *tee1_sink;
-  if ((tee1_sink = gst_element_get_static_pad(tee1_, "sink")) == nullptr) {
+  // Add a pad probe on the tee sink. We'll use this to examine buffer pts and dts values.
+  GstPad *tee_sink;
+  if ((tee_sink = gst_element_get_static_pad(tee_, "sink")) == nullptr) {
     g_critical("%s get tee sink pad failed", topic_.c_str());
     return;
   }
 
-  if (!gst_pad_add_probe(tee1_sink, GstPadProbeType::GST_PAD_PROBE_TYPE_BUFFER, on_tee_buffer,
+  if (!gst_pad_add_probe(tee_sink, GstPadProbeType::GST_PAD_PROBE_TYPE_BUFFER, on_tee_buffer,
     this,
     nullptr)) {
     g_critical("%s add pad probe failed", topic_.c_str());
@@ -183,7 +187,7 @@ VideoPipeline::VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node,
   timer->start(20);
 
 #ifdef GST_TOOLS
-  caps_reporter_ = std::make_shared<gst_tools::CapsReporter>(pipeline_, 10, true);
+  caps_reporter_ = std::make_shared<gst_tools::CapsReporter>(pipeline_, 10, false);
   message_watcher_ = std::make_shared<gst_tools::MessageWatcher>(pipeline_);
 #endif
 

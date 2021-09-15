@@ -40,10 +40,10 @@ extern "C" {
 // Build a video pipeline that can display, record and/or publish ROS messages:
 //
 //     H264 source --> tee --> queue --> valve [ --> decoder --> GStreamer widget ]
-//                     |
-//                     +--> tee --> queue --> valve [ --> multiplexer --> file sink ]
-//                          |
-//                          +--> queue -> valve [ --> ROS H264 publisher ]
+//                      |
+//                      +----> queue --> valve [ --> multiplexer --> file sink ]
+//                      |
+//                      +----> queue --> valve [ --> ROS H264 publisher ]
 //
 
 namespace orca_topside
@@ -86,8 +86,10 @@ class VideoPipeline : public QObject
   RecordStatus record_status_;
   GstElement *pipeline_;
   GstElement *source_bin_;
-  GstElement *tee1_;
-  GstElement *tee2_;
+  GstElement *tee_;
+  GstPad *tee_display_pad_;
+  GstPad *tee_record_pad_;
+  GstPad *tee_publish_pad_;
   GstElement *display_queue_;
   GstElement *display_valve_;
   GstElement *display_bin_;
