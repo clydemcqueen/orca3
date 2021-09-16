@@ -284,6 +284,7 @@ void VideoPipeline::stop_display()
   RCLCPP_INFO(node_->get_logger(), "%s display stopped", topic_.c_str());
 }
 
+// Public API: call this to turn recording on/off
 void VideoPipeline::toggle_record()
 {
   if (!initialized_) {
@@ -316,7 +317,7 @@ void VideoPipeline::toggle_record()
   }
 }
 
-// got_eos || stopped -> running
+// Move record_status_ from stopped to running
 bool VideoPipeline::start_recording()
 {
   auto record_bin = gst_record_bin_.c_str();
@@ -345,6 +346,7 @@ bool VideoPipeline::start_recording()
   }
 
   // Sync state, will go from NULL to PAUSED to PLAYING
+  // I see 2 "pipeline0 state changed to PAUSED" messages, I guess this is OK
   gst_element_sync_state_with_parent(record_bin_);
 
   g_object_set(record_valve_, "drop", FALSE, nullptr);
@@ -355,7 +357,7 @@ bool VideoPipeline::start_recording()
   return true;
 }
 
-// record: running -> waiting_for_eos
+// Move record_status_ from running to waiting_for_eos
 void VideoPipeline::stop_recording()
 {
   g_object_set(record_valve_, "drop", TRUE, nullptr);
@@ -367,12 +369,11 @@ void VideoPipeline::stop_recording()
   unlink_and_send_eos(record_valve_);
 }
 
-// record: <any> -> stopped
+// Move record_status_ to stopped
 void VideoPipeline::clean_up_recording()
 {
-  gst_bin_remove(GST_BIN(pipeline_), record_bin_);
-  gst_element_set_state(record_bin_, GST_STATE_NULL);
-  gst_object_unref(record_bin_);
+  gst_element_set_state(record_bin_, GST_STATE_NULL);  // Free up all resources
+  gst_bin_remove(GST_BIN(pipeline_), record_bin_);  // Unlink, remove from bin, and unref
   record_bin_ = nullptr;
 
   record_status_ = RecordStatus::stopped;

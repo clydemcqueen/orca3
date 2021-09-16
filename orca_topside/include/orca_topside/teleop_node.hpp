@@ -73,17 +73,17 @@ class TopsideWidget;
   CXT_MACRO_MEMBER(ltopic, std::string, "left") /* Left camera namespace */ \
   CXT_MACRO_MEMBER(rtopic, std::string, "right") /* Right camera namespace */ \
  \
-  CXT_MACRO_MEMBER(gst_source_bin_f, std::string, "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=1600,height=900,framerate=20/1") \
-  CXT_MACRO_MEMBER(gst_display_bin_f, std::string, "textoverlay text=\"forward\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center") \
-  CXT_MACRO_MEMBER(gst_record_bin_f, std::string, "") \
+  CXT_MACRO_MEMBER(gst_source_bin_f, std::string, "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=1600,height=900,framerate=20/1 ! videoconvert ! queue ! x264enc key-int-max=10 ! h264parse") \
+  CXT_MACRO_MEMBER(gst_display_bin_f, std::string, "queue ! h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB") \
+  CXT_MACRO_MEMBER(gst_record_bin_f, std::string, "queue ! h264parse ! mp4mux ! filesink location=fcam_%Y-%m-%d_%H-%M-%S.mp4") \
   CXT_MACRO_MEMBER(sync_f, bool, true) \
-  CXT_MACRO_MEMBER(gst_source_bin_l, std::string, "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=400,height=300,framerate=20/1") \
-  CXT_MACRO_MEMBER(gst_display_bin_l, std::string, "textoverlay text=\"left\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center") \
-  CXT_MACRO_MEMBER(gst_record_bin_l, std::string, "")                                   \
+  CXT_MACRO_MEMBER(gst_source_bin_l, std::string, "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=400,height=300,framerate=20/1 ! videoconvert ! queue ! x264enc key-int-max=10 ! h264parse") \
+  CXT_MACRO_MEMBER(gst_display_bin_l, std::string, "queue ! h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB") \
+  CXT_MACRO_MEMBER(gst_record_bin_l, std::string, "queue ! h264parse ! mp4mux ! filesink location=lcam_%Y-%m-%d_%H-%M-%S.mp4")                                   \
   CXT_MACRO_MEMBER(sync_l, bool, true) \
-  CXT_MACRO_MEMBER(gst_source_bin_r, std::string, "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=400,height=300,framerate=20/1") \
-  CXT_MACRO_MEMBER(gst_display_bin_r, std::string, "textoverlay text=\"right\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center") \
-  CXT_MACRO_MEMBER(gst_record_bin_r, std::string, "")                                   \
+  CXT_MACRO_MEMBER(gst_source_bin_r, std::string, "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=400,height=300,framerate=20/1 ! videoconvert ! queue ! x264enc key-int-max=10 ! h264parse") \
+  CXT_MACRO_MEMBER(gst_display_bin_r, std::string, "queue ! h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB") \
+  CXT_MACRO_MEMBER(gst_record_bin_r, std::string, "queue ! h264parse ! mp4mux ! filesink location=rcam_%Y-%m-%d_%H-%M-%S.mp4")                                   \
   CXT_MACRO_MEMBER(sync_r, bool, true) \
 /* End of list */
 

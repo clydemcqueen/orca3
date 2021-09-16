@@ -100,9 +100,8 @@ ImagePublisher::~ImagePublisher()
   }
 
   if (sink_) {
-    gst_bin_remove(GST_BIN(pipeline_), sink_); // Unlink and remove from bin
     gst_element_set_state(sink_, GST_STATE_NULL); // Free up all resources
-    gst_object_unref(sink_);
+    gst_bin_remove(GST_BIN(pipeline_), sink_); // Unlink, remove from bin, and unref
     sink_ = nullptr;
   }
 
