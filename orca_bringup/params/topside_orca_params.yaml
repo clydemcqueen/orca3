@@ -46,7 +46,7 @@ teleop_node:
     # TODO should not need queue and h264parse again
     gst_display_bin_f: "queue ! h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB"
     gst_record_bin_f: "queue ! h264parse ! mp4mux ! filesink location=fcam_%Y-%m-%d_%H-%M-%S.mp4"
-    sync_f: false
+    sync_f: true
 
 #    gst_display_bin_l: "h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB"
 #    gst_record_bin_l: "h264parse ! mp4mux ! filesink location=lcam_%Y-%m-%d_%H-%M-%S.mp4"

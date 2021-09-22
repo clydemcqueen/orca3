@@ -20,16 +20,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <iostream>
 #include <utility>
 
+#include "orca_topside/gst_util.hpp"
 #include "orca_topside/image_publisher.hpp"
 #include "orca_topside/teleop_node.hpp"
 
 namespace orca_topside
 {
 
-// This leaks memory when things fail, but should not leak when everything is working
 ImagePublisher::ImagePublisher(std::string topic, std::shared_ptr<TeleopNode> node, bool sync,
   GstElement *pipeline, GstElement *upstream):
   topic_(std::move(topic)),
@@ -45,18 +44,15 @@ ImagePublisher::ImagePublisher(std::string topic, std::shared_ptr<TeleopNode> no
     return;
   }
 
-  // TODO huge memory leak when publishing stops
-
   // H264 over RTP must be stream-format=byte-stream,alignment=au so that gstreamer will recombine
   // the packets into a single buffer. I don't know why, but the negotiation seems to silently fail.
-  RCLCPP_INFO(node_->get_logger(), "silent failure? note that appsink requires stream-format=byte-stream,alignment=au");
+  g_print("watch for silent failure: appsink requires stream-format=byte-stream,alignment=au\n");
   // auto caps = gst_caps_new_simple("video/x-h264,stream-format=byte-stream,alignment=au", nullptr, nullptr);
   auto caps = gst_caps_new_simple("video/x-h264", nullptr, nullptr);
   gst_app_sink_set_caps(GST_APP_SINK(sink_), caps);
   gst_caps_unref(caps);
 
   // Sync must be turned on for non-streaming source, e.g., filesrc.
-  // TODO stop/start fails w/ sync on
   gst_base_sink_set_sync(GST_BASE_SINK(sink_), sync);
 
   if (gst_element_set_state(pipeline_, GST_STATE_PAUSED) == GST_STATE_CHANGE_FAILURE) {
@@ -79,17 +75,17 @@ ImagePublisher::ImagePublisher(std::string topic, std::shared_ptr<TeleopNode> no
   pipeline_thread_ = std::thread(
     [this]()
     {
-      RCLCPP_INFO(node_->get_logger(), "%s thread running", topic_.c_str());
+      g_print("%s image publisher thread running\n", topic_.c_str());
 
       while (!stop_signal_ && rclcpp::ok()) {
-        process_frame();
+        process_sample();
       }
 
       stop_signal_ = false;
-      RCLCPP_INFO(node_->get_logger(), "%s thread stopped", topic_.c_str());
+      g_print("%s image publisher thread stopped\n", topic_.c_str());
     });
 
-  RCLCPP_INFO(node_->get_logger(), "%s image publisher created", topic_.c_str());
+  g_print("%s image publisher created\n", topic_.c_str());
 }
 
 ImagePublisher::~ImagePublisher()
@@ -105,59 +101,36 @@ ImagePublisher::~ImagePublisher()
     sink_ = nullptr;
   }
 
-  RCLCPP_INFO(node_->get_logger(), "%s image publisher destroyed", topic_.c_str());
+  g_print("%s image publisher destroyed\n", topic_.c_str());
 }
 
-// Copy all memory segments in a GstBuffer into dest
-void copy_buffer(GstBuffer *buffer, std::vector<unsigned char>& dest)
+void ImagePublisher::process_sample()
 {
-  auto num_segments = static_cast<int>(gst_buffer_n_memory(buffer));
-  gsize copied = 0;
-  for (int i = 0; i < num_segments; ++i) {
-    GstMemory *segment = gst_buffer_get_memory(buffer, i);
-    GstMapInfo segment_info;
-    gst_memory_map(segment, &segment_info, GST_MAP_READ);
-
-    std::copy(segment_info.data, segment_info.data + segment_info.size, dest.begin() + (long) copied);
-    copied += segment_info.size;
-
-    gst_memory_unmap(segment, &segment_info);
-    gst_memory_unref(segment);
-  }
-}
-
-void ImagePublisher::process_frame()
-{
-  // This should block until a new frame is awake
-  GstSample *sample = gst_app_sink_pull_sample(GST_APP_SINK(sink_));
+  // Poll for a frame, briefly block (timeout is in nanoseconds) -- prevents deadlock
+  GstSample *sample = gst_app_sink_try_pull_sample(GST_APP_SINK(sink_), 1000);
 
   if (!sample) {
-    RCLCPP_ERROR(node_->get_logger(), "Could not get sample, pause for 1s");
-    using namespace std::chrono_literals;
-    std::this_thread::sleep_for(1s);
     return;
   }
 
   GstBuffer *buffer = gst_sample_get_buffer(sample);
 
   if (!buffer) {
-    RCLCPP_INFO(node_->get_logger(), "Stream ended, pause for 1s");
+    g_print("unexpected EOS\n");
     gst_sample_unref(sample);
-    using namespace std::chrono_literals;
-    std::this_thread::sleep_for(1s);
     return;
   }
 
   // Keep a sequence number, handy for debugging
   if (++seq_ % 60 == 0) {
-    RCLCPP_INFO(node_->get_logger(), "%s %d h264 frames", topic_.c_str(), seq_);
+    g_print("%s %d h264 frames", topic_.c_str(), seq_);
   }
 
   h264_msgs::msg::Packet packet;
   packet.header.stamp = node_->now();
   packet.seq = seq_;
   packet.data.resize(gst_buffer_get_size(buffer));
-  copy_buffer(buffer, packet.data);
+  gst_util::copy_buffer(buffer, packet.data);
   node_->publish_packet(topic_, packet);
 
   // Cleanup

@@ -37,7 +37,7 @@ namespace orca_topside
 
 class TeleopNode;
 
-// Publish a ROS image. Mostly copied from gscam2.
+// Poll a gstreamer appsink element for H264 data, and publish a ROS message
 class ImagePublisher
 {
   std::string topic_;
@@ -46,13 +46,14 @@ class ImagePublisher
   GstElement *sink_;
 
   // Poll GStreamer on a separate thread
+  // TODO use ROS timer? QTimer?
   std::thread pipeline_thread_;
   std::atomic<bool> stop_signal_;
 
   // Sequence number
   int seq_;
 
-  void process_frame();
+  void process_sample();
 
 public:
   ImagePublisher(std::string topic, std::shared_ptr<TeleopNode> node, bool sync,

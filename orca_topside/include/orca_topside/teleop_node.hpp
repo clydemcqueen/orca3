@@ -42,6 +42,8 @@ namespace orca_topside
 class TopsideWidget;
 
 // Param defaults work well for the simulation demo: orca_bringup/launch/sim_launch.py
+// TODO require live source, so I don't need sync -- correct?
+// TODO why repeat h264parse?
 
 #define TOPSIDE_PARAMS \
   CXT_MACRO_MEMBER(stamp_msgs_with_current_time, bool, false) /* Stamp incoming msgs */ \
@@ -73,18 +75,18 @@ class TopsideWidget;
   CXT_MACRO_MEMBER(ltopic, std::string, "left") /* Left camera namespace */ \
   CXT_MACRO_MEMBER(rtopic, std::string, "right") /* Right camera namespace */ \
  \
-  CXT_MACRO_MEMBER(gst_source_bin_f, std::string, "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=1600,height=900,framerate=20/1 ! videoconvert ! queue ! x264enc key-int-max=10 ! h264parse") \
+  CXT_MACRO_MEMBER(gst_source_bin_f, std::string, "v4l2src device=/dev/video0 do-timestamp=true ! video/x-h264,width=1920,height=1080,framerate=30/1 ! h264parse") \
   CXT_MACRO_MEMBER(gst_display_bin_f, std::string, "queue ! h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB") \
   CXT_MACRO_MEMBER(gst_record_bin_f, std::string, "queue ! h264parse ! mp4mux ! filesink location=fcam_%Y-%m-%d_%H-%M-%S.mp4") \
-  CXT_MACRO_MEMBER(sync_f, bool, true) \
-  CXT_MACRO_MEMBER(gst_source_bin_l, std::string, "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=400,height=300,framerate=20/1 ! videoconvert ! queue ! x264enc key-int-max=10 ! h264parse") \
+  CXT_MACRO_MEMBER(sync_f, bool, false) \
+  CXT_MACRO_MEMBER(gst_source_bin_l, std::string, "videotestsrc is-live=true ! capsfilter caps=video/x-raw,format=RGB,width=400,height=300,framerate=20/1 ! videoconvert ! queue ! x264enc key-int-max=10 ! h264parse") \
   CXT_MACRO_MEMBER(gst_display_bin_l, std::string, "queue ! h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB") \
   CXT_MACRO_MEMBER(gst_record_bin_l, std::string, "queue ! h264parse ! mp4mux ! filesink location=lcam_%Y-%m-%d_%H-%M-%S.mp4")                                   \
-  CXT_MACRO_MEMBER(sync_l, bool, true) \
-  CXT_MACRO_MEMBER(gst_source_bin_r, std::string, "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=400,height=300,framerate=20/1 ! videoconvert ! queue ! x264enc key-int-max=10 ! h264parse") \
+  CXT_MACRO_MEMBER(sync_l, bool, false) \
+  CXT_MACRO_MEMBER(gst_source_bin_r, std::string, "videotestsrc is-live=true ! capsfilter caps=video/x-raw,format=RGB,width=400,height=300,framerate=20/1 ! videoconvert ! queue ! x264enc key-int-max=10 ! h264parse") \
   CXT_MACRO_MEMBER(gst_display_bin_r, std::string, "queue ! h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB") \
   CXT_MACRO_MEMBER(gst_record_bin_r, std::string, "queue ! h264parse ! mp4mux ! filesink location=rcam_%Y-%m-%d_%H-%M-%S.mp4")                                   \
-  CXT_MACRO_MEMBER(sync_r, bool, true) \
+  CXT_MACRO_MEMBER(sync_r, bool, false) \
 /* End of list */
 
 #undef CXT_MACRO_MEMBER

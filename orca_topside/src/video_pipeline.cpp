@@ -33,20 +33,20 @@
 namespace orca_topside
 {
 
-void VideoPipeline::fps_calculator::push_new(const rclcpp::Time & stamp)
+void VideoPipeline::FPSCalculator::push_new(const rclcpp::Time & stamp)
 {
   stamps_.push(stamp);
   pop_old(stamp);
 }
 
-void VideoPipeline::fps_calculator::pop_old(const rclcpp::Time & stamp)
+void VideoPipeline::FPSCalculator::pop_old(const rclcpp::Time & stamp)
 {
   while (!stamps_.empty() && stamp - stamps_.front() > rclcpp::Duration(1, 0)) {
     stamps_.pop();
   }
 }
 
-int VideoPipeline::fps_calculator::fps() const
+int VideoPipeline::FPSCalculator::fps() const
 {
   return (int) stamps_.size();
 }
@@ -95,7 +95,7 @@ VideoPipeline::VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node,
 
   if (!pipeline_ || !tee_ || !display_queue_ || !display_valve_ || !record_queue_ ||
     !record_valve_ || !publish_queue_ || !publish_valve_) {
-    g_critical("%s create failed", topic_.c_str());
+    g_critical("%s pipeline create failed", topic_.c_str());
     return;
   }
 
@@ -163,19 +163,13 @@ VideoPipeline::VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node,
   gst_bus_enable_sync_message_emission(message_bus);
 
   // Connect the 'sync-message' signal to on_bus_message(). The callback will be called from the
-  // thread that posted the message _after_ the built-in handler runs. Currently there is only 1 app
-  // thread (the Qt UI thread).
+  // thread that posted the message _after_ the built-in handler runs.
   if (!g_signal_connect_after(message_bus, "sync-message", G_CALLBACK(on_bus_message), this)) {
     g_critical("%s signal connect failed", topic_.c_str());
     return;
   }
 
   gst_object_unref(message_bus);
-
-  if (gst_element_set_state(pipeline_, GST_STATE_PAUSED) == GST_STATE_CHANGE_FAILURE) {
-    g_critical("%s pause failed", topic_.c_str());
-    return;
-  }
 
   if (gst_element_set_state(pipeline_, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) {
     g_critical("%s play failed", topic_.c_str());
@@ -187,8 +181,27 @@ VideoPipeline::VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node,
   timer->start(20);
 
 #ifdef GST_TOOLS
-  caps_reporter_ = std::make_shared<gst_tools::CapsReporter>(pipeline_, 10, false);
+  (void) main_loop_thread_;
+  (void) message_watcher_;
+  (void) pad_probe_;
+
+  // Create glib mainloop
+  main_loop_ = g_main_loop_new(nullptr, FALSE);
+
+  // Add tools
   message_watcher_ = std::make_shared<gst_tools::MessageWatcher>(pipeline_);
+  auto probe_pad = gst_element_get_static_pad(tee_, "sink");
+  pad_probe_ = std::make_shared<gst_tools::PadProbe>(topic_, probe_pad);
+  graph_writer_ = std::make_shared<gst_tools::GraphWriter>(main_loop_, pipeline_);
+
+  // Run main loop on its own thread
+  main_loop_thread_ = std::thread(
+    [this]()
+    {
+      g_print("%s main loop thread running\n", topic_.c_str());
+      g_main_loop_run(main_loop_);
+      g_print("%s main loop thread stopped\n", topic_.c_str());
+    });
 #endif
 
   RCLCPP_INFO(node_->get_logger(), "%s pipeline running %s", topic_.c_str(), gst_source_bin_.c_str());
@@ -220,7 +233,7 @@ GstWidget *VideoPipeline::start_display()
   }
 
   if (!(display_sink_ = gst_element_factory_make("appsink", nullptr))) {
-    g_critical("%s create failed", topic_.c_str());
+    g_critical("%s appsink create failed", topic_.c_str());
     return nullptr;
   }
 
@@ -408,7 +421,6 @@ void VideoPipeline::unlink_and_send_eos(GstElement *segment)
   gst_object_unref(sink);
 }
 
-// TODO design pattern is rather different, which is the better pattern?
 void VideoPipeline::toggle_publish()
 {
   if (!initialized_) {
@@ -419,10 +431,17 @@ void VideoPipeline::toggle_publish()
   if (publishing()) {
     g_object_set(publish_valve_, "drop", TRUE, nullptr);
     publish_sink_ = nullptr;
+
+#ifdef GST_TOOLS
+    graph_writer_->write("graph_publishing_off", 3);
+#endif
   } else {
-    publish_sink_ = std::make_shared<ImagePublisher>(topic_, node_, sync_, pipeline_,
-      publish_valve_);
+    publish_sink_ = std::make_shared<ImagePublisher>(topic_, node_, sync_, pipeline_, publish_valve_);
     g_object_set(publish_valve_, "drop", FALSE, nullptr);
+
+#ifdef GST_TOOLS
+    graph_writer_->write("graph_publishing_on", 3);
+#endif
   }
 }
 
@@ -430,20 +449,22 @@ gboolean VideoPipeline::on_bus_message(GstBus *, GstMessage *msg, gpointer data)
 {
   switch (GST_MESSAGE_TYPE(msg)) {
     case GST_MESSAGE_ERROR: {
+      // Handy for debugging
       GError *err = nullptr;
       gchar *dbg_info = nullptr;
       gst_message_parse_error(msg, &err, &dbg_info);
-      g_printerr("ERROR from element %s: %s\n", GST_OBJECT_NAME (msg->src), err->message);
+      g_printerr("ERROR from element %s: %s\n", GST_MESSAGE_SRC_NAME(msg), err->message);
       g_printerr("Debug info: %s\n", (dbg_info) ? dbg_info : "none");
       g_error_free(err);
       g_free(dbg_info);
       break;
     }
     case GST_MESSAGE_WARNING: {
+      // Handy for debugging
       GError *err = nullptr;
       gchar *dbg_info = nullptr;
       gst_message_parse_warning(msg, &err, &dbg_info);
-      g_printerr("WARNING from element %s: %s\n", GST_OBJECT_NAME (msg->src), err->message);
+      g_printerr("WARNING from element %s: %s\n", GST_MESSAGE_SRC_NAME(msg), err->message);
       g_printerr("Debug info: %s\n", (dbg_info) ? dbg_info : "none");
       g_error_free(err);
       g_free(dbg_info);
@@ -518,7 +539,6 @@ GstPadProbeReturn VideoPipeline::on_tee_buffer(GstPad *, GstPadProbeInfo *info, 
 
 // We can't manipulate the pipeline from a streaming thread, so postpone the cleanup
 // record: waiting_for_eos -> got_eos
-// TODO streaming thread is now the UI thread, so I could simplify this
 void VideoPipeline::handle_eos(gpointer data)
 {
   auto video_pipeline = (VideoPipeline *) data;

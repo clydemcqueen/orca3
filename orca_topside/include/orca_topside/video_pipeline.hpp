@@ -31,7 +31,11 @@ extern "C" {
 }
 
 #ifdef GST_TOOLS
-#include "gst_tools/gst_tools.hpp"
+#include <thread>
+
+#include "gst_tools/message_watcher.hpp"
+#include "gst_tools/pad_probe.hpp"
+#include "gst_tools/graph_writer.hpp"
 #endif
 
 #include "rclcpp/time.hpp"
@@ -64,7 +68,7 @@ class VideoPipeline : public QObject
     running, waiting_for_eos, got_eos, stopped
   };
 
-  class fps_calculator
+  class FPSCalculator
   {
     std::queue<rclcpp::Time> stamps_;
 
@@ -76,7 +80,7 @@ class VideoPipeline : public QObject
 
   std::string topic_;  // Image topic
   bool fix_pts_;  // True if we're copying dts -> pts
-  fps_calculator fps_calculator_;
+  FPSCalculator fps_calculator_;
   std::shared_ptr<TeleopNode> node_;
   std::string gst_source_bin_;
   std::string gst_display_bin_;
@@ -104,8 +108,11 @@ class VideoPipeline : public QObject
 
 #ifdef GST_TOOLS
   // Debugging gstreamer
-  std::shared_ptr<gst_tools::CapsReporter> caps_reporter_;
+  GMainLoop *main_loop_;
+  std::thread main_loop_thread_;
   std::shared_ptr<gst_tools::MessageWatcher> message_watcher_;
+  std::shared_ptr<gst_tools::PadProbe> pad_probe_;
+  std::shared_ptr<gst_tools::GraphWriter> graph_writer_;
 #endif
 
   bool start_recording();

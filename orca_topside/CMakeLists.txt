@@ -45,6 +45,7 @@ include_directories(include)
 # Add the .h files so that MOC finds them
 add_executable(
   teleop_node
+  src/gst_util.cpp
   src/gst_widget.cpp
   src/image_publisher.cpp
   src/node_spinner.cpp
@@ -53,6 +54,7 @@ add_executable(
   src/topside_layout.cpp
   src/topside_widget.cpp
   src/video_pipeline.cpp
+  include/orca_topside/gst_util.hpp
   include/orca_topside/gst_widget.hpp
   include/orca_topside/image_publisher.hpp
   include/orca_topside/node_spinner.hpp
