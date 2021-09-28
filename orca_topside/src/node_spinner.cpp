@@ -28,7 +28,8 @@
 namespace orca_topside
 {
 
-NodeSpinner::NodeSpinner(std::shared_ptr<rclcpp::Node> node)
+NodeSpinner::NodeSpinner(std::shared_ptr<rclcpp::Node> node, std::function<void()> cleanup):
+  cleanup_(std::move(cleanup))
 {
   spinner_ = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
   spinner_->add_node(static_cast<std::shared_ptr<rclcpp::Node>>(std::move(node)));
@@ -43,7 +44,8 @@ void NodeSpinner::spin_some()
   if (rclcpp::ok()) {
     spinner_->spin_some(std::chrono::milliseconds(10));
   } else {
-    // TODO call app->exit();
+    cleanup_();
+    QApplication::exit(0);
   }
 }
 

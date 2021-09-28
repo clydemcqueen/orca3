@@ -23,7 +23,7 @@
 #ifndef ORCA_TOPSIDE__NODE_SPINNER_HPP_
 #define ORCA_TOPSIDE__NODE_SPINNER_HPP_
 
-#include <QObject>
+#include <QApplication>
 
 #include "rclcpp/rclcpp.hpp"
 
@@ -32,16 +32,17 @@ namespace orca_topside
 
 class NodeSpinner : public QObject
 {
- Q_OBJECT
+Q_OBJECT
 
- public:
-  explicit NodeSpinner(std::shared_ptr<rclcpp::Node> node);
+public:
+  NodeSpinner(std::shared_ptr<rclcpp::Node> node, std::function<void()> cleanup);
 
- private slots:
+private slots:
   void spin_some();
 
- private:
+private:
   std::shared_ptr<rclcpp::executors::SingleThreadedExecutor> spinner_;
+  std::function<void()> cleanup_;
 };
 
 }  // namespace orca_topside

@@ -52,8 +52,17 @@ int main(int argc, char *argv[])
 
     node->set_view(topside_widget);
 
+    // Two ways to kill TeleopNode:
+    //
+    // 1. Hit the QWindow close box.
+    // 2. Type ctrl-C in the CLI. The spinner will do the cleanup and quit the app.
+
     // Spin the ROS node in the same thread as the Qt app
-    orca_topside::NodeSpinner spinner(node);
+    orca_topside::NodeSpinner spinner(node, [topside_widget]()
+    {
+      // Close open mp4 files
+      topside_widget->about_to_quit();
+    });
 
     return QApplication::exec();
   } else {

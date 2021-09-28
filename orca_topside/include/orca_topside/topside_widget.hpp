@@ -47,6 +47,8 @@ Q_OBJECT
 public:
   explicit TopsideWidget(std::shared_ptr<TeleopNode> node, QWidget *parent = nullptr);
 
+  void about_to_quit();
+
   void set_armed(bool armed);
   void set_hold(bool enabled);
   void set_tilt(int tilt);
