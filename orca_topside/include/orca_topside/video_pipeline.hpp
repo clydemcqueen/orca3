@@ -30,12 +30,15 @@ extern "C" {
 #include "gst/gst.h"
 }
 
-#ifdef GST_TOOLS
+#undef RUN_GST_TOOLS
+#if defined(GST_TOOLS) && defined(RUN_GST_TOOLS)
+
 #include <thread>
 
 #include "gst_tools/message_watcher.hpp"
 #include "gst_tools/pad_probe.hpp"
 #include "gst_tools/graph_writer.hpp"
+
 #endif
 
 #include "rclcpp/time.hpp"
@@ -106,7 +109,7 @@ class VideoPipeline : public QObject
   std::shared_ptr<ImagePublisher> publish_sink_;
   GstWidget *widget_;
 
-#ifdef GST_TOOLS
+#if defined(GST_TOOLS) && defined(RUN_GST_TOOLS)
   // Debugging gstreamer
   GMainLoop *main_loop_;
   std::thread main_loop_thread_;

@@ -26,9 +26,8 @@ teleop_node:
     rcam: False
     small_widget_size: 500
 
-    # Gstreamer string rules?
-    # -- Gstreamer bin parser seems to have trouble with trailing quotes, so don't end with a quote
-    # -- h264parse element is required before and after the tee & valves -- not sure why
+    # Gstreamer bin parser seems to have trouble with trailing quotes, so don't end with a quote
+    # h264parse element is required before and after the tee & valves -- not sure why
 
     # Desk camera:
     gst_source_bin_f: "v4l2src device=/dev/video0 do-timestamp=true ! video/x-h264,width=1920,height=1080,framerate=30/1 ! h264parse"
@@ -42,19 +41,6 @@ teleop_node:
 #    gst_source_bin_f: "udpsrc port=5600 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au"
 #    gst_source_bin_l: "udpsrc port=5601 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au"
 #    gst_source_bin_r: "udpsrc port=5602 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au"
-
-    # TODO should not need queue and h264parse again
-    gst_display_bin_f: "queue ! h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB"
-    gst_record_bin_f: "queue ! h264parse ! mp4mux ! filesink location=fcam_%Y-%m-%d_%H-%M-%S.mp4"
-    sync_f: true
-
-#    gst_display_bin_l: "h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB"
-#    gst_record_bin_l: "h264parse ! mp4mux ! filesink location=lcam_%Y-%m-%d_%H-%M-%S.mp4"
-#    sync_l: false
-
-#    gst_display_bin_r: "h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB"
-#    gst_record_bin_r: "h264parse ! mp4mux ! filesink location=rcam_%Y-%m-%d_%H-%M-%S.mp4"
-#    sync_r: false
 
 base_controller:
   ros__parameters:

@@ -68,6 +68,7 @@ public:
   void update_pipeline_r() { update_pipeline(video_pipeline_r_, pipeline_r_label_, "R"); }
 
 protected:
+  void closeEvent(QCloseEvent *event) override;
   void keyPressEvent(QKeyEvent *event) override;
 
 private slots:

@@ -123,7 +123,7 @@ void ImagePublisher::process_sample()
 
   // Keep a sequence number, handy for debugging
   if (++seq_ % 60 == 0) {
-    g_print("%s %d h264 frames", topic_.c_str(), seq_);
+    g_print("%s %d h264 frames\n", topic_.c_str(), seq_);
   }
 
   h264_msgs::msg::Packet packet;

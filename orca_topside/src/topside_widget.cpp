@@ -298,6 +298,22 @@ void TopsideWidget::update_pipeline(const std::shared_ptr<VideoPipeline> & pipel
   label->setText(message);
 }
 
+void TopsideWidget::closeEvent(QCloseEvent *event)
+{
+  // The user hit the close box. We need to cleanly stop recording so that the mp4 file is closed.
+  if (video_pipeline_l_ && video_pipeline_l_->recording()) {
+    video_pipeline_l_->toggle_record();
+  }
+  if (video_pipeline_f_ && video_pipeline_f_->recording()) {
+    video_pipeline_f_->toggle_record();
+  }
+  if (video_pipeline_r_ && video_pipeline_r_->recording()) {
+    video_pipeline_r_->toggle_record();
+  }
+
+  event->accept();
+}
+
 void TopsideWidget::keyPressEvent(QKeyEvent *event)
 {
   if (event->key() == Qt::Key_Exclam) {

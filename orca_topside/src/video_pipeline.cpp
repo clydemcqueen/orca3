@@ -180,7 +180,7 @@ VideoPipeline::VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node,
   connect(timer, &QTimer::timeout, this, QOverload<>::of(&VideoPipeline::spin));
   timer->start(20);
 
-#ifdef GST_TOOLS
+#if defined(GST_TOOLS) && defined(RUN_GST_TOOLS)
   (void) main_loop_thread_;
   (void) message_watcher_;
   (void) pad_probe_;
@@ -237,8 +237,7 @@ GstWidget *VideoPipeline::start_display()
     return nullptr;
   }
 
-  // Sync MUST be turned on for non-streaming source, e.g., videotestsrc.
-  // But if sync is turned on display stop/start fails. :-(
+  // Set videotestsrc.is-live=true, and leave appsink.sync=false
   gst_base_sink_set_sync(GST_BASE_SINK(display_sink_), sync_);
 
   gst_bin_add_many(GST_BIN(pipeline_), display_bin_, display_sink_, nullptr);
@@ -432,14 +431,14 @@ void VideoPipeline::toggle_publish()
     g_object_set(publish_valve_, "drop", TRUE, nullptr);
     publish_sink_ = nullptr;
 
-#ifdef GST_TOOLS
+#if defined(GST_TOOLS) && defined(RUN_GST_TOOLS)
     graph_writer_->write("graph_publishing_off", 3);
 #endif
   } else {
     publish_sink_ = std::make_shared<ImagePublisher>(topic_, node_, sync_, pipeline_, publish_valve_);
     g_object_set(publish_valve_, "drop", FALSE, nullptr);
 
-#ifdef GST_TOOLS
+#if defined(GST_TOOLS) && defined(RUN_GST_TOOLS)
     graph_writer_->write("graph_publishing_on", 3);
 #endif
   }
@@ -471,7 +470,8 @@ gboolean VideoPipeline::on_bus_message(GstBus *, GstMessage *msg, gpointer data)
       break;
     }
     case GST_MESSAGE_EOS:
-      handle_eos(data);
+      // Handle EOS in the GST_MESSAGE_ELEMENT case, where we can tell which element generated the EOS
+      // handle_eos(data);
       break;
     case GST_MESSAGE_ELEMENT: {
       // Check for messages forwarded from bin children, these show up as element messages
@@ -488,6 +488,7 @@ gboolean VideoPipeline::on_bus_message(GstBus *, GstMessage *msg, gpointer data)
       }
 
       if (GST_MESSAGE_TYPE(forward_msg) == GST_MESSAGE_EOS) {
+        // TODO distinguish between the 3 possible sources of the EOS
         handle_eos(data);
       }
 
@@ -504,6 +505,7 @@ gboolean VideoPipeline::on_bus_message(GstBus *, GstMessage *msg, gpointer data)
 
 // Sit on the sink pad of the tee and copy dts -> pts if required.
 // See: https://gitlab.freedesktop.org/gstreamer/gst-plugins-good/-/issues/410
+// Also calc fps.
 GstPadProbeReturn VideoPipeline::on_tee_buffer(GstPad *, GstPadProbeInfo *info, gpointer data)
 {
   auto video_pipeline = (VideoPipeline *) data;
