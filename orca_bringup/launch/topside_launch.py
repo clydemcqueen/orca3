@@ -78,7 +78,6 @@ def generate_launch_description():
 
     orca_bringup_launch_dir = os.path.join(orca_bringup_dir, 'launch')
 
-    orca_params_file = os.path.join(orca_bringup_dir, 'params', 'topside_orca_params.yaml')
     nav2_params_file = os.path.join(orca_bringup_dir, 'params', 'nav2_params.yaml')
     # camera_info_file = 'file://' + os.path.join(orca_bringup_dir, 'cfg', 'forward_1920x1080.yaml')
 
@@ -105,6 +104,12 @@ def generate_launch_description():
             'fake',
             default_value='False',
             description='Launch fake_barometer and fake_driver?',
+        ),
+
+        DeclareLaunchArgument(
+            'orca_params',
+            default_value='topside',
+            description='Which Orca params file? topside (real) vs bench (testing)',
         ),
 
         DeclareLaunchArgument(
@@ -209,7 +214,7 @@ def generate_launch_description():
                 'nav': LaunchConfiguration('nav'),
                 # PythonExpression substitution will do a deferred string join:
                 'vlam_map': [orca_bringup_dir, '/worlds/', LaunchConfiguration('world'), '_map.yaml'],
-                'orca_params_file': orca_params_file,
+                'orca_params_file': [orca_bringup_dir, '/params/', LaunchConfiguration('orca_params'), '_orca_params.yaml'],
                 'nav2_params_file': nav2_params_file,
             }.items(),
         ),
