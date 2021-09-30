@@ -94,6 +94,11 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   cam_layout_ = new TopsideLayout(node_->cxt().small_widget_size_);
   cam_layout_->addWidget(gst_widget_f_, TopsideLayout::HD_16x9, Qt::AlignHCenter | Qt::AlignTop);
 
+  // Publish h264 messages
+  if (node_->cxt().publish_h264_) {
+    video_pipeline_f_->start_publishing();
+  }
+
   if (node_->cxt().lcam_) {
     pipeline_l_label_ = new QLabel;
     pipeline_l_label_->setAlignment(Qt::AlignCenter);
@@ -105,6 +110,10 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
 
     gst_widget_l_ = video_pipeline_l_->start_display();
     cam_layout_->addWidget(gst_widget_l_, TopsideLayout::SD_4x3, Qt::AlignLeft | Qt::AlignTop);
+
+    if (node_->cxt().publish_h264_) {
+      video_pipeline_l_->start_publishing();
+    }
   } else {
     pipeline_l_label_ = nullptr;
   }
@@ -120,6 +129,10 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
 
     gst_widget_r_ = video_pipeline_r_->start_display();
     cam_layout_->addWidget(gst_widget_r_, TopsideLayout::SD_4x3, Qt::AlignRight | Qt::AlignTop);
+
+    if (node_->cxt().publish_h264_) {
+      video_pipeline_r_->start_publishing();
+    }
   } else {
     pipeline_r_label_ = nullptr;
   }
@@ -377,28 +390,6 @@ void TopsideWidget::keyPressEvent(QKeyEvent *event)
       if (video_pipeline_r_) {
         cam_layout_->set_main_widget(gst_widget_r_);
         return;
-      } else {
-        std::cout << "no right camera, ignoring" << std::endl;
-      }
-      return;
-
-      // Toggle publishing status; order is L F R
-    case Qt::Key_F7:
-      if (video_pipeline_l_) {
-        video_pipeline_l_->toggle_publish();
-        update_pipeline_l();
-      } else {
-        std::cout << "no left camera, ignoring" << std::endl;
-      }
-      return;
-    case Qt::Key_F8:
-      video_pipeline_f_->toggle_publish();
-      update_pipeline_f();
-      return;
-    case Qt::Key_F9:
-      if (video_pipeline_r_) {
-        video_pipeline_r_->toggle_publish();
-        update_pipeline_r();
       } else {
         std::cout << "no right camera, ignoring" << std::endl;
       }

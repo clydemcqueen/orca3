@@ -136,23 +136,20 @@ public:
 
   int fps() const { return fps_calculator_.fps(); }
 
+  // Display stream in a QWidget
   // Caller should add the widget to an application
   // VideoPipeline maintains ownership of the widget
   GstWidget *start_display();
-
-  // Caller should remove the widget from the application
   void stop_display();
-
   bool displaying() const { return widget_; }
 
-  // Turn recording on/off
+  // Record mp4 files
   void toggle_record();
-
   bool recording() const { return record_status_ == RecordStatus::running; }
 
-  // Turn publishing on/off
-  void toggle_publish();
-
+  // Publish h264 messages
+  void start_publishing();
+  void stop_publishing();
   bool publishing() const { return publish_sink_.get(); }
 };
 

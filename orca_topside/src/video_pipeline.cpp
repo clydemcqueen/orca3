@@ -420,26 +420,26 @@ void VideoPipeline::unlink_and_send_eos(GstElement *segment)
   gst_object_unref(sink);
 }
 
-void VideoPipeline::toggle_publish()
+void VideoPipeline::start_publishing()
 {
-  if (!initialized_) {
-    g_critical("%s not initialized", topic_.c_str());
-    return;
-  }
-
-  if (publishing()) {
-    g_object_set(publish_valve_, "drop", TRUE, nullptr);
-    publish_sink_ = nullptr;
-
-#if defined(GST_TOOLS) && defined(RUN_GST_TOOLS)
-    graph_writer_->write("graph_publishing_off", 3);
-#endif
-  } else {
+  if (!publishing()) {
     publish_sink_ = std::make_shared<ImagePublisher>(topic_, node_, sync_, pipeline_, publish_valve_);
     g_object_set(publish_valve_, "drop", FALSE, nullptr);
 
 #if defined(GST_TOOLS) && defined(RUN_GST_TOOLS)
     graph_writer_->write("graph_publishing_on", 3);
+#endif
+  }
+}
+
+void VideoPipeline::stop_publishing()
+{
+  if (!publishing()) {
+    g_object_set(publish_valve_, "drop", TRUE, nullptr);
+    publish_sink_ = nullptr;
+
+#if defined(GST_TOOLS) && defined(RUN_GST_TOOLS)
+    graph_writer_->write("graph_publishing_off", 3);
 #endif
   }
 }

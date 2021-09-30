@@ -49,10 +49,27 @@ worlds = [
     'ping_pong',  # 2 markers far apart facing each other
 ]
 
-
+# SLAM strategies:
 slams = [
-    'vlam',  # fiducial_vlam
     'none',  # No slam
+    'vlam',  # fiducial_vlam
+    'orb',  # orb_slam2_ros
+]
+
+image_transport_arguments = [
+    'h264',  # Input
+    'raw',  # Output
+]
+
+image_transport_remappings = [
+    ('in', 'image_raw'),
+    ('in/compressed', 'image_raw/compressed'),
+    ('in/theora', 'image_raw/theora'),
+    ('in/h264', 'image_raw/h264'),
+    ('out', 'repub_raw'),
+    ('out/compressed', 'repub_raw/compressed'),
+    ('out/theora', 'repub_raw/theora'),
+    ('out/theora', 'repub_raw/h264'),
 ]
 
 
@@ -90,6 +107,12 @@ def generate_launch_description():
             description='Launch fake_barometer and fake_driver?',
         ),
 
+        DeclareLaunchArgument(
+            'republish',
+            default_value='False',
+            description='Decode and republish h264 video streams?',
+        ),
+
         # Bag useful topics
         ExecuteProcess(
             cmd=[
@@ -103,6 +126,7 @@ def generate_launch_description():
                 '/fiducial_observations',
                 '/filtered_barometer',
                 '/forward_camera/camera_pose',
+                '/forward_camera/image_raw/h264',
                 '/joint_states',
                 '/joy',
                 '/lights',
@@ -113,6 +137,8 @@ def generate_launch_description():
                 '/robot_description',
                 '/rosout',
                 '/status',
+                '/stereo/left/image_raw/h264',
+                '/stereo/right/image_raw/h264',
                 '/tf',
                 '/tf_static',
                 '/thrust',
@@ -138,26 +164,40 @@ def generate_launch_description():
             condition=IfCondition(LaunchConfiguration('fake')),
         ),
 
-        # TODO remove
+        # Republish forward camera
         Node(
             package='image_transport',
             executable='republish',
             output='screen',
             name='republish_node',
-            namespace='forward',
-            arguments=[
-                'h264',  # Input
-                'raw',  # Output
-            ], remappings=[
-                ('in', 'image_raw'),
-                ('in/compressed', 'image_raw/compressed'),
-                ('in/theora', 'image_raw/theora'),
-                ('in/h264', 'image_raw/h264'),
-                ('out', 'repub_raw'),
-                ('out/compressed', 'repub_raw/compressed'),
-                ('out/theora', 'repub_raw/theora'),
-                ('out/theora', 'repub_raw/h264'),
-            ],
+            namespace='forward_camera',
+            arguments=image_transport_arguments,
+            remappings=image_transport_remappings,
+            condition=IfCondition(LaunchConfiguration('republish')),
+        ),
+
+        # Republish left camera
+        Node(
+            package='image_transport',
+            executable='republish',
+            output='screen',
+            name='republish_node',
+            namespace='stereo/left',
+            arguments=image_transport_arguments,
+            remappings=image_transport_remappings,
+            condition=IfCondition(LaunchConfiguration('republish')),
+        ),
+
+        # Republish right camera
+        Node(
+            package='image_transport',
+            executable='republish',
+            output='screen',
+            name='republish_node',
+            namespace='stereo/right',
+            arguments=image_transport_arguments,
+            remappings=image_transport_remappings,
+            condition=IfCondition(LaunchConfiguration('republish')),
         ),
 
         # Bring up all nodes

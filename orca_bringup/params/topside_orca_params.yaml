@@ -22,22 +22,25 @@ teleop_node:
     vel_z: 0.4
     vel_yaw: 0.8  # Increase 0.4 to 0.8 after FT11
 
-    lcam: False
-    rcam: False
+    lcam: True
+    rcam: True
+    publish_h264: True
     small_widget_size: 500
+    ftopic: "forward_camera"
+    ltopic: "stereo/left"
+    rtopic: "stereo/right"
 
     # Gstreamer bin parser seems to have trouble with trailing quotes, so don't end with a quote
     # h264parse element is required before and after the tee & valves -- not sure why
+    # Be sure to add "stream-format=byte-stream,alignment=au" to the caps string
 
     # Desk camera:
-    gst_source_bin_f: "v4l2src device=/dev/video0 do-timestamp=true ! video/x-h264,width=1920,height=1080,framerate=30/1 ! h264parse"
+    gst_source_bin_f: "v4l2src device=/dev/video0 do-timestamp=true ! video/x-h264,width=1920,height=1080,framerate=30/1 ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au"
 
     # BR USB camera:
-#    gst_source_bin_f: "v4l2src device=/dev/video2 do-timestamp=true ! video/x-h264,width=1920,height=1080,framerate=30/1 ! h264parse"
+#    gst_source_bin_f: "v4l2src device=/dev/video2 do-timestamp=true ! video/x-h264,width=1920,height=1080,framerate=30/1 ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au"
 
     # Build 3 cameras:
-    # Be sure to add "stream-format=byte-stream,alignment=au" to the caps string
-#    gst_source_bin_f: "udpsrc port=5600 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse"
 #    gst_source_bin_f: "udpsrc port=5600 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au"
 #    gst_source_bin_l: "udpsrc port=5601 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au"
 #    gst_source_bin_r: "udpsrc port=5602 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au"
