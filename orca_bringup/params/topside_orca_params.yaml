@@ -87,15 +87,6 @@ base_controller:
     pid_z_kd: 0.28
     pid_z_i_max: 0.1
 
-forward_camera/gscam_main:
-  ros__parameters:
-    camera_name: "forward_camera"
-    camera_info_url: "/fix/this/path"
-    gscam_config: "v4l2src device=/dev/video0 do-timestamp=true ! video/x-h264,width=1920,height=1080,framerate=30/1 ! h264parse ! avdec_h264 ! videoconvert"
-    preroll: False
-    use_gst_timestamps: False
-    frame_id: "forward_camera_frame"
-
 vmap_main:
   ros__parameters:
     # Publish marker /tf
@@ -144,3 +135,43 @@ fiducial_localizer:
     camera_frame_id: "forward_camera_frame"
     publish_rate: 20
     good_pose_distance: 2.0
+
+orb_slam2_stereo:
+  ros__parameters:
+    use_sim_time: False
+    subscribe_best_effort: False
+    publish_pointcloud: True
+    publish_pose: True
+    publish_tf: False
+    localize_only: False
+    reset_map: False
+    load_map: False
+    map_file: map.bin
+    pointcloud_frame_id: map
+    camera_frame_id: camera_frame  # TODO
+    min_num_kf_in_map: 5
+
+    ORBextractor/nFeatures: 1200
+    ORBextractor/scaleFactor: 1.2
+    ORBextractor/nLevels: 8
+    ORBextractor/iniThFAST: 20
+    ORBextractor/minThFAST: 7
+
+    # Stereo camera runs at 20fps, but this slows down to ~2fps through SLAM
+    # TODO how important is this setting?
+    camera_fps: 2
+
+    # Color order of the images (0: BGR, 1: RGB. It is ignored if images are grayscale)
+    camera_rgb_encoding: True
+
+    # See https://github.com/raulmur/ORB_SLAM2/issues/89 for the author's explanation of these:
+    ThDepth: 40.0
+    depth_map_factor: 1.0
+    camera_baseline: 3748.73  # Right camera info p[3], flip sign
+
+orb_slam2_localizer:
+  ros__parameters:
+    use_sim_time: False
+    camera_frame_id: "left_camera_link"  # Note: the link, not the frame
+    publish_rate: 20
+    transform_expiration_ms: 0

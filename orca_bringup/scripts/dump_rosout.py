@@ -59,13 +59,13 @@ class BagParser:
 
 def print_usage():
     print('Print all messages:')
-    print('    ros2 run orca_bringup /path/bag.db3')
+    print('    ros2 run orca_bringup dump_rosout.py /path/bag.db3')
 
     print('Print messages from only1, only2, ...:')
-    print('    ros2 run orca_bringup /path/bag.db3 [only only1 [only2 ...]]')
+    print('    ros2 run orca_bringup dump_rosout.py /path/bag.db3 [only only1 [only2 ...]]')
 
     print('Ignore messages from ignore1, ignore2, ...:')
-    print('    ros2 run orca_bringup /path/bag.db3 [ignore ignore1 [ignore2 ...]]')
+    print('    ros2 run orca_bringup dump_rosout.py /path/bag.db3 [ignore ignore1 [ignore2 ...]]')
 
 
 def main(args: List):

@@ -122,7 +122,7 @@ void ImagePublisher::process_sample()
   }
 
   // Keep a sequence number, handy for debugging
-  if (++seq_ % 60 == 0) {
+  if (++seq_ % 1000 == 0) {
     g_print("%s %d h264 frames\n", topic_.c_str(), seq_);
   }
 
