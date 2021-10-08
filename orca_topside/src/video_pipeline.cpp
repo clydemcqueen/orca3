@@ -33,21 +33,30 @@
 namespace orca_topside
 {
 
-void VideoPipeline::FPSCalculator::push_new(const rclcpp::Time & stamp)
-{
-  stamps_.push(stamp);
-  pop_old(stamp);
-}
-
-void VideoPipeline::FPSCalculator::pop_old(const rclcpp::Time & stamp)
+// Caller must lock the mutex before calling
+void VideoPipeline::FPSCalculator::pop_old_impl(const rclcpp::Time & stamp)
 {
   while (!stamps_.empty() && stamp - stamps_.front() > rclcpp::Duration(1, 0)) {
     stamps_.pop();
   }
 }
 
+void VideoPipeline::FPSCalculator::push_new(const rclcpp::Time & stamp)
+{
+  std::lock_guard<std::mutex> lock(mutex_);
+  stamps_.push(stamp);
+  pop_old_impl(stamp);
+}
+
+void VideoPipeline::FPSCalculator::pop_old(const rclcpp::Time & stamp)
+{
+  std::lock_guard<std::mutex> lock(mutex_);
+  pop_old_impl(stamp);
+}
+
 int VideoPipeline::FPSCalculator::fps() const
 {
+  std::lock_guard<std::mutex> lock(mutex_);
   return (int) stamps_.size();
 }
 

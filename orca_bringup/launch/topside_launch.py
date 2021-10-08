@@ -33,6 +33,12 @@
 # AUV running ping-pong (NOT WORKING):
 # ros2 launch orca_bringup topside_launch.py world:=ping_pong nav:=True slam:=vlam
 
+# This (mostly) works, because slam:=orb_h264 does rectification:
+# ros2 launch orca_bringup topside_launch.py republish:=False slam:=orb_h264
+
+# This (mostly) fails, because nobody is doing rectification:
+# ros2 launch orca_bringup topside_launch.py republish:=True slam:=orb
+
 import os
 
 from ament_index_python.packages import get_package_share_directory
@@ -40,7 +46,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription
 from launch.conditions import IfCondition, LaunchConfigurationEquals
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 
 
@@ -67,10 +73,10 @@ image_transport_remappings = [
     ('in/compressed', 'image_raw/compressed'),
     ('in/theora', 'image_raw/theora'),
     ('in/h264', 'image_raw/h264'),
-    ('out', 'repub_raw'),
-    ('out/compressed', 'repub_raw/compressed'),
-    ('out/theora', 'repub_raw/theora'),
-    ('out/theora', 'repub_raw/h264'),
+    ('out', 'image_raw'),
+    ('out/compressed', 'image_raw/compressed'),
+    ('out/theora', 'image_raw/theora'),
+    ('out/h264', 'image_raw/h264'),
 ]
 
 
@@ -171,22 +177,7 @@ def generate_launch_description():
             condition=IfCondition(LaunchConfiguration('fake')),
         ),
 
-        # Publish camera info for stereo SLAM
-        Node(
-            package='orca_localize',
-            executable='camera_info_publisher',
-            output='screen',
-            name='camera_info_publisher',
-            namespace='camera',
-            parameters=[{
-                'camera_info_url': 'file://' + right_info_file,
-                'camera_name': 'stereo_right',
-                'frame_id': 'stereo_right',
-            }],
-            condition=LaunchConfigurationEquals('slam', 'orb'),
-        ),
-
-        # Publish left camera info for stereo_h264 SLAM
+        # Publish left camera info for stereo SLAM
         Node(
             package='orca_localize',
             executable='camera_info_publisher',
@@ -198,10 +189,10 @@ def generate_launch_description():
                 'camera_name': 'stereo_left',
                 'frame_id': 'stereo_left',
             }],
-            condition=LaunchConfigurationEquals('slam', 'orb_h264'),
+            condition=IfCondition(PythonExpression(["'orb' in '", LaunchConfiguration('slam'), "'"])),
         ),
 
-        # Publish right camera info for stereo_h264 SLAM
+        # Publish right camera info for stereo SLAM
         Node(
             package='orca_localize',
             executable='camera_info_publisher',
@@ -213,7 +204,7 @@ def generate_launch_description():
                 'camera_name': 'stereo_right',
                 'frame_id': 'stereo_right',
             }],
-            condition=LaunchConfigurationEquals('slam', 'orb_h264'),
+            condition=IfCondition(PythonExpression(["'orb' in '", LaunchConfiguration('slam'), "'"])),
         ),
 
         # Republish forward camera

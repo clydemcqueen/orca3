@@ -24,6 +24,7 @@
 #define ORCA_TOPSIDE__VIDEO_PIPELINE_HPP_
 
 #include <memory>
+#include <mutex>
 #include <queue>
 
 extern "C" {
@@ -71,9 +72,13 @@ class VideoPipeline : public QObject
     running, waiting_for_eos, got_eos, stopped
   };
 
+  // Multi-threaded, e.g., gstreamer pad callback calls push, Qt UI thread calls pop
   class FPSCalculator
   {
     std::queue<rclcpp::Time> stamps_;
+    mutable std::mutex mutex_;
+
+    void pop_old_impl(const rclcpp::Time & stamp);
 
   public:
     void push_new(const rclcpp::Time & stamp);
