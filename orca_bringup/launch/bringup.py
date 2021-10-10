@@ -32,7 +32,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable
 from launch.conditions import IfCondition, LaunchConfigurationEquals
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 from nav2_common.launch import RewrittenYaml
 
@@ -41,7 +41,8 @@ from nav2_common.launch import RewrittenYaml
 slams = [
     'none',  # No slam
     'vlam',  # fiducial_vlam
-    'orb',  # orb_slam2_ros
+    'orb',  # orb_slam2_ros_stereo
+    'orb_h264',  # orb_slam2_ros_h264_stereo
 ]
 
 
@@ -54,7 +55,7 @@ def generate_launch_description():
 
     nav2_bringup_launch_dir = os.path.join(nav2_bringup_dir, 'launch')
 
-    urdf_file = os.path.join(orca_description_dir, 'urdf', 'hw7.urdf')  # TODO choose urdf
+    urdf_file = os.path.join(orca_description_dir, 'urdf', 'hw7.urdf')
     nav2_bt_file = os.path.join(orca_bringup_dir, 'behavior_trees', 'orca3_bt.xml')
 
     use_sim_time = LaunchConfiguration('use_sim_time')
@@ -215,6 +216,24 @@ def generate_launch_description():
             ],
             condition=LaunchConfigurationEquals('slam', 'orb')),
 
+        # orb_slam2, but inputs are h264 streams rather than rectified images
+        Node(
+            package='orb_slam2_ros',
+            executable='orb_slam2_ros_h264_stereo',
+            output='screen',
+            name='orb_slam2_stereo',  # Same name so 'orb' and 'orb_h264' can share param files
+            parameters=[configured_orca_params, {
+                'voc_file': orb_voc_file,
+            }],
+            remappings=[
+                # No need to remap. Node expects:
+                # /stereo/left/image_raw/h264
+                # /stereo/left/camera_info
+                # /stereo/right/image_raw/h264
+                # /stereo/right/camera_info
+            ],
+            condition=LaunchConfigurationEquals('slam', 'orb_h264')),
+
         # orb_slam2: subscribe to the camera pose and publish /tf map->odom
         Node(
             package='orca_localize',
@@ -223,9 +242,11 @@ def generate_launch_description():
             name='orb_slam2_localizer',
             parameters=[configured_orca_params],
             remappings=[
+                # Topic is hard coded in orb_slam2_ros to /orb_slam2_stereo_node/pose
                 ('/camera_pose', '/orb_slam2_stereo_node/pose'),
             ],
-            condition=LaunchConfigurationEquals('slam', 'orb')),
+            # Launch if slam:=orb or slam:=orb_h264
+            condition=IfCondition(PythonExpression(["'orb' in '", LaunchConfiguration('slam'), "'"]))),
 
         # Publish a [likely empty] nav2 map
         Node(

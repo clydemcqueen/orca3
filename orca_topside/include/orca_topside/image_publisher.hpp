@@ -20,31 +20,48 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef ORCA_TOPSIDE__NODE_SPINNER_HPP_
-#define ORCA_TOPSIDE__NODE_SPINNER_HPP_
+#ifndef ORCA_TOPSIDE__IMAGE_PUBLISHER_HPP_
+#define ORCA_TOPSIDE__IMAGE_PUBLISHER_HPP_
 
-#include <QApplication>
+#include <atomic>
+#include <memory>
+#include <thread>
 
-#include "rclcpp/rclcpp.hpp"
+extern "C" {
+#include "gst/gst.h"
+#include "gst/app/gstappsink.h"
+}
 
 namespace orca_topside
 {
 
-class NodeSpinner : public QObject
+class TeleopNode;
+
+// Poll a gstreamer appsink element for H264 data, and publish a ROS message
+class ImagePublisher
 {
-Q_OBJECT
+  std::string topic_;
+  std::shared_ptr<TeleopNode> node_;
+  GstElement *pipeline_;
+  GstElement *sink_;
+
+  // Poll GStreamer on a separate thread
+  // TODO use ROS timer? QTimer?
+  std::thread pipeline_thread_;
+  std::atomic<bool> stop_signal_;
+
+  // Sequence number
+  int seq_;
+
+  void process_sample();
 
 public:
-  NodeSpinner(std::shared_ptr<rclcpp::Node> node, std::function<void()> cleanup);
+  ImagePublisher(std::string topic, std::shared_ptr<TeleopNode> node, bool sync,
+    GstElement *pipeline, GstElement *upstream);
 
-private slots:
-  void spin_some();
-
-private:
-  std::shared_ptr<rclcpp::executors::SingleThreadedExecutor> spinner_;
-  std::function<void()> cleanup_;
+  ~ImagePublisher();
 };
 
 }  // namespace orca_topside
 
-#endif  // ORCA_TOPSIDE__NODE_SPINNER_HPP_
+#endif  // ORCA_TOPSIDE__IMAGE_PUBLISHER_HPP_

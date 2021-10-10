@@ -17,10 +17,13 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>geometry_msgs</depend>
+  <depend>h264_msgs</depend>
   <depend>orca_msgs</depend>
   <depend>orca_shared</depend>
   <depend>rclcpp</depend>
   <depend>ros2_shared</depend>
+
+  <!-- Optional, for debugging gstreamer pipelines: <depend>gst_tools</depend> -->
 
   <export>
     <build_type>ament_cmake</build_type>

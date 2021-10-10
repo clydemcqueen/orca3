@@ -178,6 +178,7 @@ void UnderwaterMotion::update(const rclcpp::Time & t, const geometry_msgs::msg::
   prev_time_ = motion_.header.stamp;
   motion_.header.stamp = t;
 
+  motion_.baro_z = baro_z;
   motion_.cmd_vel = cmd_vel;
 
   motion_.dt = (t - prev_time_).seconds();

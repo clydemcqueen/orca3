@@ -8,9 +8,9 @@ namespace orca_topside
 {
 
 // Arrange the various video widgets:
-// -- the first widget in the list takes up as much space as possible
+// -- the first widget in the list is the main widget: it takes up as much space as possible
 // -- the other widgets are smaller and arranged around the border on top of the first widget
-// -- preserve the aspect ratio of widget
+// -- preserve the aspect ratio of each widget
 class TopsideLayout : public QLayout
 {
 public:
@@ -27,6 +27,8 @@ public:
 
   int small_widget_size() const { return small_widget_size_; }
   void set_small_widget_size(int small_widget_size) { small_widget_size_ = small_widget_size; }
+
+  void set_main_widget(QWidget *widget);
 
   void addItem(QLayoutItem *item) override;
   int count() const override;

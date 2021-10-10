@@ -24,6 +24,7 @@
 #define ORCA_TOPSIDE__TELEOP_NODE_HPP_
 
 #include "geometry_msgs/msg/twist.hpp"
+#include "h264_msgs/msg/packet.hpp"
 #include "orca_msgs/msg/armed.hpp"
 #include "orca_msgs/msg/camera_tilt.hpp"
 #include "orca_msgs/msg/depth.hpp"
@@ -41,6 +42,8 @@ namespace orca_topside
 class TopsideWidget;
 
 // Param defaults work well for the simulation demo: orca_bringup/launch/sim_launch.py
+// TODO require live source, so I don't need sync -- correct?
+// TODO why repeat h264parse?
 
 #define TOPSIDE_PARAMS \
   CXT_MACRO_MEMBER(stamp_msgs_with_current_time, bool, false) /* Stamp incoming msgs */ \
@@ -66,20 +69,25 @@ class TopsideWidget;
  \
   CXT_MACRO_MEMBER(lcam, bool, false) /* Has a left camera */ \
   CXT_MACRO_MEMBER(rcam, bool, false) /* Has a right camera */ \
+  CXT_MACRO_MEMBER(publish_h264, bool, false) /* Publish h264 msgs for all cams */ \
   CXT_MACRO_MEMBER(small_widget_size, int, 400) /* lcam and rcam widget size */ \
  \
-  CXT_MACRO_MEMBER(gst_source_bin_f, std::string, "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=1600,height=900,framerate=20/1") \
-  CXT_MACRO_MEMBER(gst_display_bin_f, std::string, "textoverlay text=\"forward\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center") \
-  CXT_MACRO_MEMBER(gst_record_bin_f, std::string, "") \
-  CXT_MACRO_MEMBER(sync_f, bool, true) \
-  CXT_MACRO_MEMBER(gst_source_bin_l, std::string, "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=400,height=300,framerate=20/1") \
-  CXT_MACRO_MEMBER(gst_display_bin_l, std::string, "textoverlay text=\"left\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center") \
-  CXT_MACRO_MEMBER(gst_record_bin_l, std::string, "")                                   \
-  CXT_MACRO_MEMBER(sync_l, bool, true) \
-  CXT_MACRO_MEMBER(gst_source_bin_r, std::string, "videotestsrc ! capsfilter caps=video/x-raw,format=RGB,width=400,height=300,framerate=20/1") \
-  CXT_MACRO_MEMBER(gst_display_bin_r, std::string, "textoverlay text=\"right\" font-desc=\"Sans, 24\" ! timeoverlay halignment=center") \
-  CXT_MACRO_MEMBER(gst_record_bin_r, std::string, "")                                   \
-  CXT_MACRO_MEMBER(sync_r, bool, true) \
+  CXT_MACRO_MEMBER(ftopic, std::string, "forward") /* Forward camera namespace */ \
+  CXT_MACRO_MEMBER(ltopic, std::string, "left") /* Left camera namespace */ \
+  CXT_MACRO_MEMBER(rtopic, std::string, "right") /* Right camera namespace */ \
+ \
+  CXT_MACRO_MEMBER(gst_source_bin_f, std::string, "v4l2src device=/dev/video0 do-timestamp=true ! video/x-h264,width=1920,height=1080,framerate=30/1 ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au") \
+  CXT_MACRO_MEMBER(gst_display_bin_f, std::string, "queue ! h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB") \
+  CXT_MACRO_MEMBER(gst_record_bin_f, std::string, "queue ! h264parse ! mp4mux ! filesink location=fcam_%Y-%m-%d_%H-%M-%S.mp4") \
+  CXT_MACRO_MEMBER(sync_f, bool, false) \
+  CXT_MACRO_MEMBER(gst_source_bin_l, std::string, "videotestsrc is-live=true ! capsfilter caps=video/x-raw,width=400,height=300,framerate=20/1 ! videoconvert ! queue ! x264enc key-int-max=10 ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au") \
+  CXT_MACRO_MEMBER(gst_display_bin_l, std::string, "queue ! h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB") \
+  CXT_MACRO_MEMBER(gst_record_bin_l, std::string, "queue ! h264parse ! mp4mux ! filesink location=lcam_%Y-%m-%d_%H-%M-%S.mp4") \
+  CXT_MACRO_MEMBER(sync_l, bool, false) \
+  CXT_MACRO_MEMBER(gst_source_bin_r, std::string, "videotestsrc is-live=true ! capsfilter caps=video/x-raw,width=400,height=300,framerate=20/1 ! videoconvert ! queue ! x264enc key-int-max=10 ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au") \
+  CXT_MACRO_MEMBER(gst_display_bin_r, std::string, "queue ! h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB") \
+  CXT_MACRO_MEMBER(gst_record_bin_r, std::string, "queue ! h264parse ! mp4mux ! filesink location=rcam_%Y-%m-%d_%H-%M-%S.mp4") \
+  CXT_MACRO_MEMBER(sync_r, bool, false) \
 /* End of list */
 
 #undef CXT_MACRO_MEMBER
@@ -104,6 +112,8 @@ class TeleopNode : public rclcpp::Node
   const int joy_button_arm_ = JOY_BUTTON_MENU;
   const int joy_button_hold_disable_ = JOY_BUTTON_A;
   const int joy_button_hold_enable_ = JOY_BUTTON_B;
+  const int joy_button_stick_z_disable_ = JOY_BUTTON_X;
+  const int joy_button_stick_z_enable_ = JOY_BUTTON_Y;
   const int joy_button_camera_tilt_up_ = JOY_BUTTON_LEFT_BUMPER;
   const int joy_button_camera_tilt_down_ = JOY_BUTTON_RIGHT_BUMPER;
   const int joy_axis_lights_ = JOY_AXIS_TRIM_LR;
@@ -116,6 +126,7 @@ class TeleopNode : public rclcpp::Node
 
   bool armed_{};          // True: keyboard and joystick active
   bool hold_{};           // True: hover and pid enabled
+  bool stick_z_{};        // True: the z stick is enabled
   int tilt_target_{};     // Target camera tilt angle [-45, 45]
   int tilt_current_{};    // Current camera tilt angle
   int lights_{};          // Lights value [0, 100]
@@ -139,6 +150,10 @@ class TeleopNode : public rclcpp::Node
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
   rclcpp::Publisher<orca_msgs::msg::Lights>::SharedPtr lights_pub_;
 
+  rclcpp::Publisher<h264_msgs::msg::Packet>::SharedPtr forward_pub_;
+  rclcpp::Publisher<h264_msgs::msg::Packet>::SharedPtr left_pub_;
+  rclcpp::Publisher<h264_msgs::msg::Packet>::SharedPtr right_pub_;
+
   std::shared_ptr<rclcpp::AsyncParametersClient> base_controller_client_;
 
   void validate_parameters();
@@ -160,6 +175,7 @@ class TeleopNode : public rclcpp::Node
 
   bool armed() const { return armed_; }
   bool hold() const { return hold_; }
+  bool stick_z() const { return stick_z_; }
   int tilt() const { return tilt_target_; }
   int lights() const { return lights_; }
   double trim_x() const { return trim_x_; }
@@ -171,6 +187,7 @@ class TeleopNode : public rclcpp::Node
   void disarm();
   void stop();
   void set_hold(bool enable);
+  void set_stick_z(bool enable);
   void inc_tilt();
   void dec_tilt();
   void inc_lights();
@@ -187,6 +204,8 @@ class TeleopNode : public rclcpp::Node
   void inc_trim_yaw(bool publish = true);
   void dec_trim_yaw(bool publish = true);
   void cancel_trim_yaw(bool publish = true);
+
+  void publish_packet(std::string name, const h264_msgs::msg::Packet &packet);
 };
 
 }  // namespace orca_topside

@@ -134,6 +134,19 @@ void TeleopNode::publish_lights()
   lights_pub_->publish(msg);
 }
 
+void TeleopNode::publish_packet(std::string topic, const h264_msgs::msg::Packet &packet)
+{
+  if (topic == cxt_.ftopic_) {
+    forward_pub_->publish(packet);
+  } else if (topic == cxt_.ltopic_) {
+    left_pub_->publish(packet);
+  } else if (topic == cxt_.rtopic_) {
+    right_pub_->publish(packet);
+  } else {
+    RCLCPP_ERROR(get_logger(), "bad topic name %s", topic.c_str());
+  }
+}
+
 bool TeleopNode::set_base_controller_param(const std::string & param, bool value)
 {
   if (!base_controller_client_) {
@@ -173,6 +186,7 @@ TeleopNode::TeleopNode()
 {
   (void) depth_sub_;
   (void) joy_sub_;
+  (void) motion_sub_;
   (void) status_sub_;
   (void) spin_timer_;
 
@@ -182,6 +196,10 @@ TeleopNode::TeleopNode()
   camera_tilt_pub_ = create_publisher<orca_msgs::msg::CameraTilt>("camera_tilt", 10);
   cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
   lights_pub_ = create_publisher<orca_msgs::msg::Lights>("lights", 10);
+
+  forward_pub_ = create_publisher<h264_msgs::msg::Packet>(cxt_.ftopic_ + "/image_raw/h264", 10);
+  left_pub_ = create_publisher<h264_msgs::msg::Packet>(cxt_.ltopic_ + "/image_raw/h264", 10);
+  right_pub_ = create_publisher<h264_msgs::msg::Packet>(cxt_.rtopic_ + "/image_raw/h264", 10);
 
   depth_sub_ = create_subscription<orca_msgs::msg::Depth>("depth", 10,
     [this](orca_msgs::msg::Depth::ConstSharedPtr msg)
@@ -213,6 +231,13 @@ TeleopNode::TeleopNode()
         set_hold(true);
       }
 
+      // Enable/disable the z stick
+      if (button_down(msg, joy_msg_, joy_button_stick_z_disable_)) {
+        set_stick_z(false);
+      } else if (button_down(msg, joy_msg_, joy_button_stick_z_enable_)) {
+        set_stick_z(true);
+      }
+
       // Camera tilt
       if (button_down(msg, joy_msg_, joy_button_camera_tilt_down_)) {
         dec_tilt();
@@ -234,8 +259,8 @@ TeleopNode::TeleopNode()
         orca::deadzone(joy_msg_.axes[joy_axis_x_], cxt_.deadzone_) * cxt_.vel_x_;
       stick_vel_.linear.y =
         orca::deadzone(joy_msg_.axes[joy_axis_y_], cxt_.deadzone_) * cxt_.vel_y_;
-      stick_vel_.linear.z =
-        orca::deadzone(joy_msg_.axes[joy_axis_z_], cxt_.deadzone_) * cxt_.vel_z_;
+      stick_vel_.linear.z = stick_z_ ?
+        orca::deadzone(joy_msg_.axes[joy_axis_z_], cxt_.deadzone_) * cxt_.vel_z_ : 0;
       stick_vel_.angular.z =
         orca::deadzone(joy_msg_.axes[joy_axis_yaw_], cxt_.deadzone_) * cxt_.vel_yaw_;
 
@@ -330,6 +355,14 @@ void TeleopNode::set_hold(bool enable)
       view_) {
       view_->set_hold(enable);
     }
+  }
+}
+
+void TeleopNode::set_stick_z(bool enable)
+{
+  if (stick_z_ != enable) {
+    stick_z_ = enable;
+    RCLCPP_INFO(get_logger(), stick_z_ ? "z stick enabled" : "z stick disabled");
   }
 }
 

@@ -24,29 +24,29 @@
 
 """Launch topside nodes."""
 
-# Test w/ no barometer:
-# ros2 topic pub -r 20 -p 20 /barometer orca_msgs/msg/Barometer {}
-
-# Test w/ fake barometer:
-# ros2 run orca_base fake_barometer.py
-
-# Test w/ fake driver:
-# ros2 run orca_base fake_driver.py
+# Test w/ fake barometer and driver:
+# ros2 launch orca_bringup topside_launch.py fake:=True
 
 # ROV operations:
 # ros2 launch orca_bringup topside_launch.py
 
-# AUV running ping-pong:
+# AUV running ping-pong (NOT WORKING):
 # ros2 launch orca_bringup topside_launch.py world:=ping_pong nav:=True slam:=vlam
+
+# This (mostly) works, because slam:=orb_h264 does rectification:
+# ros2 launch orca_bringup topside_launch.py republish:=False slam:=orb_h264
+
+# This (mostly) fails, because nobody is doing rectification:
+# ros2 launch orca_bringup topside_launch.py republish:=True slam:=orb
 
 import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, LaunchConfigurationEquals
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 
 
@@ -55,21 +55,37 @@ worlds = [
     'ping_pong',  # 2 markers far apart facing each other
 ]
 
-
+# SLAM strategies:
 slams = [
-    'vlam',  # fiducial_vlam
     'none',  # No slam
+    'vlam',  # fiducial_vlam
+    'orb',  # orb_slam2_ros_stereo
+    'orb_h264',  # orb_slam2_ros_h264_stereo
+]
+
+image_transport_arguments = [
+    'h264',  # Input
+    'raw',  # Output
+]
+
+image_transport_remappings = [
+    ('in', 'image_raw'),
+    ('in/compressed', 'image_raw/compressed'),
+    ('in/theora', 'image_raw/theora'),
+    ('in/h264', 'image_raw/h264'),
+    ('out', 'image_raw'),
+    ('out/compressed', 'image_raw/compressed'),
+    ('out/theora', 'image_raw/theora'),
+    ('out/h264', 'image_raw/h264'),
 ]
 
 
 def generate_launch_description():
     orca_bringup_dir = get_package_share_directory('orca_bringup')
-
     orca_bringup_launch_dir = os.path.join(orca_bringup_dir, 'launch')
-
-    orca_params_file = os.path.join(orca_bringup_dir, 'params', 'topside_orca_params.yaml')
     nav2_params_file = os.path.join(orca_bringup_dir, 'params', 'nav2_params.yaml')
-    camera_info_file = 'file://' + os.path.join(orca_bringup_dir, 'cfg', 'forward_1920x1080.yaml')
+    left_info_file = os.path.join(orca_bringup_dir, 'cfg', 'left_1640x1232.yaml')
+    right_info_file = os.path.join(orca_bringup_dir, 'cfg', 'right_1640x1232.yaml')
 
     return LaunchDescription([
         DeclareLaunchArgument(
@@ -91,9 +107,21 @@ def generate_launch_description():
         ),
 
         DeclareLaunchArgument(
-            'gscam2',
+            'fake',
             default_value='False',
-            description='Launch gscam2?',
+            description='Launch fake_barometer and fake_driver?',
+        ),
+
+        DeclareLaunchArgument(
+            'orca_params',
+            default_value='topside',
+            description='Which Orca params file? topside (real) vs bench (testing)',
+        ),
+
+        DeclareLaunchArgument(
+            'republish',
+            default_value='False',
+            description='Decode and republish h264 video streams?',
         ),
 
         # Bag useful topics
@@ -109,6 +137,7 @@ def generate_launch_description():
                 '/fiducial_observations',
                 '/filtered_barometer',
                 '/forward_camera/camera_pose',
+                '/forward_camera/image_raw/h264',
                 '/joint_states',
                 '/joy',
                 '/lights',
@@ -119,6 +148,10 @@ def generate_launch_description():
                 '/robot_description',
                 '/rosout',
                 '/status',
+                '/stereo/left/image_raw/h264',
+                '/stereo/left/camera_info',
+                '/stereo/right/image_raw/h264',
+                '/stereo/right/camera_info',
                 '/tf',
                 '/tf_static',
                 '/thrust',
@@ -126,30 +159,88 @@ def generate_launch_description():
             output='screen',
         ),
 
-        # Convert rtp video to ROS2
-        # TODO keep?
+        # Fake barometer for testing orca_topside
         Node(
-            package='gscam2',
-            executable='gscam_main',
+            package='orca_base',
+            executable='fake_barometer.py',
             output='screen',
-            name='gscam_main',
-            namespace='forward_camera',
-            parameters=[orca_params_file, {
-                'camera_info_url': camera_info_file,
-            }],
-            condition=IfCondition(LaunchConfiguration('gscam2')),
+            name='fake_barometer',
+            condition=IfCondition(LaunchConfiguration('fake')),
         ),
 
-        # TODO place behind gst-ros-bridge IfCondition
+        # Fake driver for testing orca_topside
+        Node(
+            package='orca_base',
+            executable='fake_driver.py',
+            output='screen',
+            name='fake_driver',
+            condition=IfCondition(LaunchConfiguration('fake')),
+        ),
+
+        # Publish left camera info for stereo SLAM
         Node(
             package='orca_localize',
             executable='camera_info_publisher',
             output='screen',
             name='camera_info_publisher',
-            namespace='forward_camera',
+            namespace='stereo/left',
             parameters=[{
-                'camera_info_url': camera_info_file,
+                'camera_info_url': 'file://' + left_info_file,
+                'camera_name': 'stereo_left',
+                'frame_id': 'stereo_left',
             }],
+            condition=IfCondition(PythonExpression(["'orb' in '", LaunchConfiguration('slam'), "'"])),
+        ),
+
+        # Publish right camera info for stereo SLAM
+        Node(
+            package='orca_localize',
+            executable='camera_info_publisher',
+            output='screen',
+            name='camera_info_publisher',
+            namespace='stereo/right',
+            parameters=[{
+                'camera_info_url': 'file://' + right_info_file,
+                'camera_name': 'stereo_right',
+                'frame_id': 'stereo_right',
+            }],
+            condition=IfCondition(PythonExpression(["'orb' in '", LaunchConfiguration('slam'), "'"])),
+        ),
+
+        # Republish forward camera
+        Node(
+            package='image_transport',
+            executable='republish',
+            output='screen',
+            name='republish_node',
+            namespace='forward_camera',
+            arguments=image_transport_arguments,
+            remappings=image_transport_remappings,
+            condition=IfCondition(LaunchConfiguration('republish')),
+        ),
+
+        # Republish left camera
+        Node(
+            package='image_transport',
+            executable='republish',
+            output='screen',
+            name='republish_node',
+            namespace='stereo/left',
+            arguments=image_transport_arguments,
+            remappings=image_transport_remappings,
+            condition=IfCondition(LaunchConfiguration('republish')),
+        ),
+
+        # Republish right camera
+        Node(
+            package='image_transport',
+            executable='republish',
+            output='screen',
+            name='republish_node',
+            namespace='stereo/right',
+            arguments=image_transport_arguments,
+            remappings=image_transport_remappings,
+            condition=IfCondition(LaunchConfiguration('republish')),
         ),
 
         # Bring up all nodes
@@ -161,7 +252,7 @@ def generate_launch_description():
                 'nav': LaunchConfiguration('nav'),
                 # PythonExpression substitution will do a deferred string join:
                 'vlam_map': [orca_bringup_dir, '/worlds/', LaunchConfiguration('world'), '_map.yaml'],
-                'orca_params_file': orca_params_file,
+                'orca_params_file': [orca_bringup_dir, '/params/', LaunchConfiguration('orca_params'), '_orca_params.yaml'],
                 'nav2_params_file': nav2_params_file,
             }.items(),
         ),

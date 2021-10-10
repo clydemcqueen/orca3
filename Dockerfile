@@ -9,9 +9,11 @@
 ARG TARGET_ROS_DISTRO=foxy
 ARG ORCA3_BRANCH=main
 ARG FIDUCIAL_VLAM_BRANCH=master
-ARG ORB_SLAM2_ROS_BRANCH=clyde_rotate_pointcloud
+ARG H264_IMAGE_TRANSPORT_BRANCH=master
+ARG ORB_SLAM2_ROS_BRANCH=clyde_h264_stereo
 ARG ROS2_SHARED_BRANCH=master
 ARG SIM_FIDUCIAL_BRANCH=master
+ARG STEREO_DECODER_BRANCH=main
 ARG UKF_BRANCH=master
 
 FROM osrf/ros:$TARGET_ROS_DISTRO-desktop
@@ -33,17 +35,21 @@ WORKDIR /work/orca_ws/src
 ARG TARGET_ROS_DISTRO
 ARG ORCA3_BRANCH
 ARG FIDUCIAL_VLAM_BRANCH
+ARG H264_IMAGE_TRANSPORT_BRANCH
 ARG ORB_SLAM2_ROS_BRANCH
 ARG ROS2_SHARED_BRANCH
 ARG SIM_FIDUCIAL_BRANCH
+ARG STEREO_DECODER_BRANCH
 ARG UKF_BRANCH
 
 RUN git clone https://github.com/clydemcqueen/orca3.git -b $ORCA3_BRANCH
 RUN touch orca3/orca_driver/COLCON_IGNORE
 RUN git clone https://github.com/ptrmu/fiducial_vlam.git -b $FIDUCIAL_VLAM_BRANCH
+RUN git clone https://github.com/clydemcqueen/h264_image_transport.git -b $H264_IMAGE_TRANSPORT_BRANCH
 RUN git clone https://github.com/clydemcqueen/orb_slam_2_ros.git -b $ORB_SLAM2_ROS_BRANCH
 RUN git clone https://github.com/ptrmu/ros2_shared.git -b $ROS2_SHARED_BRANCH
 RUN git clone https://github.com/clydemcqueen/sim_fiducial.git -b $SIM_FIDUCIAL_BRANCH
+RUN git clone https://github.com/clydemcqueen/stereo_decoder.git -b $STEREO_DECODER_BRANCH
 RUN git clone https://github.com/clydemcqueen/ukf.git -b $UKF_BRANCH
 
 WORKDIR /work/orca_ws

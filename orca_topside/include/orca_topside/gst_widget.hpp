@@ -35,6 +35,7 @@ extern "C" {
 namespace orca_topside
 {
 
+// Poll a gstreamer appsink element for raw image data, and draw on a Qt widget
 class GstWidget : public QWidget
 {
 Q_OBJECT
@@ -46,7 +47,7 @@ protected:
   void paintEvent(QPaintEvent *) override;
 
 private slots:
-  void process_frame();
+  void process_sample();
 
 private:
   GstElement *sink_;

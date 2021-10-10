@@ -24,28 +24,42 @@
 #define ORCA_TOPSIDE__VIDEO_PIPELINE_HPP_
 
 #include <memory>
+#include <mutex>
 #include <queue>
 
 extern "C" {
 #include "gst/gst.h"
 }
 
+#undef RUN_GST_TOOLS
+#if defined(GST_TOOLS) && defined(RUN_GST_TOOLS)
+
+#include <thread>
+
+#include "gst_tools/message_watcher.hpp"
+#include "gst_tools/pad_probe.hpp"
+#include "gst_tools/graph_writer.hpp"
+
+#endif
+
 #include "rclcpp/time.hpp"
 #include <QObject>
 
-// Build a video pipeline that can display and/or record H264 video:
+// Build a video pipeline that can display, record and/or publish ROS messages:
 //
-//                     +--> queue --> valve [ --> decoder --> GStreamer widget ]
-//                     |
-//     H264 source --> tee
-//                     |
-//                     +--> queue --> valve [ --> multiplexer --> file sink ]
+//     H264 source --> tee --> queue --> valve [ --> decoder --> GStreamer widget ]
+//                      |
+//                      +----> queue --> valve [ --> multiplexer --> file sink ]
+//                      |
+//                      +----> queue --> valve [ --> ROS H264 publisher ]
 //
 
 namespace orca_topside
 {
 
 class GstWidget;
+
+class ImagePublisher;
 
 class TeleopNode;
 
@@ -58,9 +72,13 @@ class VideoPipeline : public QObject
     running, waiting_for_eos, got_eos, stopped
   };
 
-  class fps_calculator
+  // Multi-threaded, e.g., gstreamer pad callback calls push, Qt UI thread calls pop
+  class FPSCalculator
   {
     std::queue<rclcpp::Time> stamps_;
+    mutable std::mutex mutex_;
+
+    void pop_old_impl(const rclcpp::Time & stamp);
 
   public:
     void push_new(const rclcpp::Time & stamp);
@@ -68,9 +86,9 @@ class VideoPipeline : public QObject
     int fps() const;
   };
 
-  std::string name_;  // For debugging
+  std::string topic_;  // Image topic
   bool fix_pts_;  // True if we're copying dts -> pts
-  fps_calculator fps_calculator_;
+  FPSCalculator fps_calculator_;
   std::shared_ptr<TeleopNode> node_;
   std::string gst_source_bin_;
   std::string gst_display_bin_;
@@ -81,6 +99,9 @@ class VideoPipeline : public QObject
   GstElement *pipeline_;
   GstElement *source_bin_;
   GstElement *tee_;
+  GstPad *tee_display_pad_;
+  GstPad *tee_record_pad_;
+  GstPad *tee_publish_pad_;
   GstElement *display_queue_;
   GstElement *display_valve_;
   GstElement *display_bin_;
@@ -88,7 +109,19 @@ class VideoPipeline : public QObject
   GstElement *record_queue_;
   GstElement *record_valve_;
   GstElement *record_bin_;
+  GstElement *publish_queue_;
+  GstElement *publish_valve_;
+  std::shared_ptr<ImagePublisher> publish_sink_;
   GstWidget *widget_;
+
+#if defined(GST_TOOLS) && defined(RUN_GST_TOOLS)
+  // Debugging gstreamer
+  GMainLoop *main_loop_;
+  std::thread main_loop_thread_;
+  std::shared_ptr<gst_tools::MessageWatcher> message_watcher_;
+  std::shared_ptr<gst_tools::PadProbe> pad_probe_;
+  std::shared_ptr<gst_tools::GraphWriter> graph_writer_;
+#endif
 
   bool start_recording();
   void stop_recording();
@@ -108,22 +141,21 @@ public:
 
   int fps() const { return fps_calculator_.fps(); }
 
+  // Display stream in a QWidget
   // Caller should add the widget to an application
   // VideoPipeline maintains ownership of the widget
   GstWidget *start_display();
-
-  // Caller should remove the widget from the application
   void stop_display();
-
   bool displaying() const { return widget_; }
 
-  // Turn recording on/off
+  // Record mp4 files
   void toggle_record();
-
   bool recording() const { return record_status_ == RecordStatus::running; }
 
-  // Debugging
-  void print_caps();
+  // Publish h264 messages
+  void start_publishing();
+  void stop_publishing();
+  bool publishing() const { return publish_sink_.get(); }
 };
 
 }  // namespace orca_topside

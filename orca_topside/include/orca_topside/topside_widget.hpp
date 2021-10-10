@@ -38,6 +38,7 @@ namespace orca_topside
 {
 
 class TeleopNode;
+class TopsideLayout;
 
 class TopsideWidget : public QWidget
 {
@@ -45,6 +46,8 @@ Q_OBJECT
 
 public:
   explicit TopsideWidget(std::shared_ptr<TeleopNode> node, QWidget *parent = nullptr);
+
+  void about_to_quit();
 
   void set_armed(bool armed);
   void set_hold(bool enabled);
@@ -67,6 +70,7 @@ public:
   void update_pipeline_r() { update_pipeline(video_pipeline_r_, pipeline_r_label_, "R"); }
 
 protected:
+  void closeEvent(QCloseEvent *event) override;
   void keyPressEvent(QKeyEvent *event) override;
 
 private slots:
@@ -77,6 +81,10 @@ private:
   std::shared_ptr<VideoPipeline> video_pipeline_f_;
   std::shared_ptr<VideoPipeline> video_pipeline_l_;
   std::shared_ptr<VideoPipeline> video_pipeline_r_;
+  GstWidget *gst_widget_f_;
+  GstWidget *gst_widget_l_;
+  GstWidget *gst_widget_r_;
+  TopsideLayout *cam_layout_;
   QLabel *armed_label_;
   QLabel *hold_label_;
   QLabel *depth_label_;
