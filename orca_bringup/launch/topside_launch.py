@@ -243,7 +243,7 @@ def generate_launch_description():
             condition=IfCondition(LaunchConfiguration('republish')),
         ),
 
-        # Bring up all nodes
+        # Bring up Orca3 and Nav2 nodes
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(orca_bringup_launch_dir, 'bringup.py')),
             launch_arguments={

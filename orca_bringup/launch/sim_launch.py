@@ -194,7 +194,7 @@ def generate_launch_description():
                 'use_sim_time': LaunchConfiguration('use_sim_time'),
             }]),
 
-        # Bring up all nodes
+        # Bring up Orca3 and Nav2 nodes
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(orca_bringup_launch_dir, 'bringup.py')),
             launch_arguments={

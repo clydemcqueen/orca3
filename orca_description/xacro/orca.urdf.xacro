@@ -20,6 +20,9 @@
   <xacro:property name="MOTION_PLUGIN" value="${SIM_MODE == 'slam_test'}"/>
   <xacro:property name="GROUND_TRUTH_PLUGIN" value="true"/>
 
+  <!-- Enable distortion on the stereo camera for the slam test -->
+  <xacro:property name="STEREO_DISTORTION" value="${SIM_MODE == 'slam_test'}"/>
+
   <!--
       Orca constants
 
@@ -491,6 +494,22 @@
             <near>0.02</near>
             <far>${CAMERA_FAR_CLIP}</far>
           </clip>
+          <xacro:if value="${STEREO_DISTORTION}">
+            <!-- Simulate some barrel distortion to test the image pipeline.
+
+                 Be sure to set border_crop=False below. If the border is cropped
+                 image_proc::RectifyNode will not correctly rectify the image.
+
+                 Note that the rectification matrix camera_info.r is always the identity matrix.
+                 See gazebo_plugins/src/gazebo_ros_camera.cpp for details. -->
+            <distortion>
+              <k1>-0.25</k1>
+              <k2>0.12</k2>
+              <p1>-0.00028</p1>
+              <p2>-0.00005</p2>
+              <k3>0.0</k3>
+            </distortion>
+          </xacro:if>
           <noise>
             <type>gaussian</type>
             <!-- Noise is sampled independently per pixel on each frame.
@@ -512,6 +531,15 @@
             <near>0.02</near>
             <far>${CAMERA_FAR_CLIP}</far>
           </clip>
+          <xacro:if value="${STEREO_DISTORTION}">
+            <distortion>
+              <k1>-0.25</k1>
+              <k2>0.12</k2>
+              <p1>-0.00028</p1>
+              <p2>-0.00005</p2>
+              <k3>0.0</k3>
+            </distortion>
+          </xacro:if>
           <noise>
             <type>gaussian</type>
             <!-- Noise is sampled independently per pixel on each frame.
@@ -525,13 +553,16 @@
           <!-- Omit camera_name, will default to sensor name -->
           <!-- Default frame name is the link name (left_camera_link). Override to distinguish
                between the link, which pitches forward pi/4, and the camera frame, which pitches
-               forward pi/2. Both cameras will use the same frame name -->
+               forward pi/2. Both cameras will use the same frame name. -->
           <frame_name>left_camera_frame</frame_name>
           <!-- The baseline value is the distance between the 2 cameras. It shows up in the
                camera info projection matrix. In theory it can be gleaned by looking at the
                pose tags of the 2 cameras above, but in practice we need to set it using the
                hack_baseline tag. -->
           <hack_baseline>${STEREO_BASELINE}</hack_baseline>
+          <!-- Turn off border cropping so that downstream nodes can use the provided distortion
+               values to restore the image. -->
+          <border_crop>False</border_crop>
         </plugin>
       </sensor>
     </gazebo>
