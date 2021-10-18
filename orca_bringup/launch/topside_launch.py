@@ -30,21 +30,15 @@
 # ROV operations:
 # ros2 launch orca_bringup topside_launch.py
 
-# AUV running ping-pong (NOT WORKING):
-# ros2 launch orca_bringup topside_launch.py world:=ping_pong nav:=True slam:=vlam
-
-# This (mostly) works, because slam:=orb_h264 does rectification:
-# ros2 launch orca_bringup topside_launch.py republish:=False slam:=orb_h264
-
-# This (mostly) fails, because nobody is doing rectification:
-# ros2 launch orca_bringup topside_launch.py republish:=True slam:=orb
+# AUV with a down-facing stereo camera running ORB SLAM (WIP):
+# ros2 launch orca_bringup topside_launch.py slam:=orb_h264 nav:=True
 
 import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription
-from launch.conditions import IfCondition, LaunchConfigurationEquals
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
