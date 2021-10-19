@@ -34,8 +34,6 @@ Waiting on this PR to get released into Foxy binaries:
 https://github.com/ros-perception/image_pipeline/pull/597
 """
 
-# TODO document misc launch files
-
 from launch import LaunchDescription
 from launch_ros.actions import Node
 

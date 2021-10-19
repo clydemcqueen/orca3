@@ -112,12 +112,6 @@ def generate_launch_description():
             description='Which Orca params file? topside (real) vs bench (testing)',
         ),
 
-        DeclareLaunchArgument(
-            'republish',
-            default_value='False',
-            description='Decode and republish h264 video streams?',
-        ),
-
         # Bag useful topics
         ExecuteProcess(
             cmd=[
@@ -199,42 +193,6 @@ def generate_launch_description():
                 'frame_id': 'stereo_right',
             }],
             condition=IfCondition(PythonExpression(["'orb' in '", LaunchConfiguration('slam'), "'"])),
-        ),
-
-        # Republish forward camera
-        Node(
-            package='image_transport',
-            executable='republish',
-            output='screen',
-            name='republish_node',
-            namespace='forward_camera',
-            arguments=image_transport_arguments,
-            remappings=image_transport_remappings,
-            condition=IfCondition(LaunchConfiguration('republish')),
-        ),
-
-        # Republish left camera
-        Node(
-            package='image_transport',
-            executable='republish',
-            output='screen',
-            name='republish_node',
-            namespace='stereo/left',
-            arguments=image_transport_arguments,
-            remappings=image_transport_remappings,
-            condition=IfCondition(LaunchConfiguration('republish')),
-        ),
-
-        # Republish right camera
-        Node(
-            package='image_transport',
-            executable='republish',
-            output='screen',
-            name='republish_node',
-            namespace='stereo/right',
-            arguments=image_transport_arguments,
-            remappings=image_transport_remappings,
-            condition=IfCondition(LaunchConfiguration('republish')),
         ),
 
         # Bring up Orca3 and Nav2 nodes
