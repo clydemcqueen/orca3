@@ -22,8 +22,10 @@ teleop_node:
     vel_z: 0.4
     vel_yaw: 0.8  # Increase 0.4 to 0.8 after FT11
 
+    fcam: True
     lcam: True
     rcam: True
+    show_window: True
     publish_h264: True
     small_widget_size: 500
     ftopic: "forward_camera"

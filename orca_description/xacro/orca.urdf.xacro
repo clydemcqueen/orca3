@@ -68,7 +68,7 @@
   <xacro:property name="BARO_FREQ" value="20.0"/>
   <xacro:property name="BARO_VAR" value="40682.89"/>
   <xacro:property name="FWD_CAMERA_FREQ" value="1.0"/> <!-- Hack: slow down updates -->
-  <xacro:property name="DOWN_CAMERA_FREQ" value="30.0"/>
+  <xacro:property name="DOWN_CAMERA_FREQ" value="20.0"/>
   <xacro:property name="CAMERA_STD_DEV" value="0.07"/>
   <xacro:property name="CAMERA_FAR_CLIP" value="10"/>
 

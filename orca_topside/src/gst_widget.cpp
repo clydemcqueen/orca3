@@ -68,12 +68,6 @@ void GstWidget::process_sample()
   gsize & buffer_size = info.size;
   guint8 *& buf_data = info.data;
 
-  // Sanity check: make sure that the buffer is the expected size.
-  if (buffer_size != expected_size_) {
-    g_print("image buffer over/underflow, expected %ld but got %ld; caps must be video/x-raw format=RGB\n",
-      expected_size_, buffer_size);
-  }
-
   // Bootstrap: create QImage
   if (!image_) {
     GstPad *pad = gst_element_get_static_pad(sink_, "sink");
@@ -86,6 +80,12 @@ void GstWidget::process_sample()
     expected_size_ = width * height * 3;
 
     image_ = new QImage(width, height, QImage::Format_RGB888);
+  }
+
+  // Sanity check: make sure that the buffer is the expected size.
+  if (buffer_size != expected_size_) {
+    g_print("image buffer over/underflow, expected %ld but got %ld; caps must be video/x-raw format=RGB\n",
+      expected_size_, buffer_size);
   }
 
   // Copy data from gstreamer memory segment to Qt image

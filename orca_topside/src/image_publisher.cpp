@@ -29,10 +29,10 @@
 namespace orca_topside
 {
 
-ImagePublisher::ImagePublisher(std::string topic, std::shared_ptr<TeleopNode> node, bool sync,
+ImagePublisher::ImagePublisher(std::string topic, TeleopNode *node, bool sync,
   GstElement *pipeline, GstElement *upstream):
   topic_(std::move(topic)),
-  node_(std::move(node)),
+  node_(node),
   pipeline_(pipeline),
   stop_signal_(false),
   seq_(0)
@@ -86,6 +86,8 @@ ImagePublisher::ImagePublisher(std::string topic, std::shared_ptr<TeleopNode> no
     });
 
   g_print("%s image publisher created\n", topic_.c_str());
+
+  pub_ = node_->create_publisher<h264_msgs::msg::Packet>(topic_ + "/image_raw/h264", 10);
 }
 
 ImagePublisher::~ImagePublisher()
@@ -131,7 +133,7 @@ void ImagePublisher::process_sample()
   packet.seq = seq_;
   packet.data.resize(gst_buffer_get_size(buffer));
   gst_util::copy_buffer(buffer, packet.data);
-  node_->publish_packet(topic_, packet);
+  pub_->publish(packet);
 
   // Cleanup
   gst_sample_unref(sample);

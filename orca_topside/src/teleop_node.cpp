@@ -71,6 +71,17 @@ void TeleopNode::validate_parameters()
       tilt_current_ -= 1;
       publish_tilt();
     }
+
+    // Update fps calculators
+    if (video_pipeline_f_) {
+      video_pipeline_f_->spin();
+    }
+    if (video_pipeline_l_) {
+      video_pipeline_l_->spin();
+    }
+    if (video_pipeline_r_) {
+      video_pipeline_r_->spin();
+    }
   });
 }
 
@@ -96,6 +107,40 @@ void TeleopNode::init_parameters()
 #undef CXT_MACRO_MEMBER
 #define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_CHECK_CMDLINE_PARAMETER(n, t, d)
   CXT_MACRO_CHECK_CMDLINE_PARAMETERS((*this), TOPSIDE_PARAMS)
+}
+
+void TeleopNode::start_video()
+{
+  if (cxt_.fcam_) {
+    video_pipeline_f_ = std::make_shared<VideoPipeline>(cxt_.ftopic_, this,
+      cxt_.gst_source_bin_f_, cxt_.gst_display_bin_f_,
+      cxt_.gst_record_bin_f_, cxt_.sync_f_);
+
+    // TODO start publishing on pipeline construction
+    if (cxt_.publish_h264_) {
+      video_pipeline_f_->start_publishing();
+    }
+  }
+
+  if (cxt_.lcam_) {
+    video_pipeline_l_ = std::make_shared<VideoPipeline>(cxt_.ltopic_, this,
+      cxt_.gst_source_bin_l_, cxt_.gst_display_bin_l_,
+      cxt_.gst_record_bin_l_, cxt_.sync_l_);
+
+    if (cxt_.publish_h264_) {
+      video_pipeline_l_->start_publishing();
+    }
+  }
+
+  if (cxt_.rcam_) {
+    video_pipeline_r_ = std::make_shared<VideoPipeline>(cxt_.rtopic_, this,
+      cxt_.gst_source_bin_r_, cxt_.gst_display_bin_r_,
+      cxt_.gst_record_bin_r_, cxt_.sync_r_);
+
+    if (cxt_.publish_h264_) {
+      video_pipeline_r_->start_publishing();
+    }
+  }
 }
 
 void TeleopNode::publish_armed()
@@ -132,19 +177,6 @@ void TeleopNode::publish_lights()
   msg.header.stamp = now();
   msg.brightness_pwm = orca::brightness_to_pwm(lights_);
   lights_pub_->publish(msg);
-}
-
-void TeleopNode::publish_packet(std::string topic, const h264_msgs::msg::Packet &packet)
-{
-  if (topic == cxt_.ftopic_) {
-    forward_pub_->publish(packet);
-  } else if (topic == cxt_.ltopic_) {
-    left_pub_->publish(packet);
-  } else if (topic == cxt_.rtopic_) {
-    right_pub_->publish(packet);
-  } else {
-    RCLCPP_ERROR(get_logger(), "bad topic name %s", topic.c_str());
-  }
 }
 
 bool TeleopNode::set_base_controller_param(const std::string & param, bool value)
@@ -192,14 +224,12 @@ TeleopNode::TeleopNode()
 
   init_parameters();
 
+  start_video();
+
   armed_pub_ = create_publisher<orca_msgs::msg::Armed>("armed", 10);
   camera_tilt_pub_ = create_publisher<orca_msgs::msg::CameraTilt>("camera_tilt", 10);
   cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
   lights_pub_ = create_publisher<orca_msgs::msg::Lights>("lights", 10);
-
-  forward_pub_ = create_publisher<h264_msgs::msg::Packet>(cxt_.ftopic_ + "/image_raw/h264", 10);
-  left_pub_ = create_publisher<h264_msgs::msg::Packet>(cxt_.ltopic_ + "/image_raw/h264", 10);
-  right_pub_ = create_publisher<h264_msgs::msg::Packet>(cxt_.rtopic_ + "/image_raw/h264", 10);
 
   depth_sub_ = create_subscription<orca_msgs::msg::Depth>("depth", 10,
     [this](orca_msgs::msg::Depth::ConstSharedPtr msg)

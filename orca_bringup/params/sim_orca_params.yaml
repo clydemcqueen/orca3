@@ -20,8 +20,17 @@ teleop_node:
   ros__parameters:
     use_sim_time: False
     stamp_msgs_with_current_time: True
-    show_window: False
     deadzone: 0.05  # Deadzone: ignore small joystick motions
+
+    fcam: False
+    lcam: False
+    rcam: False
+    show_window: False
+    publish_h264: False
+    small_widget_size: 500
+    ftopic: "forward_camera"
+    ltopic: "stereo/left"
+    rtopic: "stereo/right"
 
     # vel_?_ should match in teleop_node and base_controller
     vel_x: 1.0
@@ -138,7 +147,7 @@ orb_slam2_stereo:
     ORBextractor/iniThFAST: 20
     ORBextractor/minThFAST: 7
 
-    camera_fps: 30
+    camera_fps: 20
     # Color order of the images (0: BGR, 1: RGB. It is ignored if images are grayscale)
     camera_rgb_encoding: True
 

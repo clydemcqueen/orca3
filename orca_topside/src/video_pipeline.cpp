@@ -60,11 +60,11 @@ int VideoPipeline::FPSCalculator::fps() const
   return (int) stamps_.size();
 }
 
-VideoPipeline::VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node,
+VideoPipeline::VideoPipeline(std::string topic, TeleopNode *node,
   std::string gst_source_bin, std::string gst_display_bin, std::string gst_record_bin, bool sync):
-  topic_(std::move(name)),
+  topic_(std::move(topic)),
   fix_pts_(false),
-  node_(std::move(node)),
+  node_(node),
   gst_source_bin_(std::move(gst_source_bin)),
   gst_display_bin_(std::move(gst_display_bin)),
   gst_record_bin_(std::move(gst_record_bin)),
@@ -184,10 +184,6 @@ VideoPipeline::VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node,
     g_critical("%s play failed", topic_.c_str());
     return;
   }
-
-  auto timer = new QTimer(this);
-  connect(timer, &QTimer::timeout, this, QOverload<>::of(&VideoPipeline::spin));
-  timer->start(20);
 
 #if defined(GST_TOOLS) && defined(RUN_GST_TOOLS)
   (void) main_loop_thread_;

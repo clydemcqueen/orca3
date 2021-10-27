@@ -24,13 +24,13 @@
 #define ORCA_TOPSIDE__TELEOP_NODE_HPP_
 
 #include "geometry_msgs/msg/twist.hpp"
-#include "h264_msgs/msg/packet.hpp"
 #include "orca_msgs/msg/armed.hpp"
 #include "orca_msgs/msg/camera_tilt.hpp"
 #include "orca_msgs/msg/depth.hpp"
 #include "orca_msgs/msg/lights.hpp"
 #include "orca_msgs/msg/motion.hpp"
 #include "orca_msgs/msg/status.hpp"
+#include "orca_topside/video_pipeline.hpp"
 #include "orca_topside/xbox.hpp"
 #include "rclcpp/parameter_client.hpp"
 #include "ros2_shared/context_macros.hpp"
@@ -47,7 +47,6 @@ class TopsideWidget;
 
 #define TOPSIDE_PARAMS \
   CXT_MACRO_MEMBER(stamp_msgs_with_current_time, bool, false) /* Stamp incoming msgs */ \
-  CXT_MACRO_MEMBER(show_window, bool, true) /* Show status and video in a window */ \
   CXT_MACRO_MEMBER(timer_period_ms, int, 50) /* Timer period in ms  */ \
   CXT_MACRO_MEMBER(status_timeout_ms, int, 500) /* Status message timeout in ms  */ \
   CXT_MACRO_MEMBER(deadzone, float, 0.05f) /* Ignore small joystick inputs  */ \
@@ -67,10 +66,12 @@ class TopsideWidget;
   CXT_MACRO_MEMBER(inc_vel_z, double, 0.1) \
   CXT_MACRO_MEMBER(inc_vel_yaw, double, 0.05) \
  \
-  CXT_MACRO_MEMBER(lcam, bool, false) /* Has a left camera */ \
-  CXT_MACRO_MEMBER(rcam, bool, false) /* Has a right camera */ \
+  CXT_MACRO_MEMBER(fcam, bool, false) /* Launch video pipeline for forward ROV camera */ \
+  CXT_MACRO_MEMBER(lcam, bool, false) /* Launch video pipeline for left SLAM camera */ \
+  CXT_MACRO_MEMBER(rcam, bool, false) /* Launch video pipeline for right SLAM camera */ \
+  CXT_MACRO_MEMBER(show_window, bool, false) /* Show status and video in a window */ \
   CXT_MACRO_MEMBER(publish_h264, bool, false) /* Publish h264 msgs for all cams */ \
-  CXT_MACRO_MEMBER(small_widget_size, int, 400) /* lcam and rcam widget size */ \
+  CXT_MACRO_MEMBER(small_widget_size, int, 400) /* Small widget size, used for lcam and rcam */ \
  \
   CXT_MACRO_MEMBER(ftopic, std::string, "forward") /* Forward camera namespace */ \
   CXT_MACRO_MEMBER(ltopic, std::string, "left") /* Left camera namespace */ \
@@ -80,11 +81,11 @@ class TopsideWidget;
   CXT_MACRO_MEMBER(gst_display_bin_f, std::string, "queue ! h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB") \
   CXT_MACRO_MEMBER(gst_record_bin_f, std::string, "queue ! h264parse ! mp4mux ! filesink location=fcam_%Y-%m-%d_%H-%M-%S.mp4") \
   CXT_MACRO_MEMBER(sync_f, bool, false) \
-  CXT_MACRO_MEMBER(gst_source_bin_l, std::string, "videotestsrc is-live=true ! capsfilter caps=video/x-raw,width=400,height=300,framerate=20/1 ! videoconvert ! queue ! x264enc key-int-max=10 ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au") \
+  CXT_MACRO_MEMBER(gst_source_bin_l, std::string, "videotestsrc is-live=true ! capsfilter caps=video/x-raw,width=820,height=616,framerate=20/1 ! videoconvert ! queue ! x264enc key-int-max=10 ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au") \
   CXT_MACRO_MEMBER(gst_display_bin_l, std::string, "queue ! h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB") \
   CXT_MACRO_MEMBER(gst_record_bin_l, std::string, "queue ! h264parse ! mp4mux ! filesink location=lcam_%Y-%m-%d_%H-%M-%S.mp4") \
   CXT_MACRO_MEMBER(sync_l, bool, false) \
-  CXT_MACRO_MEMBER(gst_source_bin_r, std::string, "videotestsrc is-live=true ! capsfilter caps=video/x-raw,width=400,height=300,framerate=20/1 ! videoconvert ! queue ! x264enc key-int-max=10 ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au") \
+  CXT_MACRO_MEMBER(gst_source_bin_r, std::string, "videotestsrc is-live=true ! capsfilter caps=video/x-raw,width=820,height=616,framerate=20/1 ! videoconvert ! queue ! x264enc key-int-max=10 ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au") \
   CXT_MACRO_MEMBER(gst_display_bin_r, std::string, "queue ! h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB") \
   CXT_MACRO_MEMBER(gst_record_bin_r, std::string, "queue ! h264parse ! mp4mux ! filesink location=rcam_%Y-%m-%d_%H-%M-%S.mp4") \
   CXT_MACRO_MEMBER(sync_r, bool, false) \
@@ -101,6 +102,10 @@ struct TopsideContext
 class TeleopNode : public rclcpp::Node
 {
   TopsideContext cxt_;
+
+  std::shared_ptr<VideoPipeline> video_pipeline_f_;
+  std::shared_ptr<VideoPipeline> video_pipeline_l_;
+  std::shared_ptr<VideoPipeline> video_pipeline_r_;
 
   TopsideWidget *view_{};
 
@@ -150,14 +155,11 @@ class TeleopNode : public rclcpp::Node
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
   rclcpp::Publisher<orca_msgs::msg::Lights>::SharedPtr lights_pub_;
 
-  rclcpp::Publisher<h264_msgs::msg::Packet>::SharedPtr forward_pub_;
-  rclcpp::Publisher<h264_msgs::msg::Packet>::SharedPtr left_pub_;
-  rclcpp::Publisher<h264_msgs::msg::Packet>::SharedPtr right_pub_;
-
   std::shared_ptr<rclcpp::AsyncParametersClient> base_controller_client_;
 
   void validate_parameters();
   void init_parameters();
+  void start_video();
   void publish_armed();
   void publish_tilt();
   void publish_cmd_vel();
@@ -170,8 +172,11 @@ class TeleopNode : public rclcpp::Node
 
   const TopsideContext & cxt() const { return cxt_; }
 
-  bool show_window() const { return cxt_.show_window_; }
   void set_view(TopsideWidget *view) { view_ = view; }
+
+  std::shared_ptr<VideoPipeline> video_pipeline_f() const { return video_pipeline_f_; }
+  std::shared_ptr<VideoPipeline> video_pipeline_l() const { return video_pipeline_l_; }
+  std::shared_ptr<VideoPipeline> video_pipeline_r() const { return video_pipeline_r_; }
 
   bool armed() const { return armed_; }
   bool hold() const { return hold_; }
@@ -204,8 +209,6 @@ class TeleopNode : public rclcpp::Node
   void inc_trim_yaw(bool publish = true);
   void dec_trim_yaw(bool publish = true);
   void cancel_trim_yaw(bool publish = true);
-
-  void publish_packet(std::string name, const h264_msgs::msg::Packet &packet);
 };
 
 }  // namespace orca_topside

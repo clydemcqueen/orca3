@@ -42,7 +42,6 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   hold_label_ = new QLabel;
   depth_label_ = new QLabel;
   lights_label_ = new QLabel;
-  pipeline_f_label_ = new QLabel;
   status_label_ = new QLabel;
   tilt_label_ = new QLabel;
   trim_x_label_ = new QLabel;
@@ -54,7 +53,6 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   hold_label_->setAlignment(Qt::AlignCenter);
   depth_label_->setAlignment(Qt::AlignCenter);
   lights_label_->setAlignment(Qt::AlignCenter);
-  pipeline_f_label_->setAlignment(Qt::AlignCenter);
   status_label_->setAlignment(Qt::AlignCenter);
   tilt_label_->setAlignment(Qt::AlignCenter);
   trim_x_label_->setAlignment(Qt::AlignCenter);
@@ -66,7 +64,6 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   hold_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   depth_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   lights_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
-  pipeline_f_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   status_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   tilt_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   trim_x_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
@@ -85,18 +82,18 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   set_trim_z(node_->trim_z());
   set_trim_yaw(node_->trim_yaw());
 
-  video_pipeline_f_ = std::make_shared<VideoPipeline>(node_->cxt().ftopic_, node_,
-    node_->cxt().gst_source_bin_f_, node_->cxt().gst_display_bin_f_,
-    node_->cxt().gst_record_bin_f_, node_->cxt().sync_f_);
-
   // Overlapping camera widgets; last widget added is on top
-  gst_widget_f_ = video_pipeline_f_->start_display();
   cam_layout_ = new TopsideLayout(node_->cxt().small_widget_size_);
-  cam_layout_->addWidget(gst_widget_f_, TopsideLayout::HD_16x9, Qt::AlignHCenter | Qt::AlignTop);
 
-  // Publish h264 messages
-  if (node_->cxt().publish_h264_) {
-    video_pipeline_f_->start_publishing();
+  if (node_->cxt().fcam_) {
+    pipeline_f_label_ = new QLabel;
+    pipeline_f_label_->setAlignment(Qt::AlignCenter);
+    pipeline_f_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
+
+    gst_widget_f_ = node_->video_pipeline_f()->start_display();
+    cam_layout_->addWidget(gst_widget_f_, TopsideLayout::HD_16x9, Qt::AlignHCenter | Qt::AlignTop);
+  } else {
+    pipeline_f_label_ = nullptr;
   }
 
   if (node_->cxt().lcam_) {
@@ -104,16 +101,8 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
     pipeline_l_label_->setAlignment(Qt::AlignCenter);
     pipeline_l_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
 
-    video_pipeline_l_ = std::make_shared<VideoPipeline>(node_->cxt().ltopic_, node_,
-      node_->cxt().gst_source_bin_l_, node_->cxt().gst_display_bin_l_,
-      node_->cxt().gst_record_bin_l_, node_->cxt().sync_l_);
-
-    gst_widget_l_ = video_pipeline_l_->start_display();
+    gst_widget_l_ = node_->video_pipeline_l()->start_display();
     cam_layout_->addWidget(gst_widget_l_, TopsideLayout::SD_4x3, Qt::AlignLeft | Qt::AlignTop);
-
-    if (node_->cxt().publish_h264_) {
-      video_pipeline_l_->start_publishing();
-    }
   } else {
     pipeline_l_label_ = nullptr;
   }
@@ -123,16 +112,8 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
     pipeline_r_label_->setAlignment(Qt::AlignCenter);
     pipeline_r_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
 
-    video_pipeline_r_ = std::make_shared<VideoPipeline>(node_->cxt().rtopic_, node_,
-      node_->cxt().gst_source_bin_r_, node_->cxt().gst_display_bin_r_,
-      node_->cxt().gst_record_bin_r_, node_->cxt().sync_r_);
-
-    gst_widget_r_ = video_pipeline_r_->start_display();
+    gst_widget_r_ = node_->video_pipeline_r()->start_display();
     cam_layout_->addWidget(gst_widget_r_, TopsideLayout::SD_4x3, Qt::AlignRight | Qt::AlignTop);
-
-    if (node_->cxt().publish_h264_) {
-      video_pipeline_r_->start_publishing();
-    }
   } else {
     pipeline_r_label_ = nullptr;
   }
@@ -141,10 +122,12 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   status_layout->addWidget(armed_label_);
   status_layout->addWidget(hold_label_);
   status_layout->addWidget(status_label_);
+  if (pipeline_f_label_) {
+    status_layout->addWidget(pipeline_f_label_);
+  }
   if (pipeline_l_label_) {
     status_layout->addWidget(pipeline_l_label_);
   }
-  status_layout->addWidget(pipeline_f_label_);
   if (pipeline_r_label_) {
     status_layout->addWidget(pipeline_r_label_);
   }
@@ -169,14 +152,14 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
 void TopsideWidget::about_to_quit()
 {
   // Close any open mp4 files
-  if (video_pipeline_l_ && video_pipeline_l_->recording()) {
-    video_pipeline_l_->toggle_record();
+  if (node_->video_pipeline_f() && node_->video_pipeline_f()->recording()) {
+    node_->video_pipeline_f()->toggle_record();
   }
-  if (video_pipeline_f_ && video_pipeline_f_->recording()) {
-    video_pipeline_f_->toggle_record();
+  if (node_->video_pipeline_l() && node_->video_pipeline_l()->recording()) {
+    node_->video_pipeline_l()->toggle_record();
   }
-  if (video_pipeline_r_ && video_pipeline_r_->recording()) {
-    video_pipeline_r_->toggle_record();
+  if (node_->video_pipeline_r() && node_->video_pipeline_r()->recording()) {
+    node_->video_pipeline_r()->toggle_record();
   }
 }
 
@@ -192,8 +175,8 @@ void TopsideWidget::set_armed(bool armed)
 
 #if 0
   // Debugging: print gstreamer caps after the first frame has arrived
-  if (video_pipeline_f_) {
-    video_pipeline_f_->print_caps();
+  if (node_->video_pipeline_f()) {
+    node_->video_pipeline_f()->print_caps();
   }
 #endif
 }
@@ -325,6 +308,21 @@ void TopsideWidget::update_pipeline(const std::shared_ptr<VideoPipeline> & pipel
   label->setText(message);
 }
 
+void TopsideWidget::update_pipeline_f()
+{
+  update_pipeline(node_->video_pipeline_f(), pipeline_f_label_, "F");
+}
+
+void TopsideWidget::update_pipeline_l()
+{
+  update_pipeline(node_->video_pipeline_l(), pipeline_l_label_, "L");
+}
+
+void TopsideWidget::update_pipeline_r()
+{
+  update_pipeline(node_->video_pipeline_r(), pipeline_r_label_, "R");
+}
+
 void TopsideWidget::closeEvent(QCloseEvent *event)
 {
   about_to_quit();
@@ -354,20 +352,20 @@ void TopsideWidget::keyPressEvent(QKeyEvent *event)
 
       // Toggle recording status; order is L F R to match the fps readout order
     case Qt::Key_F1:
-      if (video_pipeline_l_) {
-        video_pipeline_l_->toggle_record();
+      if (node_->video_pipeline_l()) {
+        node_->video_pipeline_l()->toggle_record();
         update_pipeline_l();
       } else {
         std::cout << "no left camera, ignoring" << std::endl;
       }
       return;
     case Qt::Key_F2:
-      video_pipeline_f_->toggle_record();
+      node_->video_pipeline_f()->toggle_record();
       update_pipeline_f();
       return;
     case Qt::Key_F3:
-      if (video_pipeline_r_) {
-        video_pipeline_r_->toggle_record();
+      if (node_->video_pipeline_r()) {
+        node_->video_pipeline_r()->toggle_record();
         update_pipeline_r();
       } else {
         std::cout << "no right camera, ignoring" << std::endl;
@@ -376,7 +374,7 @@ void TopsideWidget::keyPressEvent(QKeyEvent *event)
 
       // Re-arrange camera layout to highlight one camera; order is L F R
     case Qt::Key_F4:
-      if (video_pipeline_l_) {
+      if (node_->video_pipeline_l()) {
         cam_layout_->set_main_widget(gst_widget_l_);
         return;
       } else {
@@ -387,7 +385,7 @@ void TopsideWidget::keyPressEvent(QKeyEvent *event)
       cam_layout_->set_main_widget(gst_widget_f_);
       return;
     case Qt::Key_F6:
-      if (video_pipeline_r_) {
+      if (node_->video_pipeline_r()) {
         cam_layout_->set_main_widget(gst_widget_r_);
         return;
       } else {

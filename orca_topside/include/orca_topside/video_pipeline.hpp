@@ -43,7 +43,6 @@ extern "C" {
 #endif
 
 #include "rclcpp/time.hpp"
-#include <QObject>
 
 // Build a video pipeline that can display, record and/or publish ROS messages:
 //
@@ -63,10 +62,8 @@ class ImagePublisher;
 
 class TeleopNode;
 
-class VideoPipeline : public QObject
+class VideoPipeline
 {
-  Q_OBJECT
-
   enum class RecordStatus
   {
     running, waiting_for_eos, got_eos, stopped
@@ -89,7 +86,7 @@ class VideoPipeline : public QObject
   std::string topic_;  // Image topic
   bool fix_pts_;  // True if we're copying dts -> pts
   FPSCalculator fps_calculator_;
-  std::shared_ptr<TeleopNode> node_;
+  TeleopNode *node_;
   std::string gst_source_bin_;
   std::string gst_display_bin_;
   std::string gst_record_bin_;
@@ -132,12 +129,12 @@ class VideoPipeline : public QObject
   static GstPadProbeReturn on_tee_buffer(GstPad *, GstPadProbeInfo *info, gpointer data);
   static void handle_eos(gpointer data);
 
-private slots:
-  void spin();
-
 public:
-  VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node, std::string gst_source_bin,
+  VideoPipeline(std::string topic, TeleopNode *node, std::string gst_source_bin,
     std::string gst_display_bin, std::string gst_record_bin, bool sync);
+
+  // Periodic cleanup tasks
+  void spin();
 
   int fps() const { return fps_calculator_.fps(); }
 

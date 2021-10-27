@@ -32,6 +32,9 @@ extern "C" {
 #include "gst/app/gstappsink.h"
 }
 
+#include "rclcpp/rclcpp.hpp"
+#include "h264_msgs/msg/packet.hpp"
+
 namespace orca_topside
 {
 
@@ -41,7 +44,8 @@ class TeleopNode;
 class ImagePublisher
 {
   std::string topic_;
-  std::shared_ptr<TeleopNode> node_;
+  TeleopNode *node_;
+  rclcpp::Publisher<h264_msgs::msg::Packet>::SharedPtr pub_;
   GstElement *pipeline_;
   GstElement *sink_;
 
@@ -56,7 +60,7 @@ class ImagePublisher
   void process_sample();
 
 public:
-  ImagePublisher(std::string topic, std::shared_ptr<TeleopNode> node, bool sync,
+  ImagePublisher(std::string topic, TeleopNode *node, bool sync,
     GstElement *pipeline, GstElement *upstream);
 
   ~ImagePublisher();
