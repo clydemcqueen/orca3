@@ -157,9 +157,10 @@ orb_slam2_stereo:
     ORBextractor/iniThFAST: 20
     ORBextractor/minThFAST: 7
 
-    # Stereo camera runs at 20fps, but this slows down to ~2fps through SLAM
-    # TODO how important is this setting?
-    camera_fps: 2
+    # Expected fps (default 30fps), used 2 ways:
+    # 1. ORB SLAM will not insert a keyframe until this many frames have passed
+    # 2. H264StereoNode will throttle the pipeline to this value to reduce CPU usage
+    camera_fps: 10
 
     # Color order of the images (0: BGR, 1: RGB. It is ignored if images are grayscale)
     camera_rgb_encoding: True

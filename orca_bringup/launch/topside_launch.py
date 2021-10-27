@@ -78,8 +78,8 @@ def generate_launch_description():
     orca_bringup_dir = get_package_share_directory('orca_bringup')
     orca_bringup_launch_dir = os.path.join(orca_bringup_dir, 'launch')
     nav2_params_file = os.path.join(orca_bringup_dir, 'params', 'nav2_params.yaml')
-    left_info_file = os.path.join(orca_bringup_dir, 'cfg', 'left_1640x1232.yaml')
-    right_info_file = os.path.join(orca_bringup_dir, 'cfg', 'right_1640x1232.yaml')
+    left_info_file = os.path.join(orca_bringup_dir, 'cfg', 'left_820x616.ini')
+    right_info_file = os.path.join(orca_bringup_dir, 'cfg', 'right_820x616.ini')
 
     return LaunchDescription([
         DeclareLaunchArgument(
