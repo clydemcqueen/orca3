@@ -113,7 +113,7 @@ void TeleopNode::start_video()
 {
   if (cxt_.fcam_) {
     video_pipeline_f_ = std::make_shared<VideoPipeline>(cxt_.ftopic_, cxt_.fcam_name_, cxt_.fcam_url_,
-      this, cxt_.gst_source_bin_f_, cxt_.gst_display_bin_f_, cxt_.gst_record_bin_f_, cxt_.sync_f_);
+      this, cxt_.fcam_gst_source_, cxt_.fcam_gst_display_, cxt_.fcam_gst_record_, cxt_.fcam_sync_);
 
     // TODO start publishing on pipeline construction
     if (cxt_.publish_h264_) {
@@ -123,7 +123,7 @@ void TeleopNode::start_video()
 
   if (cxt_.lcam_) {
     video_pipeline_l_ = std::make_shared<VideoPipeline>(cxt_.ltopic_, cxt_.lcam_name_, cxt_.lcam_url_,
-      this, cxt_.gst_source_bin_l_, cxt_.gst_display_bin_l_, cxt_.gst_record_bin_l_, cxt_.sync_l_);
+      this, cxt_.lcam_gst_source_, cxt_.lcam_gst_display_, cxt_.lcam_gst_record_, cxt_.lcam_sync_);
 
     if (cxt_.publish_h264_) {
       video_pipeline_l_->start_publishing();
@@ -132,7 +132,7 @@ void TeleopNode::start_video()
 
   if (cxt_.rcam_) {
     video_pipeline_r_ = std::make_shared<VideoPipeline>(cxt_.rtopic_, cxt_.rcam_name_, cxt_.rcam_url_,
-      this, cxt_.gst_source_bin_r_, cxt_.gst_display_bin_r_, cxt_.gst_record_bin_r_, cxt_.sync_r_);
+      this, cxt_.rcam_gst_source_, cxt_.rcam_gst_display_, cxt_.rcam_gst_record_, cxt_.rcam_sync_);
 
     if (cxt_.publish_h264_) {
       video_pipeline_r_->start_publishing();

@@ -85,18 +85,21 @@ class TopsideWidget;
   CXT_MACRO_MEMBER(lcam_url, std::string, "package://orca_bringup/cfg/${NAME}.ini") \
   CXT_MACRO_MEMBER(rcam_url, std::string, "package://orca_bringup/cfg/${NAME}.ini") \
  \
-  CXT_MACRO_MEMBER(gst_source_bin_f, std::string, "v4l2src device=/dev/video0 do-timestamp=true ! video/x-h264,width=1920,height=1080,framerate=30/1 ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au") \
-  CXT_MACRO_MEMBER(gst_display_bin_f, std::string, "queue ! h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB") \
-  CXT_MACRO_MEMBER(gst_record_bin_f, std::string, "queue ! h264parse ! mp4mux ! filesink location=fcam_%Y-%m-%d_%H-%M-%S.mp4") \
-  CXT_MACRO_MEMBER(sync_f, bool, false) \
-  CXT_MACRO_MEMBER(gst_source_bin_l, std::string, "videotestsrc is-live=true ! capsfilter caps=video/x-raw,width=820,height=616,framerate=20/1 ! videoconvert ! queue ! x264enc key-int-max=10 ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au") \
-  CXT_MACRO_MEMBER(gst_display_bin_l, std::string, "queue ! h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB") \
-  CXT_MACRO_MEMBER(gst_record_bin_l, std::string, "queue ! h264parse ! mp4mux ! filesink location=lcam_%Y-%m-%d_%H-%M-%S.mp4") \
-  CXT_MACRO_MEMBER(sync_l, bool, false) \
-  CXT_MACRO_MEMBER(gst_source_bin_r, std::string, "videotestsrc is-live=true ! capsfilter caps=video/x-raw,width=820,height=616,framerate=20/1 ! videoconvert ! queue ! x264enc key-int-max=10 ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au") \
-  CXT_MACRO_MEMBER(gst_display_bin_r, std::string, "queue ! h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB") \
-  CXT_MACRO_MEMBER(gst_record_bin_r, std::string, "queue ! h264parse ! mp4mux ! filesink location=rcam_%Y-%m-%d_%H-%M-%S.mp4") \
-  CXT_MACRO_MEMBER(sync_r, bool, false) \
+  CXT_MACRO_MEMBER(fcam_gst_source, std::string, "v4l2src device=/dev/video0 do-timestamp=true ! video/x-h264,width=1920,height=1080,framerate=30/1 ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au") \
+  CXT_MACRO_MEMBER(lcam_gst_source, std::string, "videotestsrc is-live=true ! capsfilter caps=video/x-raw,width=820,height=616,framerate=20/1 ! videoconvert ! queue ! x264enc key-int-max=10 ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au") \
+  CXT_MACRO_MEMBER(rcam_gst_source, std::string, "videotestsrc is-live=true ! capsfilter caps=video/x-raw,width=820,height=616,framerate=20/1 ! videoconvert ! queue ! x264enc key-int-max=10 ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au") \
+ \
+  CXT_MACRO_MEMBER(fcam_gst_display, std::string, "queue ! h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB") \
+  CXT_MACRO_MEMBER(lcam_gst_display, std::string, "queue ! h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB") \
+  CXT_MACRO_MEMBER(rcam_gst_display, std::string, "queue ! h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB") \
+ \
+  CXT_MACRO_MEMBER(fcam_gst_record, std::string, "queue ! h264parse ! mp4mux ! filesink location=fcam_%Y-%m-%d_%H-%M-%S.mp4") \
+  CXT_MACRO_MEMBER(lcam_gst_record, std::string, "queue ! h264parse ! mp4mux ! filesink location=lcam_%Y-%m-%d_%H-%M-%S.mp4") \
+  CXT_MACRO_MEMBER(rcam_gst_record, std::string, "queue ! h264parse ! mp4mux ! filesink location=rcam_%Y-%m-%d_%H-%M-%S.mp4") \
+ \
+  CXT_MACRO_MEMBER(fcam_sync, bool, false) \
+  CXT_MACRO_MEMBER(lcam_sync, bool, false) \
+  CXT_MACRO_MEMBER(rcam_sync, bool, false) \
 /* End of list */
 
 #undef CXT_MACRO_MEMBER

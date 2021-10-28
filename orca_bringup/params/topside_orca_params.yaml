@@ -33,9 +33,9 @@ teleop_node:
     # h264parse element is required before and after the tee & valves -- not sure why
     # Be sure to add "stream-format=byte-stream,alignment=au" to the caps string
 
-    gst_source_bin_f: "udpsrc port=5600 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au"
-    gst_source_bin_l: "udpsrc port=5601 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au"
-    gst_source_bin_r: "udpsrc port=5602 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au"
+    fcam_gst_source: "udpsrc port=5600 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au"
+    lcam_gst_source: "udpsrc port=5601 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au"
+    rcam_gst_source: "udpsrc port=5602 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au"
 
 base_controller:
   ros__parameters:
