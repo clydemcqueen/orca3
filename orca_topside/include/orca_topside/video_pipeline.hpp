@@ -83,7 +83,9 @@ class VideoPipeline
     int fps() const;
   };
 
-  std::string topic_;  // Image topic
+  std::string topic_;
+  std::string camera_name_;
+  std::string camera_info_url_;
   bool fix_pts_;  // True if we're copying dts -> pts
   FPSCalculator fps_calculator_;
   TeleopNode *node_;
@@ -130,8 +132,8 @@ class VideoPipeline
   static void handle_eos(gpointer data);
 
 public:
-  VideoPipeline(std::string topic, TeleopNode *node, std::string gst_source_bin,
-    std::string gst_display_bin, std::string gst_record_bin, bool sync);
+  VideoPipeline(std::string topic, std::string camera_name, std::string camera_info_url, TeleopNode *node,
+    std::string gst_source_bin, std::string gst_display_bin, std::string gst_record_bin, bool sync);
 
   // Periodic cleanup tasks
   void spin();

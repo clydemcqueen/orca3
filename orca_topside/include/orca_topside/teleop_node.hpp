@@ -74,8 +74,16 @@ class TopsideWidget;
   CXT_MACRO_MEMBER(small_widget_size, int, 400) /* Small widget size, used for lcam and rcam */ \
  \
   CXT_MACRO_MEMBER(ftopic, std::string, "forward") /* Forward camera namespace */ \
-  CXT_MACRO_MEMBER(ltopic, std::string, "left") /* Left camera namespace */ \
-  CXT_MACRO_MEMBER(rtopic, std::string, "right") /* Right camera namespace */ \
+  CXT_MACRO_MEMBER(ltopic, std::string, "stereo/left") /* Left camera namespace */ \
+  CXT_MACRO_MEMBER(rtopic, std::string, "stereo/right") /* Right camera namespace */ \
+ \
+  CXT_MACRO_MEMBER(fcam_name, std::string, "forward_camera") \
+  CXT_MACRO_MEMBER(lcam_name, std::string, "stereo_left") \
+  CXT_MACRO_MEMBER(rcam_name, std::string, "stereo_right") \
+ \
+  CXT_MACRO_MEMBER(fcam_url, std::string, "package://orca_bringup/cfg/${NAME}.ini") \
+  CXT_MACRO_MEMBER(lcam_url, std::string, "package://orca_bringup/cfg/${NAME}.ini") \
+  CXT_MACRO_MEMBER(rcam_url, std::string, "package://orca_bringup/cfg/${NAME}.ini") \
  \
   CXT_MACRO_MEMBER(gst_source_bin_f, std::string, "v4l2src device=/dev/video0 do-timestamp=true ! video/x-h264,width=1920,height=1080,framerate=30/1 ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au") \
   CXT_MACRO_MEMBER(gst_display_bin_f, std::string, "queue ! h264parse ! avdec_h264 ! videoconvert ! capsfilter caps=video/x-raw,format=RGB") \

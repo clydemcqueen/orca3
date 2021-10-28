@@ -40,7 +40,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PythonExpression
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
@@ -78,8 +78,6 @@ def generate_launch_description():
     orca_bringup_dir = get_package_share_directory('orca_bringup')
     orca_bringup_launch_dir = os.path.join(orca_bringup_dir, 'launch')
     nav2_params_file = os.path.join(orca_bringup_dir, 'params', 'nav2_params.yaml')
-    left_info_file = os.path.join(orca_bringup_dir, 'cfg', 'left_820x616.ini')
-    right_info_file = os.path.join(orca_bringup_dir, 'cfg', 'right_820x616.ini')
 
     return LaunchDescription([
         DeclareLaunchArgument(
@@ -163,36 +161,6 @@ def generate_launch_description():
             output='screen',
             name='fake_driver',
             condition=IfCondition(LaunchConfiguration('fake')),
-        ),
-
-        # Publish left camera info for stereo SLAM
-        Node(
-            package='orca_localize',
-            executable='camera_info_publisher',
-            output='screen',
-            name='camera_info_publisher',
-            namespace='stereo/left',
-            parameters=[{
-                'camera_info_url': 'file://' + left_info_file,
-                'camera_name': 'stereo_left',
-                'frame_id': 'stereo_left',
-            }],
-            condition=IfCondition(PythonExpression(["'orb' in '", LaunchConfiguration('slam'), "'"])),
-        ),
-
-        # Publish right camera info for stereo SLAM
-        Node(
-            package='orca_localize',
-            executable='camera_info_publisher',
-            output='screen',
-            name='camera_info_publisher',
-            namespace='stereo/right',
-            parameters=[{
-                'camera_info_url': 'file://' + right_info_file,
-                'camera_name': 'stereo_right',
-                'frame_id': 'stereo_right',
-            }],
-            condition=IfCondition(PythonExpression(["'orb' in '", LaunchConfiguration('slam'), "'"])),
         ),
 
         # Bring up Orca3 and Nav2 nodes

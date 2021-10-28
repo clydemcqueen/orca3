@@ -32,8 +32,9 @@ extern "C" {
 #include "gst/app/gstappsink.h"
 }
 
-#include "rclcpp/rclcpp.hpp"
+#include "camera_info_manager/camera_info_manager.hpp"
 #include "h264_msgs/msg/packet.hpp"
+#include "rclcpp/rclcpp.hpp"
 
 namespace orca_topside
 {
@@ -45,12 +46,13 @@ class ImagePublisher
 {
   std::string topic_;
   TeleopNode *node_;
-  rclcpp::Publisher<h264_msgs::msg::Packet>::SharedPtr pub_;
+  sensor_msgs::msg::CameraInfo cam_info_;
+  rclcpp::Publisher<h264_msgs::msg::Packet>::SharedPtr h264_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_pub_;
   GstElement *pipeline_;
   GstElement *sink_;
 
   // Poll GStreamer on a separate thread
-  // TODO use ROS timer? QTimer?
   std::thread pipeline_thread_;
   std::atomic<bool> stop_signal_;
 
@@ -60,8 +62,8 @@ class ImagePublisher
   void process_sample();
 
 public:
-  ImagePublisher(std::string topic, TeleopNode *node, bool sync,
-    GstElement *pipeline, GstElement *upstream);
+  ImagePublisher(std::string topic, const std::string & cam_name, const std::string & cam_info_url,
+    TeleopNode *node, bool sync, GstElement *pipeline, GstElement *upstream);
 
   ~ImagePublisher();
 };

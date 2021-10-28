@@ -31,6 +31,7 @@ pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
 pkg_check_modules(GST_APP REQUIRED gstreamer-app-1.0)
 
 find_package(ament_cmake REQUIRED)
+find_package(camera_info_manager REQUIRED)
 find_package(gst_tools QUIET)
 find_package(h264_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
@@ -66,6 +67,7 @@ add_executable(
 
 ament_target_dependencies(
   teleop_node
+  camera_info_manager
   geometry_msgs
   GST_APP
   h264_msgs

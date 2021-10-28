@@ -60,9 +60,11 @@ int VideoPipeline::FPSCalculator::fps() const
   return (int) stamps_.size();
 }
 
-VideoPipeline::VideoPipeline(std::string topic, TeleopNode *node,
+VideoPipeline::VideoPipeline(std::string topic, std::string camera_name, std::string camera_info_url, TeleopNode *node,
   std::string gst_source_bin, std::string gst_display_bin, std::string gst_record_bin, bool sync):
   topic_(std::move(topic)),
+  camera_name_(std::move(camera_name)),
+  camera_info_url_(std::move(camera_info_url)),
   fix_pts_(false),
   node_(node),
   gst_source_bin_(std::move(gst_source_bin)),
@@ -428,7 +430,8 @@ void VideoPipeline::unlink_and_send_eos(GstElement *segment)
 void VideoPipeline::start_publishing()
 {
   if (!publishing()) {
-    publish_sink_ = std::make_shared<ImagePublisher>(topic_, node_, sync_, pipeline_, publish_valve_);
+    publish_sink_ = std::make_shared<ImagePublisher>(topic_, camera_name_, camera_info_url_,
+      node_, sync_, pipeline_, publish_valve_);
     g_object_set(publish_valve_, "drop", FALSE, nullptr);
 
 #if defined(GST_TOOLS) && defined(RUN_GST_TOOLS)

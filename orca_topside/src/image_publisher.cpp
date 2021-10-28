@@ -29,8 +29,8 @@
 namespace orca_topside
 {
 
-ImagePublisher::ImagePublisher(std::string topic, TeleopNode *node, bool sync,
-  GstElement *pipeline, GstElement *upstream):
+ImagePublisher::ImagePublisher(std::string topic, const std::string & cam_name, const std::string & cam_info_url,
+  TeleopNode *node, bool sync, GstElement *pipeline, GstElement *upstream):
   topic_(std::move(topic)),
   node_(node),
   pipeline_(pipeline),
@@ -87,7 +87,17 @@ ImagePublisher::ImagePublisher(std::string topic, TeleopNode *node, bool sync,
 
   g_print("%s image publisher created\n", topic_.c_str());
 
-  pub_ = node_->create_publisher<h264_msgs::msg::Packet>(topic_ + "/image_raw/h264", 10);
+  camera_info_manager::CameraInfoManager camera_info_manager(node_);
+  camera_info_manager.setCameraName(cam_name);
+  if (camera_info_manager.validateURL(cam_info_url)) {
+    camera_info_manager.loadCameraInfo(cam_info_url);
+  } else {
+    RCLCPP_ERROR(node_->get_logger(), "camera info url '%s' is not valid", cam_info_url.c_str());
+  }
+  cam_info_ = camera_info_manager.getCameraInfo();
+
+  h264_pub_ = node_->create_publisher<h264_msgs::msg::Packet>(topic_ + "/image_raw/h264", 10);
+  cam_info_pub_ = node_->create_publisher<sensor_msgs::msg::CameraInfo>(topic_ + "/camera_info", 10);
 }
 
 ImagePublisher::~ImagePublisher()
@@ -133,7 +143,10 @@ void ImagePublisher::process_sample()
   packet.seq = seq_;
   packet.data.resize(gst_buffer_get_size(buffer));
   gst_util::copy_buffer(buffer, packet.data);
-  pub_->publish(packet);
+  h264_pub_->publish(packet);
+
+  cam_info_.header.stamp = packet.header.stamp;
+  cam_info_pub_->publish(cam_info_);
 
   // Cleanup
   gst_sample_unref(sample);

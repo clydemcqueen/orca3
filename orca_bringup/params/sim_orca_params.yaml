@@ -28,9 +28,6 @@ teleop_node:
     show_window: False
     publish_h264: False
     small_widget_size: 500
-    ftopic: "forward_camera"
-    ltopic: "stereo/left"
-    rtopic: "stereo/right"
 
     # vel_?_ should match in teleop_node and base_controller
     vel_x: 1.0
