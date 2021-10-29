@@ -26,6 +26,7 @@
 #include <QBoxLayout>
 #include <QWidget>
 
+#include "orca_topside/image_widget.hpp"
 #include "orca_topside/video_pipeline.hpp"
 #include "orb_slam2_ros/msg/status.hpp"
 
@@ -82,6 +83,7 @@ private:
   GstWidget *gst_widget_f_;
   GstWidget *gst_widget_l_;
   GstWidget *gst_widget_r_;
+  ImageWidget *debug_widget_;
   TopsideLayout *cam_layout_;
   QLabel *armed_label_;
   QLabel *hold_label_;

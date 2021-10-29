@@ -122,11 +122,19 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
     pipeline_r_label_ = nullptr;
   }
 
+  // TODO fixed sized widget
+  if (node_->cxt().show_slam_debug_image_) {
+    debug_widget_ = new ImageWidget(node_, "debug_image");
+    cam_layout_->addWidget(debug_widget_, TopsideLayout::SD_4x3, Qt::AlignLeft | Qt::AlignBottom);
+  } else {
+    debug_widget_ = nullptr;
+  }
+
   QBoxLayout *status_layout = new QHBoxLayout;
   status_layout->addWidget(armed_label_);
   status_layout->addWidget(hold_label_);
   status_layout->addWidget(status_label_);
-  if (node_->cxt().orb_slam_) {
+  if (node_->cxt().show_slam_status_) {
     status_layout->addWidget(slam_label_);
   }
   if (pipeline_f_label_) {

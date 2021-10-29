@@ -73,7 +73,10 @@ class TopsideWidget;
   CXT_MACRO_MEMBER(show_window, bool, false) /* Show status and video in a window */ \
   CXT_MACRO_MEMBER(publish_h264, bool, false) /* Publish h264 msgs for all cams */ \
   CXT_MACRO_MEMBER(small_widget_size, int, 400) /* Small widget size, used for lcam and rcam */ \
-  CXT_MACRO_MEMBER(orb_slam, bool, false) /* Display orb_slam status? */ \
+  CXT_MACRO_MEMBER(show_slam_status, bool, false) /* Display SLAM status */ \
+  CXT_MACRO_MEMBER(show_slam_debug_image, bool, false) /* Display SLAM debug image */ \
+  CXT_MACRO_MEMBER(slam_debug_image_h, int, 820) /* TODO SLAM debug image height */ \
+  CXT_MACRO_MEMBER(slam_debug_image_w, int, 600) /* TODO SLAM debug image width */ \
  \
   CXT_MACRO_MEMBER(ftopic, std::string, "forward") /* Forward camera namespace */ \
   CXT_MACRO_MEMBER(ltopic, std::string, "stereo/left") /* Left camera namespace */ \

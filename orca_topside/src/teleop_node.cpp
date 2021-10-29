@@ -314,7 +314,7 @@ TeleopNode::TeleopNode()
       motion_msg_ = *msg;
     });
 
-  if (cxt_.orb_slam_) {
+  if (cxt_.show_slam_status_) {
     slam_sub_ = create_subscription<orb_slam2_ros::msg::Status>("slam", 10,
       [this](orb_slam2_ros::msg::Status::ConstSharedPtr msg)
       {

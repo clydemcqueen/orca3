@@ -20,41 +20,38 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef ORCA_TOPSIDE__GST_WIDGET_HPP_
-#define ORCA_TOPSIDE__GST_WIDGET_HPP_
+#ifndef ORCA_TOPSIDE__IMAGE_WIDGET_HPP_
+#define ORCA_TOPSIDE__IMAGE_WIDGET_HPP_
 
 #include <thread>
 
 #include <QWidget>
 
-extern "C" {
-#include "gst/gst.h"
-#include "gst/app/gstappsink.h"
-}
+#include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/image.hpp"
 
 namespace orca_topside
 {
 
-// Poll a gstreamer appsink element for raw image data, and draw in a Qt widget
-class GstWidget : public QWidget
+class TeleopNode;
+
+// Draw ROS images in a Qt widget
+class ImageWidget : public QWidget
 {
 Q_OBJECT
 
 public:
-  explicit GstWidget(GstElement *sink, QWidget *parent = nullptr);
+  ImageWidget(std::shared_ptr<TeleopNode> node, const std::string& topic, QWidget *parent = nullptr);
 
 protected:
   void paintEvent(QPaintEvent *) override;
 
-private slots:
-  void process_sample();
-
 private:
-  GstElement *sink_;
-  gsize expected_size_;
+  std::shared_ptr<TeleopNode> node_;
+  rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
   QImage *image_;
 };
 
 }  // namespace orca_topside
 
-#endif  // ORCA_TOPSIDE__GST_WIDGET_HPP_
+#endif  // ORCA_TOPSIDE__IMAGE_WIDGET_HPP_

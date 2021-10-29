@@ -159,6 +159,7 @@ def generate_launch_description():
             parameters=[configured_orca_params],
             remappings=[
                 ('slam', 'orb_slam2_stereo_node/status'),
+                ('debug_image', 'orb_slam2_stereo_node/debug_image'),
             ]),
 
         # Subscribe to /cmd_vel and publish /thrust, /odom and /tf odom->base_link

@@ -50,6 +50,7 @@ add_executable(
   src/gst_util.cpp
   src/gst_widget.cpp
   src/image_publisher.cpp
+  src/image_widget.cpp
   src/node_spinner.cpp
   src/teleop_node.cpp
   src/teleop_main.cpp
@@ -59,6 +60,7 @@ add_executable(
   include/orca_topside/gst_util.hpp
   include/orca_topside/gst_widget.hpp
   include/orca_topside/image_publisher.hpp
+  include/orca_topside/image_widget.hpp
   include/orca_topside/node_spinner.hpp
   include/orca_topside/teleop_node.hpp
   include/orca_topside/topside_layout.hpp
