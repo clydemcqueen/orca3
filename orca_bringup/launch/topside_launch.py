@@ -110,6 +110,12 @@ def generate_launch_description():
             description='Which Orca params file? topside (real) vs bench (testing)',
         ),
 
+        DeclareLaunchArgument(
+            'bag',
+            default_value='True',
+            description='Bag interesting topics?',
+        ),
+
         # Bag useful topics
         ExecuteProcess(
             cmd=[
@@ -129,6 +135,8 @@ def generate_launch_description():
                 '/lights',
                 '/motion',
                 '/odom',
+                '/orb_slam2_stereo_node/pose',
+                '/orb_slam2_stereo_node/status',
                 '/parameter_events',
                 '/pid_z',
                 '/robot_description',
@@ -143,6 +151,7 @@ def generate_launch_description():
                 '/thrust',
             ],
             output='screen',
+            condition=IfCondition(LaunchConfiguration('bag')),
         ),
 
         # Fake barometer for testing orca_topside
