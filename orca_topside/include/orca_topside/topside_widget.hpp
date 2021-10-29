@@ -27,6 +27,7 @@
 #include <QWidget>
 
 #include "orca_topside/video_pipeline.hpp"
+#include "orb_slam2_ros/msg/status.hpp"
 
 QT_BEGIN_NAMESPACE
 
@@ -55,6 +56,8 @@ public:
   void set_depth(double target, double actual);
   void set_lights(int lights);
   void set_status(uint32_t status, double voltage);
+  void set_slam();
+  void set_slam(const orb_slam2_ros::msg::Status & msg);
   void set_trim_x(double v);
   void set_trim_y(double v);
   void set_trim_z(double v);
@@ -88,6 +91,7 @@ private:
   QLabel *pipeline_l_label_;
   QLabel *pipeline_r_label_;
   QLabel *status_label_;
+  QLabel *slam_label_;
   QLabel *tilt_label_;
   QLabel *trim_x_label_;
   QLabel *trim_y_label_;

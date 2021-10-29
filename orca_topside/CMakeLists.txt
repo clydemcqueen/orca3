@@ -35,6 +35,7 @@ find_package(camera_info_manager REQUIRED)
 find_package(gst_tools QUIET)
 find_package(h264_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(orb_slam2_ros REQUIRED)
 find_package(orca_msgs REQUIRED)
 find_package(orca_shared REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -71,6 +72,7 @@ ament_target_dependencies(
   geometry_msgs
   GST_APP
   h264_msgs
+  orb_slam2_ros
   orca_msgs
   orca_shared
   Qt5Widgets

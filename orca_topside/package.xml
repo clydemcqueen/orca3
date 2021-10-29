@@ -19,6 +19,7 @@
   <depend>camera_info_manager</depend>
   <depend>geometry_msgs</depend>
   <depend>h264_msgs</depend>
+  <depend>orb_slam2_ros</depend>
   <depend>orca_msgs</depend>
   <depend>orca_shared</depend>
   <depend>rclcpp</depend>

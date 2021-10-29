@@ -156,7 +156,10 @@ def generate_launch_description():
             executable='teleop_node',
             output='screen',
             name='teleop_node',
-            parameters=[configured_orca_params]),
+            parameters=[configured_orca_params],
+            remappings=[
+                ('slam', 'orb_slam2_stereo_node/status'),
+            ]),
 
         # Subscribe to /cmd_vel and publish /thrust, /odom and /tf odom->base_link
         Node(

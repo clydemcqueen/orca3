@@ -24,6 +24,7 @@
 #define ORCA_TOPSIDE__TELEOP_NODE_HPP_
 
 #include "geometry_msgs/msg/twist.hpp"
+#include "orb_slam2_ros/msg/status.hpp"
 #include "orca_msgs/msg/armed.hpp"
 #include "orca_msgs/msg/camera_tilt.hpp"
 #include "orca_msgs/msg/depth.hpp"
@@ -72,6 +73,7 @@ class TopsideWidget;
   CXT_MACRO_MEMBER(show_window, bool, false) /* Show status and video in a window */ \
   CXT_MACRO_MEMBER(publish_h264, bool, false) /* Publish h264 msgs for all cams */ \
   CXT_MACRO_MEMBER(small_widget_size, int, 400) /* Small widget size, used for lcam and rcam */ \
+  CXT_MACRO_MEMBER(orb_slam, bool, false) /* Display orb_slam status? */ \
  \
   CXT_MACRO_MEMBER(ftopic, std::string, "forward") /* Forward camera namespace */ \
   CXT_MACRO_MEMBER(ltopic, std::string, "stereo/left") /* Left camera namespace */ \
@@ -159,6 +161,7 @@ class TeleopNode : public rclcpp::Node
   rclcpp::Subscription<orca_msgs::msg::Depth>::SharedPtr depth_sub_;
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
   rclcpp::Subscription<orca_msgs::msg::Motion>::SharedPtr motion_sub_;
+  rclcpp::Subscription<orb_slam2_ros::msg::Status>::SharedPtr slam_sub_;
   rclcpp::Subscription<orca_msgs::msg::Status>::SharedPtr status_sub_;
 
   rclcpp::Publisher<orca_msgs::msg::Armed>::SharedPtr armed_pub_;

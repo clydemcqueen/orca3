@@ -28,6 +28,7 @@ teleop_node:
     show_window: True
     publish_h264: True
     small_widget_size: 500
+    orb_slam: True
 
     # Gstreamer bin parser seems to have trouble with trailing quotes, so don't end with a quote
     # h264parse element is required before and after the tee & valves -- not sure why

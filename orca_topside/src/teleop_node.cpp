@@ -216,6 +216,7 @@ TeleopNode::TeleopNode()
   (void) depth_sub_;
   (void) joy_sub_;
   (void) motion_sub_;
+  (void) slam_sub_;
   (void) status_sub_;
   (void) spin_timer_;
 
@@ -312,6 +313,16 @@ TeleopNode::TeleopNode()
     {
       motion_msg_ = *msg;
     });
+
+  if (cxt_.orb_slam_) {
+    slam_sub_ = create_subscription<orb_slam2_ros::msg::Status>("slam", 10,
+      [this](orb_slam2_ros::msg::Status::ConstSharedPtr msg)
+      {
+        if (view_) {
+          view_->set_slam(*msg);
+        }
+      });
+  }
 
   status_sub_ = create_subscription<orca_msgs::msg::Status>("status", 10,
     [this](orca_msgs::msg::Status::ConstSharedPtr msg)

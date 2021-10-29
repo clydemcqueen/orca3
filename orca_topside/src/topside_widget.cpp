@@ -43,6 +43,7 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   depth_label_ = new QLabel;
   lights_label_ = new QLabel;
   status_label_ = new QLabel;
+  slam_label_ = new QLabel;
   tilt_label_ = new QLabel;
   trim_x_label_ = new QLabel;
   trim_y_label_ = new QLabel;
@@ -54,6 +55,7 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   depth_label_->setAlignment(Qt::AlignCenter);
   lights_label_->setAlignment(Qt::AlignCenter);
   status_label_->setAlignment(Qt::AlignCenter);
+  slam_label_->setAlignment(Qt::AlignCenter);
   tilt_label_->setAlignment(Qt::AlignCenter);
   trim_x_label_->setAlignment(Qt::AlignCenter);
   trim_y_label_->setAlignment(Qt::AlignCenter);
@@ -65,6 +67,7 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   depth_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   lights_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   status_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
+  slam_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   tilt_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   trim_x_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   trim_y_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
@@ -75,6 +78,7 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   set_hold(node_->hold());
   set_depth(0, 0);
   set_lights(node_->lights());
+  set_slam();
   set_status(orca_msgs::msg::Status::STATUS_NONE, 0);
   set_tilt(node_->tilt());
   set_trim_x(node_->trim_x());
@@ -122,6 +126,9 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   status_layout->addWidget(armed_label_);
   status_layout->addWidget(hold_label_);
   status_layout->addWidget(status_label_);
+  if (node_->cxt().orb_slam_) {
+    status_layout->addWidget(slam_label_);
+  }
   if (pipeline_f_label_) {
     status_layout->addWidget(pipeline_f_label_);
   }
@@ -220,7 +227,7 @@ void TopsideWidget::set_status(uint32_t status, double voltage)
     case orca_msgs::msg::Status::STATUS_NONE:
     default:
       status_label_->setStyleSheet("background-color: yellow; color: black");
-      message = " No connection";
+      message = "No connection";
       break;
     case orca_msgs::msg::Status::STATUS_READY:
     case orca_msgs::msg::Status::STATUS_RUNNING:
@@ -235,18 +242,56 @@ void TopsideWidget::set_status(uint32_t status, double voltage)
       break;
     case orca_msgs::msg::Status::STATUS_ABORT_HARDWARE:
       status_label_->setStyleSheet("background-color: red; color: white");
-      message = " Hardware!";
+      message = "Hardware!";
       break;
     case orca_msgs::msg::Status::STATUS_ABORT_LOW_BATTERY:
       status_label_->setStyleSheet("background-color: red; color: white");
-      message = " Battery!";
+      message = "Battery!";
       break;
     case orca_msgs::msg::Status::STATUS_ABORT_LEAK:
       status_label_->setStyleSheet("background-color: red; color: white");
-      message = " Leak!";
+      message = "Leak!";
       break;
   }
   status_label_->setText(message);
+}
+
+void TopsideWidget::set_slam()
+{
+  slam_label_->setStyleSheet("background-color: yellow; color: black");
+  slam_label_->setText("No SLAM");
+}
+
+void TopsideWidget::set_slam(const orb_slam2_ros::msg::Status & msg)
+{
+  QString message;
+  switch (msg.state) {
+    case orb_slam2_ros::msg::Status::STATE_NOT_INITIALIZED:
+      slam_label_->setStyleSheet("background-color: yellow; color: black");
+      message = "Trying to initialize";
+      break;
+    case orb_slam2_ros::msg::Status::STATE_OK:
+      slam_label_->setStyleSheet("background-color: greenyellow; color: black");
+      if (msg.only_tracking) {
+        message = "Track ";
+      } else {
+        message = "SLAM ";
+      }
+      message = message.append("KF %1 MP %2 Match %3").arg(msg.keyframes).arg(msg.map_points).arg(msg.tracked);
+      if (msg.tracked_vo) {
+        message = message.append(" VO %s").arg(msg.tracked_vo);
+      }
+      break;
+    case orb_slam2_ros::msg::Status::STATE_LOST:
+      slam_label_->setStyleSheet("background-color: yellow; color: black");
+      message = "Lost tracking";
+      break;
+    default:
+      status_label_->setStyleSheet("background-color: red; color: white");
+      message = "Unexpected status";
+      break;
+  }
+  slam_label_->setText(message);
 }
 
 void TopsideWidget::set_tilt(int tilt)
@@ -350,18 +395,21 @@ void TopsideWidget::keyPressEvent(QKeyEvent *event)
       node_->set_hold(!node_->hold());
       return;
 
-      // Toggle recording status; order is L F R to match the fps readout order
     case Qt::Key_F1:
+      if (node_->video_pipeline_f()) {
+        node_->video_pipeline_f()->toggle_record();
+        update_pipeline_f();
+      } else {
+        std::cout << "no forward camera, ignoring" << std::endl;
+      }
+      return;
+    case Qt::Key_F2:
       if (node_->video_pipeline_l()) {
         node_->video_pipeline_l()->toggle_record();
         update_pipeline_l();
       } else {
         std::cout << "no left camera, ignoring" << std::endl;
       }
-      return;
-    case Qt::Key_F2:
-      node_->video_pipeline_f()->toggle_record();
-      update_pipeline_f();
       return;
     case Qt::Key_F3:
       if (node_->video_pipeline_r()) {
@@ -372,17 +420,20 @@ void TopsideWidget::keyPressEvent(QKeyEvent *event)
       }
       return;
 
-      // Re-arrange camera layout to highlight one camera; order is L F R
     case Qt::Key_F4:
-      if (node_->video_pipeline_l()) {
-        cam_layout_->set_main_widget(gst_widget_l_);
+      if (node_->video_pipeline_f()) {
+        cam_layout_->set_main_widget(gst_widget_f_);
         return;
       } else {
-        std::cout << "no left camera, ignoring" << std::endl;
+        std::cout << "no forward camera, ignoring" << std::endl;
       }
       return;
     case Qt::Key_F5:
-      cam_layout_->set_main_widget(gst_widget_f_);
+      if (node_->video_pipeline_l()) {
+        cam_layout_->set_main_widget(gst_widget_l_);
+      } else {
+        std::cout << "no left camera, ignoring" << std::endl;
+      }
       return;
     case Qt::Key_F6:
       if (node_->video_pipeline_r()) {
