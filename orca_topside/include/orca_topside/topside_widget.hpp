@@ -79,26 +79,28 @@ private slots:
   void update_fps();
 
 private:
+  void set_main_widget(QWidget *widget);
+
   std::shared_ptr<TeleopNode> node_;
-  GstWidget *gst_widget_f_;
-  GstWidget *gst_widget_l_;
-  GstWidget *gst_widget_r_;
-  ImageWidget *debug_widget_;
-  TopsideLayout *cam_layout_;
-  QLabel *armed_label_;
-  QLabel *hold_label_;
-  QLabel *depth_label_;
-  QLabel *lights_label_;
-  QLabel *pipeline_f_label_;
-  QLabel *pipeline_l_label_;
-  QLabel *pipeline_r_label_;
-  QLabel *status_label_;
-  QLabel *slam_label_;
-  QLabel *tilt_label_;
-  QLabel *trim_x_label_;
-  QLabel *trim_y_label_;
-  QLabel *trim_z_label_;
-  QLabel *trim_yaw_label_;
+  GstWidget *gst_widget_f_{};
+  GstWidget *gst_widget_l_{};
+  GstWidget *gst_widget_r_{};
+  ImageWidget *debug_widget_{};
+  TopsideLayout *cam_layout_{};
+  QLabel *armed_label_{};
+  QLabel *hold_label_{};
+  QLabel *depth_label_{};
+  QLabel *lights_label_{};
+  QLabel *pipeline_f_label_{};
+  QLabel *pipeline_l_label_{};
+  QLabel *pipeline_r_label_{};
+  QLabel *status_label_{};
+  QLabel *slam_label_{};
+  QLabel *tilt_label_{};
+  QLabel *trim_x_label_{};
+  QLabel *trim_y_label_{};
+  QLabel *trim_z_label_{};
+  QLabel *trim_yaw_label_{};
 };
 
 }  // namespace orca_topside

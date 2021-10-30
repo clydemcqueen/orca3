@@ -31,14 +31,18 @@
 namespace orca_topside
 {
 
-ImageWidget::ImageWidget(std::shared_ptr<TeleopNode> node, const std::string & topic, QWidget *parent):
+ImageWidget::ImageWidget(std::shared_ptr<TeleopNode> node, std::string  topic, QWidget *parent):
   QWidget(parent),
   node_(std::move(node)),
+  topic_(std::move(topic)),
   image_(nullptr)
 {
   (void) image_sub_;
+}
 
-  image_sub_ = node_->create_subscription<sensor_msgs::msg::Image>(topic, 10,
+void ImageWidget::showEvent(QShowEvent *)
+{
+  image_sub_ = node_->create_subscription<sensor_msgs::msg::Image>(topic_, 10,
     [this](sensor_msgs::msg::Image::ConstSharedPtr msg) // NOLINT
     {
       if (msg->encoding != "bgr8") {
@@ -49,6 +53,7 @@ ImageWidget::ImageWidget(std::shared_ptr<TeleopNode> node, const std::string & t
       // Hack: Qt doesn't support Format_BGR888 until 5.14. It turns out that orb_slam2_ros writes
       // green on a mono image, so Format_RGB888 will work just as well.
       if (!image_) {
+        RCLCPP_INFO(node_->get_logger(), "%s width %d, height %d", topic_.c_str(), msg->width, msg->height); // NOLINT
         image_ = new QImage((int)msg->width, (int)msg->height, QImage::Format_RGB888);
       }
 
@@ -58,7 +63,11 @@ ImageWidget::ImageWidget(std::shared_ptr<TeleopNode> node, const std::string & t
       // Call paintEvent()
       update();
     });
+}
 
+void ImageWidget::hideEvent(QHideEvent *)
+{
+  image_sub_ = nullptr;
 }
 
 void ImageWidget::paintEvent(QPaintEvent *)

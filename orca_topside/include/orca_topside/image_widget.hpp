@@ -41,13 +41,16 @@ class ImageWidget : public QWidget
 Q_OBJECT
 
 public:
-  ImageWidget(std::shared_ptr<TeleopNode> node, const std::string& topic, QWidget *parent = nullptr);
+  ImageWidget(std::shared_ptr<TeleopNode> node, std::string topic, QWidget *parent = nullptr);
 
 protected:
+  void showEvent(QShowEvent *) override;
+  void hideEvent(QHideEvent *) override;
   void paintEvent(QPaintEvent *) override;
 
 private:
   std::shared_ptr<TeleopNode> node_;
+  std::string topic_;
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
   QImage *image_;
 };

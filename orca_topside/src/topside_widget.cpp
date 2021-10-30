@@ -43,7 +43,6 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   depth_label_ = new QLabel;
   lights_label_ = new QLabel;
   status_label_ = new QLabel;
-  slam_label_ = new QLabel;
   tilt_label_ = new QLabel;
   trim_x_label_ = new QLabel;
   trim_y_label_ = new QLabel;
@@ -55,7 +54,6 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   depth_label_->setAlignment(Qt::AlignCenter);
   lights_label_->setAlignment(Qt::AlignCenter);
   status_label_->setAlignment(Qt::AlignCenter);
-  slam_label_->setAlignment(Qt::AlignCenter);
   tilt_label_->setAlignment(Qt::AlignCenter);
   trim_x_label_->setAlignment(Qt::AlignCenter);
   trim_y_label_->setAlignment(Qt::AlignCenter);
@@ -67,7 +65,6 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   depth_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   lights_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   status_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
-  slam_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   tilt_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   trim_x_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   trim_y_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
@@ -78,13 +75,19 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   set_hold(node_->hold());
   set_depth(0, 0);
   set_lights(node_->lights());
-  set_slam();
   set_status(orca_msgs::msg::Status::STATUS_NONE, 0);
   set_tilt(node_->tilt());
   set_trim_x(node_->trim_x());
   set_trim_y(node_->trim_y());
   set_trim_z(node_->trim_z());
   set_trim_yaw(node_->trim_yaw());
+
+  if (node_->cxt().show_slam_status_) {
+    slam_label_ = new QLabel;
+    slam_label_->setAlignment(Qt::AlignCenter);
+    slam_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
+    set_slam();
+  }
 
   // Overlapping camera widgets; last widget added is on top
   cam_layout_ = new TopsideLayout(node_->cxt().small_widget_size_);
@@ -95,9 +98,7 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
     pipeline_f_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
 
     gst_widget_f_ = node_->video_pipeline_f()->start_display();
-    cam_layout_->addWidget(gst_widget_f_, TopsideLayout::HD_16x9, Qt::AlignHCenter | Qt::AlignTop);
-  } else {
-    pipeline_f_label_ = nullptr;
+    cam_layout_->addWidget(gst_widget_f_, TopsideLayout::HD_16x9, Qt::AlignRight | Qt::AlignBottom);
   }
 
   if (node_->cxt().lcam_) {
@@ -107,8 +108,6 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
 
     gst_widget_l_ = node_->video_pipeline_l()->start_display();
     cam_layout_->addWidget(gst_widget_l_, TopsideLayout::SD_4x3, Qt::AlignLeft | Qt::AlignTop);
-  } else {
-    pipeline_l_label_ = nullptr;
   }
 
   if (node_->cxt().rcam_) {
@@ -118,23 +117,19 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
 
     gst_widget_r_ = node_->video_pipeline_r()->start_display();
     cam_layout_->addWidget(gst_widget_r_, TopsideLayout::SD_4x3, Qt::AlignRight | Qt::AlignTop);
-  } else {
-    pipeline_r_label_ = nullptr;
   }
 
   // TODO fixed sized widget
   if (node_->cxt().show_slam_debug_image_) {
     debug_widget_ = new ImageWidget(node_, "debug_image");
     cam_layout_->addWidget(debug_widget_, TopsideLayout::SD_4x3, Qt::AlignLeft | Qt::AlignBottom);
-  } else {
-    debug_widget_ = nullptr;
   }
 
   QBoxLayout *status_layout = new QHBoxLayout;
   status_layout->addWidget(armed_label_);
   status_layout->addWidget(hold_label_);
   status_layout->addWidget(status_label_);
-  if (node_->cxt().show_slam_status_) {
+  if (slam_label_) {
     status_layout->addWidget(slam_label_);
   }
   if (pipeline_f_label_) {
@@ -266,8 +261,10 @@ void TopsideWidget::set_status(uint32_t status, double voltage)
 
 void TopsideWidget::set_slam()
 {
-  slam_label_->setStyleSheet("background-color: yellow; color: black");
-  slam_label_->setText("No SLAM");
+  if (slam_label_) {
+    slam_label_->setStyleSheet("background-color: yellow; color: black");
+    slam_label_->setText("No SLAM");
+  }
 }
 
 void TopsideWidget::set_slam(const orb_slam2_ros::msg::Status & msg)
@@ -382,6 +379,28 @@ void TopsideWidget::closeEvent(QCloseEvent *event)
   event->accept();
 }
 
+void toggle_record(const std::shared_ptr<VideoPipeline> & pipeline)
+{
+  if (pipeline) {
+    pipeline->toggle_record();
+  }
+}
+
+void toggle_visibility(QWidget *widget)
+{
+  if (widget) {
+    widget->setVisible(widget->isHidden());
+  }
+}
+
+void TopsideWidget::set_main_widget(QWidget *widget)
+{
+  if (widget) {
+    cam_layout_->set_main_widget(widget);
+    widget->show();
+  }
+}
+
 void TopsideWidget::keyPressEvent(QKeyEvent *event)
 {
   if (event->key() == Qt::Key_Exclam) {
@@ -401,84 +420,88 @@ void TopsideWidget::keyPressEvent(QKeyEvent *event)
   switch (event->key()) {
     case Qt::Key_At:
       node_->set_hold(!node_->hold());
-      return;
+      break;
 
     case Qt::Key_F1:
-      if (node_->video_pipeline_f()) {
-        node_->video_pipeline_f()->toggle_record();
-        update_pipeline_f();
-      } else {
-        std::cout << "no forward camera, ignoring" << std::endl;
-      }
-      return;
+      toggle_record(node_->video_pipeline_f());
+      update_pipeline_f();
+      break;
+
     case Qt::Key_F2:
-      if (node_->video_pipeline_l()) {
-        node_->video_pipeline_l()->toggle_record();
-        update_pipeline_l();
-      } else {
-        std::cout << "no left camera, ignoring" << std::endl;
-      }
-      return;
+      toggle_record(node_->video_pipeline_l());
+      update_pipeline_l();
+      break;
+
     case Qt::Key_F3:
-      if (node_->video_pipeline_r()) {
-        node_->video_pipeline_r()->toggle_record();
-        update_pipeline_r();
-      } else {
-        std::cout << "no right camera, ignoring" << std::endl;
-      }
-      return;
+      toggle_record(node_->video_pipeline_r());
+      update_pipeline_r();
+      break;
 
     case Qt::Key_F4:
-      if (node_->video_pipeline_f()) {
-        cam_layout_->set_main_widget(gst_widget_f_);
-        return;
-      } else {
-        std::cout << "no forward camera, ignoring" << std::endl;
-      }
-      return;
+      toggle_visibility(gst_widget_f_);
+      break;
+
     case Qt::Key_F5:
-      if (node_->video_pipeline_l()) {
-        cam_layout_->set_main_widget(gst_widget_l_);
-      } else {
-        std::cout << "no left camera, ignoring" << std::endl;
-      }
-      return;
+      toggle_visibility(gst_widget_l_);
+      break;
+
     case Qt::Key_F6:
-      if (node_->video_pipeline_r()) {
-        cam_layout_->set_main_widget(gst_widget_r_);
-        return;
-      } else {
-        std::cout << "no right camera, ignoring" << std::endl;
-      }
-      return;
+      toggle_visibility(gst_widget_r_);
+      break;
+
+    case Qt::Key_F7:
+      toggle_visibility(debug_widget_);
+      break;
+
+    case Qt::Key_F8:
+      set_main_widget(gst_widget_f_);
+      break;
+
+    case Qt::Key_F9:
+      set_main_widget(gst_widget_l_);
+      break;
+
+    case Qt::Key_F10:
+      set_main_widget(gst_widget_r_);
+      break;
+
+    case Qt::Key_F11:
+      set_main_widget(debug_widget_);
+      break;
 
     case Qt::Key_Plus:
       node_->inc_tilt();
-      return;
+      break;
+
     case Qt::Key_Underscore:
       node_->dec_tilt();
-      return;
+      break;
 
     case Qt::Key_ParenLeft:
       node_->dec_lights();
-      return;
+      break;
+
     case Qt::Key_ParenRight:
       node_->inc_lights();
-      return;
+      break;
 
       // Left stick:
     case Qt::Key_I:
       node_->inc_trim_z();
-      return;
+      break;
+
     case Qt::Key_Comma:
       node_->dec_trim_z();
-      return;
+      break;
+
     case Qt::Key_J:
       node_->inc_trim_y();
-      return;
+      break;
+
     case Qt::Key_L:
       node_->dec_trim_y();
-      return;
+      break;
+
     case Qt::Key_K:
       node_->cancel_trim_z();
       node_->cancel_trim_y();
@@ -487,25 +510,29 @@ void TopsideWidget::keyPressEvent(QKeyEvent *event)
       // Right stick:
     case Qt::Key_E:
       node_->inc_trim_x();
-      return;
+      break;
+
     case Qt::Key_C:
       node_->dec_trim_x();
-      return;
+      break;
+
     case Qt::Key_S:
       node_->inc_trim_yaw();
       break;
+
     case Qt::Key_F:
       node_->dec_trim_yaw();
-      return;
+      break;
+
     case Qt::Key_D:
       node_->cancel_trim_x();
       node_->cancel_trim_yaw();
-      return;
+      break;
 
     default:
       std::cout << "unmapped key: " << event->key() << std::endl;
       QWidget::keyPressEvent(event);
-      return;
+      break;
   }
 }
 

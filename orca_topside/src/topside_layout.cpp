@@ -33,7 +33,7 @@ void TopsideLayout::addItem(QLayoutItem *item, AspectRatio aspect_ratio, Qt::Ali
 
 void TopsideLayout::set_main_widget(QWidget *widget)
 {
-  if (widgets_.size() < 2) {
+  if (!widget || widgets_.size() < 2) {
     std::cout << "nothing to do" << std::endl;
     return;
   }

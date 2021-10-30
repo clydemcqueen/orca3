@@ -23,12 +23,11 @@ public:
   ~TopsideLayout() override;
 
   void addWidget(QWidget *widget, AspectRatio aspect_ratio, Qt::Alignment alignment);
-  void addItem(QLayoutItem *item, AspectRatio aspect_ratio, Qt::Alignment alignment);
-
-  int small_widget_size() const { return small_widget_size_; }
-  void set_small_widget_size(int small_widget_size) { small_widget_size_ = small_widget_size; }
 
   void set_main_widget(QWidget *widget);
+
+private:
+  void addItem(QLayoutItem *item, AspectRatio aspect_ratio, Qt::Alignment alignment);
 
   void addItem(QLayoutItem *item) override;
   int count() const override;
@@ -40,7 +39,6 @@ public:
   QSize sizeHint() const override;
   QLayoutItem *takeAt(int index) override;
 
-private:
   struct ItemWrapper
   {
     ItemWrapper(QLayoutItem *_item, AspectRatio _aspect_ratio, Qt::Alignment _alignment)
