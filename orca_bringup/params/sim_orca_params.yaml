@@ -27,7 +27,6 @@ teleop_node:
     rcam: False
     show_window: False
     publish_h264: False
-    small_widget_size: 500
 
     # vel_?_ should match in teleop_node and base_controller
     vel_x: 1.0

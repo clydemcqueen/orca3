@@ -7,11 +7,10 @@
 namespace orca_topside
 {
 
-TopsideLayout::TopsideLayout(int small_widget_size)
+TopsideLayout::TopsideLayout()
 {
   setContentsMargins(QMargins());
   setSpacing(-1);
-  small_widget_size_ = small_widget_size;
 }
 
 TopsideLayout::~TopsideLayout()
@@ -21,14 +20,14 @@ TopsideLayout::~TopsideLayout()
   }
 }
 
-void TopsideLayout::addWidget(QWidget *widget, AspectRatio aspect_ratio, Qt::Alignment alignment)
+void TopsideLayout::addWidget(QWidget *widget, int width, int height, Qt::Alignment alignment)
 {
-  addItem(new QWidgetItem(widget), aspect_ratio, alignment);
+  addItem(new QWidgetItem(widget), width, height, alignment);
 }
 
-void TopsideLayout::addItem(QLayoutItem *item, AspectRatio aspect_ratio, Qt::Alignment alignment)
+void TopsideLayout::addItem(QLayoutItem *item, int width, int height, Qt::Alignment alignment)
 {
-  widgets_.append(new ItemWrapper(item, aspect_ratio, alignment));
+  widgets_.append(new ItemWrapper(item, width, height, alignment));
 }
 
 void TopsideLayout::set_main_widget(QWidget *widget)
@@ -55,7 +54,7 @@ void TopsideLayout::set_main_widget(QWidget *widget)
 
 void TopsideLayout::addItem(QLayoutItem *item)
 {
-  addItem(item, SD_4x3, Qt::Alignment());
+  addItem(item, 400, 300, Qt::Alignment());
 }
 
 Qt::Orientations TopsideLayout::expandingDirections() const
@@ -95,11 +94,8 @@ constexpr QSize from_h(int h, int w_ratio, int h_ratio)
 }
 
 // Calc the maximum size of a widget while keeping the aspect ratio
-constexpr QSize calc_widget_size(QSize container, TopsideLayout::AspectRatio aspect_ratio)
+constexpr QSize calc_widget_size(QSize container, int w_ratio, int h_ratio)
 {
-  int w_ratio = aspect_ratio == TopsideLayout::HD_16x9 ? 16 : 4;
-  int h_ratio = aspect_ratio == TopsideLayout::HD_16x9 ? 9 : 3;
-
   if (container.width() * h_ratio / w_ratio > container.height()) {
     return from_h(container.height(), w_ratio, h_ratio);
   } else {
@@ -137,19 +133,17 @@ void TopsideLayout::setGeometry(const QRect & rect)
   }
 
   for (int i = 0; i < widgets_.size(); ++i) {
-    QSize nominal_size;
+    QSize size;
     if (i == 0) {
-      // First widget takes up as much space as possible
-      nominal_size = rect.size();
+      // First widget takes up as much space as possible while keeping the aspect ratio
+      size = calc_widget_size(rect.size(), widgets_[i]->width, widgets_[i]->height);
     } else {
       // The rest of the widgets float on top of the first
-      nominal_size = {small_widget_size_, small_widget_size_};
+      size = {widgets_[i]->width, widgets_[i]->height};
     }
 
-    QSize actual_size = calc_widget_size(nominal_size, widgets_[i]->aspect_ratio);
-    QPoint top_left = place_widget(rect, actual_size, widgets_[i]->alignment);
-
-    widgets_[i]->item->setGeometry({top_left, actual_size});
+    QPoint top_left = place_widget(rect, size, widgets_[i]->alignment);
+    widgets_[i]->item->setGeometry({top_left, size});
   }
 }
 

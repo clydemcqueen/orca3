@@ -26,7 +26,6 @@ teleop_node:
     rcam: True
     show_window: True
     publish_h264: True
-    small_widget_size: 500
     show_slam_status: True
     show_slam_debug_image: True
 

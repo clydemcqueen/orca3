@@ -90,7 +90,7 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   }
 
   // Overlapping camera widgets; last widget added is on top
-  cam_layout_ = new TopsideLayout(node_->cxt().small_widget_size_);
+  cam_layout_ = new TopsideLayout();
 
   if (node_->cxt().fcam_) {
     pipeline_f_label_ = new QLabel;
@@ -98,7 +98,7 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
     pipeline_f_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
 
     gst_widget_f_ = node_->video_pipeline_f()->start_display();
-    cam_layout_->addWidget(gst_widget_f_, TopsideLayout::HD_16x9, Qt::AlignRight | Qt::AlignBottom);
+    cam_layout_->addWidget(gst_widget_f_, node_->cxt().fcam_w_, node_->cxt().fcam_h_, Qt::AlignRight | Qt::AlignBottom);
   }
 
   if (node_->cxt().lcam_) {
@@ -107,7 +107,7 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
     pipeline_l_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
 
     gst_widget_l_ = node_->video_pipeline_l()->start_display();
-    cam_layout_->addWidget(gst_widget_l_, TopsideLayout::SD_4x3, Qt::AlignLeft | Qt::AlignTop);
+    cam_layout_->addWidget(gst_widget_l_, node_->cxt().lcam_w_, node_->cxt().lcam_h_, Qt::AlignLeft | Qt::AlignTop);
   }
 
   if (node_->cxt().rcam_) {
@@ -116,13 +116,12 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
     pipeline_r_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
 
     gst_widget_r_ = node_->video_pipeline_r()->start_display();
-    cam_layout_->addWidget(gst_widget_r_, TopsideLayout::SD_4x3, Qt::AlignRight | Qt::AlignTop);
+    cam_layout_->addWidget(gst_widget_r_, node_->cxt().rcam_w_, node_->cxt().rcam_h_, Qt::AlignRight | Qt::AlignTop);
   }
 
-  // TODO fixed sized widget
   if (node_->cxt().show_slam_debug_image_) {
     debug_widget_ = new ImageWidget(node_, "debug_image");
-    cam_layout_->addWidget(debug_widget_, TopsideLayout::SD_4x3, Qt::AlignLeft | Qt::AlignBottom);
+    cam_layout_->addWidget(debug_widget_, node_->cxt().slam_debug_image_w_, node_->cxt().slam_debug_image_h_, Qt::AlignLeft | Qt::AlignBottom);
   }
 
   QBoxLayout *status_layout = new QHBoxLayout;

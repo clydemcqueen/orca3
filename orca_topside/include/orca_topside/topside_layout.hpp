@@ -14,20 +14,15 @@ namespace orca_topside
 class TopsideLayout : public QLayout
 {
 public:
-  enum AspectRatio
-  {
-    SD_4x3, HD_16x9
-  };
-
-  explicit TopsideLayout(int small_widget_size);
+  explicit TopsideLayout();
   ~TopsideLayout() override;
 
-  void addWidget(QWidget *widget, AspectRatio aspect_ratio, Qt::Alignment alignment);
+  void addWidget(QWidget *widget, int width, int height, Qt::Alignment alignment);
 
   void set_main_widget(QWidget *widget);
 
 private:
-  void addItem(QLayoutItem *item, AspectRatio aspect_ratio, Qt::Alignment alignment);
+  void addItem(QLayoutItem *item, int width, int height, Qt::Alignment alignment);
 
   void addItem(QLayoutItem *item) override;
   int count() const override;
@@ -41,10 +36,11 @@ private:
 
   struct ItemWrapper
   {
-    ItemWrapper(QLayoutItem *_item, AspectRatio _aspect_ratio, Qt::Alignment _alignment)
+    ItemWrapper(QLayoutItem *_item, int _width, int _height, Qt::Alignment _alignment)
     {
       item = _item;
-      aspect_ratio = _aspect_ratio;
+      width = _width;
+      height = _height;
       alignment = _alignment;
     }
 
@@ -54,7 +50,8 @@ private:
     }
 
     QLayoutItem *item;
-    AspectRatio aspect_ratio;
+    int width;
+    int height;
     Qt::Alignment alignment;
   };
 
@@ -65,7 +62,6 @@ private:
   QSize calculate_size(SizeType sizeType) const;
 
   QList<ItemWrapper *> widgets_;
-  int small_widget_size_;
 };
 
 }  // namespace orca_topside
