@@ -110,8 +110,8 @@ class TopsideWidget;
   CXT_MACRO_MEMBER(rcam_h, int, 300) \
  \
   CXT_MACRO_MEMBER(show_slam_debug_image, bool, false) /* Display SLAM debug image */ \
-  CXT_MACRO_MEMBER(slam_debug_image_w, int, 820) \
-  CXT_MACRO_MEMBER(slam_debug_image_h, int, 600) \
+  CXT_MACRO_MEMBER(slam_debug_image_w, int, 410) \
+  CXT_MACRO_MEMBER(slam_debug_image_h, int, 300) \
 /* End of list */
 
 #undef CXT_MACRO_MEMBER
@@ -126,9 +126,9 @@ class TeleopNode : public rclcpp::Node
 {
   TopsideContext cxt_;
 
-  std::shared_ptr<VideoPipeline> video_pipeline_f_;
-  std::shared_ptr<VideoPipeline> video_pipeline_l_;
-  std::shared_ptr<VideoPipeline> video_pipeline_r_;
+  std::shared_ptr<VideoPipeline> fcam_pipeline_;
+  std::shared_ptr<VideoPipeline> lcam_pipeline_;
+  std::shared_ptr<VideoPipeline> rcam_pipeline_;
 
   TopsideWidget *view_{};
 
@@ -198,9 +198,9 @@ class TeleopNode : public rclcpp::Node
 
   void set_view(TopsideWidget *view) { view_ = view; }
 
-  std::shared_ptr<VideoPipeline> video_pipeline_f() const { return video_pipeline_f_; }
-  std::shared_ptr<VideoPipeline> video_pipeline_l() const { return video_pipeline_l_; }
-  std::shared_ptr<VideoPipeline> video_pipeline_r() const { return video_pipeline_r_; }
+  std::shared_ptr<VideoPipeline> fcam_pipeline() const { return fcam_pipeline_; }
+  std::shared_ptr<VideoPipeline> lcam_pipeline() const { return lcam_pipeline_; }
+  std::shared_ptr<VideoPipeline> rcam_pipeline() const { return rcam_pipeline_; }
 
   bool armed() const { return armed_; }
   bool hold() const { return hold_; }

@@ -24,24 +24,35 @@
 #define ORCA_TOPSIDE__TOPSIDE_WIDGET_HPP_
 
 #include <QBoxLayout>
+#include <QLabel>
 #include <QWidget>
 
+#include "orca_topside/gst_widget.hpp"
 #include "orca_topside/image_widget.hpp"
 #include "orca_topside/video_pipeline.hpp"
 #include "orb_slam2_ros/msg/status.hpp"
 
-QT_BEGIN_NAMESPACE
-
-class QLabel;
-
-QT_END_NAMESPACE
-
 namespace orca_topside
 {
+
+// A label that shows framerate and recording status
+class ImageLabel : public QLabel
+{
+Q_OBJECT
+
+public:
+  explicit ImageLabel(std::string prefix);
+  void set_info(int fps, bool recording);
+  void set_info(const std::shared_ptr<VideoPipeline> & pipeline);
+
+private:
+  std::string prefix_;
+};
 
 class TeleopNode;
 class TopsideLayout;
 
+// Main window
 class TopsideWidget : public QWidget
 {
 Q_OBJECT
@@ -64,12 +75,9 @@ public:
   void set_trim_z(double v);
   void set_trim_yaw(double v);
 
-  static void update_pipeline(const std::shared_ptr<VideoPipeline> & pipeline, QLabel *label,
-    const char *prefix);
-
-  void update_pipeline_f();
-  void update_pipeline_l();
-  void update_pipeline_r();
+  void update_fcam_label_();
+  void update_lcam_label_();
+  void update_rcam_label_();
 
 protected:
   void closeEvent(QCloseEvent *event) override;
@@ -82,18 +90,19 @@ private:
   void set_main_widget(QWidget *widget);
 
   std::shared_ptr<TeleopNode> node_;
-  GstWidget *gst_widget_f_{};
-  GstWidget *gst_widget_l_{};
-  GstWidget *gst_widget_r_{};
-  ImageWidget *debug_widget_{};
+  GstWidget *fcam_widget_{};
+  GstWidget *lcam_widget_{};
+  GstWidget *rcam_widget_{};
+  ImageWidget *slam_image_widget_{};
   TopsideLayout *cam_layout_{};
   QLabel *armed_label_{};
   QLabel *hold_label_{};
   QLabel *depth_label_{};
   QLabel *lights_label_{};
-  QLabel *pipeline_f_label_{};
-  QLabel *pipeline_l_label_{};
-  QLabel *pipeline_r_label_{};
+  ImageLabel *fcam_label_{};
+  ImageLabel *lcam_label_{};
+  ImageLabel *rcam_label_{};
+  ImageLabel *slam_image_label_{};
   QLabel *status_label_{};
   QLabel *slam_label_{};
   QLabel *tilt_label_{};

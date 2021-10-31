@@ -25,8 +25,10 @@ teleop_node:
     fcam: False
     lcam: False
     rcam: False
-    show_window: False
+    show_window: True
     publish_h264: False
+    show_slam_status: True
+    show_slam_debug_image: True
 
     # vel_?_ should match in teleop_node and base_controller
     vel_x: 1.0

@@ -171,7 +171,7 @@ public:
 
     // Periodically publish status messages
     status_pub_ = node_->create_publisher<orca_msgs::msg::Status>("status", 10);
-    status_msg_.voltage = 14;
+    status_msg_.voltage = 16;
     status_msg_.status = orca_msgs::msg::Status::STATUS_READY;
   }
 

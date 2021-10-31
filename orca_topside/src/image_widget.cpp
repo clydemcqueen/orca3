@@ -62,6 +62,8 @@ void ImageWidget::showEvent(QShowEvent *)
 
       // Call paintEvent()
       update();
+
+      fps_calculator_.push_new(msg->header.stamp);
     });
 }
 

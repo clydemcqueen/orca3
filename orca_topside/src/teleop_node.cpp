@@ -73,14 +73,14 @@ void TeleopNode::validate_parameters()
     }
 
     // Update fps calculators
-    if (video_pipeline_f_) {
-      video_pipeline_f_->spin();
+    if (fcam_pipeline_) {
+      fcam_pipeline_->spin();
     }
-    if (video_pipeline_l_) {
-      video_pipeline_l_->spin();
+    if (lcam_pipeline_) {
+      lcam_pipeline_->spin();
     }
-    if (video_pipeline_r_) {
-      video_pipeline_r_->spin();
+    if (rcam_pipeline_) {
+      rcam_pipeline_->spin();
     }
   });
 }
@@ -112,30 +112,30 @@ void TeleopNode::init_parameters()
 void TeleopNode::start_video()
 {
   if (cxt_.fcam_) {
-    video_pipeline_f_ = std::make_shared<VideoPipeline>(cxt_.ftopic_, cxt_.fcam_name_, cxt_.fcam_url_,
+    fcam_pipeline_ = std::make_shared<VideoPipeline>(cxt_.ftopic_, cxt_.fcam_name_, cxt_.fcam_url_,
       this, cxt_.fcam_gst_source_, cxt_.fcam_gst_display_, cxt_.fcam_gst_record_, cxt_.fcam_sync_);
 
     // TODO start publishing on pipeline construction
     if (cxt_.publish_h264_) {
-      video_pipeline_f_->start_publishing();
+      fcam_pipeline_->start_publishing();
     }
   }
 
   if (cxt_.lcam_) {
-    video_pipeline_l_ = std::make_shared<VideoPipeline>(cxt_.ltopic_, cxt_.lcam_name_, cxt_.lcam_url_,
+    lcam_pipeline_ = std::make_shared<VideoPipeline>(cxt_.ltopic_, cxt_.lcam_name_, cxt_.lcam_url_,
       this, cxt_.lcam_gst_source_, cxt_.lcam_gst_display_, cxt_.lcam_gst_record_, cxt_.lcam_sync_);
 
     if (cxt_.publish_h264_) {
-      video_pipeline_l_->start_publishing();
+      lcam_pipeline_->start_publishing();
     }
   }
 
   if (cxt_.rcam_) {
-    video_pipeline_r_ = std::make_shared<VideoPipeline>(cxt_.rtopic_, cxt_.rcam_name_, cxt_.rcam_url_,
+    rcam_pipeline_ = std::make_shared<VideoPipeline>(cxt_.rtopic_, cxt_.rcam_name_, cxt_.rcam_url_,
       this, cxt_.rcam_gst_source_, cxt_.rcam_gst_display_, cxt_.rcam_gst_record_, cxt_.rcam_sync_);
 
     if (cxt_.publish_h264_) {
-      video_pipeline_r_->start_publishing();
+      rcam_pipeline_->start_publishing();
     }
   }
 }

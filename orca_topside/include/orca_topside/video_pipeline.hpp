@@ -23,10 +23,6 @@
 #ifndef ORCA_TOPSIDE__VIDEO_PIPELINE_HPP_
 #define ORCA_TOPSIDE__VIDEO_PIPELINE_HPP_
 
-#include <memory>
-#include <mutex>
-#include <queue>
-
 extern "C" {
 #include "gst/gst.h"
 }
@@ -42,6 +38,7 @@ extern "C" {
 
 #endif
 
+#include "orca_topside/fps_calculator.hpp"
 #include "rclcpp/time.hpp"
 
 // Build a video pipeline that can display, record and/or publish ROS messages:
@@ -67,20 +64,6 @@ class VideoPipeline
   enum class RecordStatus
   {
     running, waiting_for_eos, got_eos, stopped
-  };
-
-  // Multi-threaded, e.g., gstreamer pad callback calls push, Qt UI thread calls pop
-  class FPSCalculator
-  {
-    std::queue<rclcpp::Time> stamps_;
-    mutable std::mutex mutex_;
-
-    void pop_old_impl(const rclcpp::Time & stamp);
-
-  public:
-    void push_new(const rclcpp::Time & stamp);
-    void pop_old(const rclcpp::Time & stamp);
-    int fps() const;
   };
 
   std::string topic_;

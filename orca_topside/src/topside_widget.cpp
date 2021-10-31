@@ -33,6 +33,34 @@
 namespace orca_topside
 {
 
+ImageLabel::ImageLabel(std::string prefix):
+  QLabel(),
+  prefix_(std::move(prefix))
+{
+}
+
+void ImageLabel::set_info(int fps, bool recording)
+{
+  if (fps < 10) {
+    setStyleSheet("background-color: yellow; color: black");
+  } else if (recording) {
+    setStyleSheet("background-color: blue; color: white");
+  } else {
+    setStyleSheet("background-color: greenyellow; color: black");
+  }
+
+  // auto message = QString("%1 %2").arg(prefix_.c_str()).arg(fps);
+  setText(QString("%1 %2").arg(prefix_.c_str()).arg(fps));
+}
+
+void ImageLabel::set_info(const std::shared_ptr<VideoPipeline> & pipeline)
+{
+  if (pipeline) {
+    set_info(pipeline->fps(), pipeline->recording());
+  }
+}
+
+
 TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   QWidget *parent):
   QWidget(parent),
@@ -82,75 +110,75 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   set_trim_z(node_->trim_z());
   set_trim_yaw(node_->trim_yaw());
 
+  // Sensor bar across the top, then images, then the control bar
+  QBoxLayout *sensor_bar = new QHBoxLayout;
+  cam_layout_ = new TopsideLayout();
+  QBoxLayout *control_bar = new QHBoxLayout;
+
+  sensor_bar->addWidget(status_label_);
+  sensor_bar->addWidget(depth_label_);
+
   if (node_->cxt().show_slam_status_) {
     slam_label_ = new QLabel;
     slam_label_->setAlignment(Qt::AlignCenter);
     slam_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
     set_slam();
+    sensor_bar->addWidget(slam_label_);
   }
 
-  // Overlapping camera widgets; last widget added is on top
-  cam_layout_ = new TopsideLayout();
-
   if (node_->cxt().fcam_) {
-    pipeline_f_label_ = new QLabel;
-    pipeline_f_label_->setAlignment(Qt::AlignCenter);
-    pipeline_f_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
+    fcam_label_ = new ImageLabel("F");
+    fcam_label_->setAlignment(Qt::AlignCenter);
+    fcam_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
+    sensor_bar->addWidget(fcam_label_);
 
-    gst_widget_f_ = node_->video_pipeline_f()->start_display();
-    cam_layout_->addWidget(gst_widget_f_, node_->cxt().fcam_w_, node_->cxt().fcam_h_, Qt::AlignRight | Qt::AlignBottom);
+    fcam_widget_ = node_->fcam_pipeline()->start_display();
+    cam_layout_->addWidget(fcam_widget_, node_->cxt().fcam_w_, node_->cxt().fcam_h_, Qt::AlignRight | Qt::AlignBottom);
   }
 
   if (node_->cxt().lcam_) {
-    pipeline_l_label_ = new QLabel;
-    pipeline_l_label_->setAlignment(Qt::AlignCenter);
-    pipeline_l_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
+    lcam_label_ = new ImageLabel("L");
+    lcam_label_->setAlignment(Qt::AlignCenter);
+    lcam_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
+    sensor_bar->addWidget(lcam_label_);
 
-    gst_widget_l_ = node_->video_pipeline_l()->start_display();
-    cam_layout_->addWidget(gst_widget_l_, node_->cxt().lcam_w_, node_->cxt().lcam_h_, Qt::AlignLeft | Qt::AlignTop);
+    lcam_widget_ = node_->lcam_pipeline()->start_display();
+    cam_layout_->addWidget(lcam_widget_, node_->cxt().lcam_w_, node_->cxt().lcam_h_, Qt::AlignLeft | Qt::AlignTop);
   }
 
   if (node_->cxt().rcam_) {
-    pipeline_r_label_ = new QLabel;
-    pipeline_r_label_->setAlignment(Qt::AlignCenter);
-    pipeline_r_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
+    rcam_label_ = new ImageLabel("R");
+    rcam_label_->setAlignment(Qt::AlignCenter);
+    rcam_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
+    sensor_bar->addWidget(rcam_label_);
 
-    gst_widget_r_ = node_->video_pipeline_r()->start_display();
-    cam_layout_->addWidget(gst_widget_r_, node_->cxt().rcam_w_, node_->cxt().rcam_h_, Qt::AlignRight | Qt::AlignTop);
+    rcam_widget_ = node_->rcam_pipeline()->start_display();
+    cam_layout_->addWidget(rcam_widget_, node_->cxt().rcam_w_, node_->cxt().rcam_h_, Qt::AlignRight | Qt::AlignTop);
   }
 
   if (node_->cxt().show_slam_debug_image_) {
-    debug_widget_ = new ImageWidget(node_, "debug_image");
-    cam_layout_->addWidget(debug_widget_, node_->cxt().slam_debug_image_w_, node_->cxt().slam_debug_image_h_, Qt::AlignLeft | Qt::AlignBottom);
+    slam_image_label_ = new ImageLabel("S");
+    slam_image_label_->setAlignment(Qt::AlignCenter);
+    slam_image_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
+    sensor_bar->addWidget(slam_image_label_);
+
+    slam_image_widget_ = new ImageWidget(node_, "debug_image");
+    cam_layout_->addWidget(slam_image_widget_, node_->cxt().slam_debug_image_w_, node_->cxt().slam_debug_image_h_, Qt::AlignLeft | Qt::AlignBottom);
   }
 
-  QBoxLayout *status_layout = new QHBoxLayout;
-  status_layout->addWidget(armed_label_);
-  status_layout->addWidget(hold_label_);
-  status_layout->addWidget(status_label_);
-  if (slam_label_) {
-    status_layout->addWidget(slam_label_);
-  }
-  if (pipeline_f_label_) {
-    status_layout->addWidget(pipeline_f_label_);
-  }
-  if (pipeline_l_label_) {
-    status_layout->addWidget(pipeline_l_label_);
-  }
-  if (pipeline_r_label_) {
-    status_layout->addWidget(pipeline_r_label_);
-  }
-  status_layout->addWidget(lights_label_);
-  status_layout->addWidget(tilt_label_);
-  status_layout->addWidget(depth_label_);
-  status_layout->addWidget(trim_x_label_);
-  status_layout->addWidget(trim_yaw_label_);
-  status_layout->addWidget(trim_z_label_);
-  status_layout->addWidget(trim_y_label_);
+  control_bar->addWidget(armed_label_);
+  control_bar->addWidget(hold_label_);
+  control_bar->addWidget(lights_label_);
+  control_bar->addWidget(tilt_label_);
+  control_bar->addWidget(trim_x_label_);
+  control_bar->addWidget(trim_yaw_label_);
+  control_bar->addWidget(trim_z_label_);
+  control_bar->addWidget(trim_y_label_);
 
   auto main_layout = new QVBoxLayout;
-  main_layout->addLayout(status_layout);
+  main_layout->addLayout(sensor_bar);
   main_layout->addLayout(cam_layout_);
+  main_layout->addLayout(control_bar);
   setLayout(main_layout);
 
   auto timer = new QTimer(this);
@@ -161,14 +189,14 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
 void TopsideWidget::about_to_quit()
 {
   // Close any open mp4 files
-  if (node_->video_pipeline_f() && node_->video_pipeline_f()->recording()) {
-    node_->video_pipeline_f()->toggle_record();
+  if (node_->fcam_pipeline() && node_->fcam_pipeline()->recording()) {
+    node_->fcam_pipeline()->toggle_record();
   }
-  if (node_->video_pipeline_l() && node_->video_pipeline_l()->recording()) {
-    node_->video_pipeline_l()->toggle_record();
+  if (node_->lcam_pipeline() && node_->lcam_pipeline()->recording()) {
+    node_->lcam_pipeline()->toggle_record();
   }
-  if (node_->video_pipeline_r() && node_->video_pipeline_r()->recording()) {
-    node_->video_pipeline_r()->toggle_record();
+  if (node_->rcam_pipeline() && node_->rcam_pipeline()->recording()) {
+    node_->rcam_pipeline()->toggle_record();
   }
 }
 
@@ -335,41 +363,25 @@ void TopsideWidget::set_trim_yaw(double v)
   trim_yaw_label_->setText(message);
 }
 
-void TopsideWidget::update_pipeline(const std::shared_ptr<VideoPipeline> & pipeline, QLabel *label,
-  const char *prefix)
+void TopsideWidget::update_fcam_label_()
 {
-  if (!pipeline || !label) {
-    return;
+  if (fcam_label_) {
+    fcam_label_->set_info(node_->fcam_pipeline());
   }
+}
 
-  auto fps = pipeline->fps();
-  auto recording = pipeline->recording();
-
-  if (fps < 10) {
-    label->setStyleSheet("background-color: yellow; color: black");
-  } else if (recording) {
-    label->setStyleSheet("background-color: blue; color: white");
-  } else {
-    label->setStyleSheet("background-color: greenyellow; color: black");
+void TopsideWidget::update_lcam_label_()
+{
+  if (lcam_label_) {
+    lcam_label_->set_info(node_->lcam_pipeline());
   }
-
-  auto message = QString("%1 %2").arg(prefix).arg(fps);
-  label->setText(message);
 }
 
-void TopsideWidget::update_pipeline_f()
+void TopsideWidget::update_rcam_label_()
 {
-  update_pipeline(node_->video_pipeline_f(), pipeline_f_label_, "F");
-}
-
-void TopsideWidget::update_pipeline_l()
-{
-  update_pipeline(node_->video_pipeline_l(), pipeline_l_label_, "L");
-}
-
-void TopsideWidget::update_pipeline_r()
-{
-  update_pipeline(node_->video_pipeline_r(), pipeline_r_label_, "R");
+  if (rcam_label_) {
+    rcam_label_->set_info(node_->rcam_pipeline());
+  }
 }
 
 void TopsideWidget::closeEvent(QCloseEvent *event)
@@ -422,50 +434,50 @@ void TopsideWidget::keyPressEvent(QKeyEvent *event)
       break;
 
     case Qt::Key_F1:
-      toggle_record(node_->video_pipeline_f());
-      update_pipeline_f();
+      toggle_record(node_->fcam_pipeline());
+      update_fcam_label_();
       break;
 
     case Qt::Key_F2:
-      toggle_record(node_->video_pipeline_l());
-      update_pipeline_l();
+      toggle_record(node_->lcam_pipeline());
+      update_lcam_label_();
       break;
 
     case Qt::Key_F3:
-      toggle_record(node_->video_pipeline_r());
-      update_pipeline_r();
+      toggle_record(node_->rcam_pipeline());
+      update_rcam_label_();
       break;
 
     case Qt::Key_F4:
-      toggle_visibility(gst_widget_f_);
+      toggle_visibility(fcam_widget_);
       break;
 
     case Qt::Key_F5:
-      toggle_visibility(gst_widget_l_);
+      toggle_visibility(lcam_widget_);
       break;
 
     case Qt::Key_F6:
-      toggle_visibility(gst_widget_r_);
+      toggle_visibility(rcam_widget_);
       break;
 
     case Qt::Key_F7:
-      toggle_visibility(debug_widget_);
+      toggle_visibility(slam_image_widget_);
       break;
 
     case Qt::Key_F8:
-      set_main_widget(gst_widget_f_);
+      set_main_widget(fcam_widget_);
       break;
 
     case Qt::Key_F9:
-      set_main_widget(gst_widget_l_);
+      set_main_widget(lcam_widget_);
       break;
 
     case Qt::Key_F10:
-      set_main_widget(gst_widget_r_);
+      set_main_widget(rcam_widget_);
       break;
 
     case Qt::Key_F11:
-      set_main_widget(debug_widget_);
+      set_main_widget(slam_image_widget_);
       break;
 
     case Qt::Key_Plus:
@@ -537,9 +549,13 @@ void TopsideWidget::keyPressEvent(QKeyEvent *event)
 
 void TopsideWidget::update_fps()
 {
-  update_pipeline_f();
-  update_pipeline_l();
-  update_pipeline_r();
+  update_fcam_label_();
+  update_lcam_label_();
+  update_rcam_label_();
+
+  if (slam_image_label_ && slam_image_widget_) {
+    slam_image_label_->set_info(slam_image_widget_->fps(), false);
+  }
 }
 
 }  // namespace orca_topside

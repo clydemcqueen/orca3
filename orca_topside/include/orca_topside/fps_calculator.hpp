@@ -20,44 +20,32 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef ORCA_TOPSIDE__IMAGE_WIDGET_HPP_
-#define ORCA_TOPSIDE__IMAGE_WIDGET_HPP_
+#ifndef ORCA_TOPSIDE__FPS_CALCULATOR_HPP_
+#define ORCA_TOPSIDE__FPS_CALCULATOR_HPP_
 
-#include <thread>
+#include <mutex>
+#include <queue>
 
-#include <QWidget>
-
-#include "orca_topside/fps_calculator.hpp"
-#include "rclcpp/rclcpp.hpp"
-#include "sensor_msgs/msg/image.hpp"
+#include "rclcpp/time.hpp"
 
 namespace orca_topside
 {
 
-class TeleopNode;
-
-// Draw ROS images in a Qt widget
-class ImageWidget : public QWidget
+// Multi-threaded framerate calculator
+// GStreamer pad callback calls push, Qt UI thread (shared with ROS thread) calls pop
+class FPSCalculator
 {
-Q_OBJECT
+  std::queue<rclcpp::Time> stamps_;
+  mutable std::mutex mutex_;
+
+  void pop_old_impl(const rclcpp::Time & stamp);
 
 public:
-  ImageWidget(std::shared_ptr<TeleopNode> node, std::string topic, QWidget *parent = nullptr);
-  int fps() const { return fps_calculator_.fps(); }
-
-protected:
-  void showEvent(QShowEvent *) override;
-  void hideEvent(QHideEvent *) override;
-  void paintEvent(QPaintEvent *) override;
-
-private:
-  std::shared_ptr<TeleopNode> node_;
-  std::string topic_;
-  rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
-  QImage *image_;
-  FPSCalculator fps_calculator_;
+  void push_new(const rclcpp::Time & stamp);
+  void pop_old(const rclcpp::Time & stamp);
+  int fps() const;
 };
 
 }  // namespace orca_topside
 
-#endif  // ORCA_TOPSIDE__IMAGE_WIDGET_HPP_
+#endif  // ORCA_TOPSIDE__FPS_CALCULATOR_HPP_

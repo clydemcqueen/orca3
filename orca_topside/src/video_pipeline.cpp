@@ -22,43 +22,12 @@
 
 #include "orca_topside/video_pipeline.hpp"
 
-#include <QTimer>
-#include <iostream>
-#include <utility>
-
 #include "orca_topside/gst_widget.hpp"
 #include "orca_topside/image_publisher.hpp"
 #include "orca_topside/teleop_node.hpp"
 
 namespace orca_topside
 {
-
-// Caller must lock the mutex before calling
-void VideoPipeline::FPSCalculator::pop_old_impl(const rclcpp::Time & stamp)
-{
-  while (!stamps_.empty() && stamp - stamps_.front() > rclcpp::Duration(1, 0)) {
-    stamps_.pop();
-  }
-}
-
-void VideoPipeline::FPSCalculator::push_new(const rclcpp::Time & stamp)
-{
-  std::lock_guard<std::mutex> lock(mutex_);
-  stamps_.push(stamp);
-  pop_old_impl(stamp);
-}
-
-void VideoPipeline::FPSCalculator::pop_old(const rclcpp::Time & stamp)
-{
-  std::lock_guard<std::mutex> lock(mutex_);
-  pop_old_impl(stamp);
-}
-
-int VideoPipeline::FPSCalculator::fps() const
-{
-  std::lock_guard<std::mutex> lock(mutex_);
-  return (int) stamps_.size();
-}
 
 VideoPipeline::VideoPipeline(std::string topic, std::string camera_name, std::string camera_info_url, TeleopNode *node,
   std::string gst_source_bin, std::string gst_display_bin, std::string gst_record_bin, bool sync):

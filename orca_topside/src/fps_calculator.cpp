@@ -20,44 +20,36 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef ORCA_TOPSIDE__IMAGE_WIDGET_HPP_
-#define ORCA_TOPSIDE__IMAGE_WIDGET_HPP_
-
-#include <thread>
-
-#include <QWidget>
-
 #include "orca_topside/fps_calculator.hpp"
-#include "rclcpp/rclcpp.hpp"
-#include "sensor_msgs/msg/image.hpp"
 
 namespace orca_topside
 {
 
-class TeleopNode;
-
-// Draw ROS images in a Qt widget
-class ImageWidget : public QWidget
+// Caller must lock the mutex before calling
+void FPSCalculator::pop_old_impl(const rclcpp::Time & stamp)
 {
-Q_OBJECT
+  while (!stamps_.empty() && stamp - stamps_.front() > rclcpp::Duration(1, 0)) {
+    stamps_.pop();
+  }
+}
 
-public:
-  ImageWidget(std::shared_ptr<TeleopNode> node, std::string topic, QWidget *parent = nullptr);
-  int fps() const { return fps_calculator_.fps(); }
+void FPSCalculator::push_new(const rclcpp::Time & stamp)
+{
+  std::lock_guard<std::mutex> lock(mutex_);
+  stamps_.push(stamp);
+  pop_old_impl(stamp);
+}
 
-protected:
-  void showEvent(QShowEvent *) override;
-  void hideEvent(QHideEvent *) override;
-  void paintEvent(QPaintEvent *) override;
+void FPSCalculator::pop_old(const rclcpp::Time & stamp)
+{
+  std::lock_guard<std::mutex> lock(mutex_);
+  pop_old_impl(stamp);
+}
 
-private:
-  std::shared_ptr<TeleopNode> node_;
-  std::string topic_;
-  rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
-  QImage *image_;
-  FPSCalculator fps_calculator_;
-};
+int FPSCalculator::fps() const
+{
+  std::lock_guard<std::mutex> lock(mutex_);
+  return (int) stamps_.size();
+}
 
 }  // namespace orca_topside
-
-#endif  // ORCA_TOPSIDE__IMAGE_WIDGET_HPP_
