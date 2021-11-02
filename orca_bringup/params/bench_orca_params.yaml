@@ -5,7 +5,7 @@ baro_filter_node:
   ros__parameters:
     ukf_Q: True
 
-joy_node:
+joy_linux_node:
   ros__parameters:
     dev: "/dev/input/js0"
     autorepeat_rate: 20.  # Set /joy Hz

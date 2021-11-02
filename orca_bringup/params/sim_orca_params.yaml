@@ -9,7 +9,7 @@ baro_filter_node:
     use_sim_time: False
     ukf_Q: True
 
-joy_node:
+joy_linux_node:
   ros__parameters:
     use_sim_time: False
     dev: "/dev/input/js0"

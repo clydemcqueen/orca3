@@ -143,11 +143,14 @@ def generate_launch_description():
             parameters=[configured_orca_params]),
 
         # Publish /joy
+        # joy::joy_node uses SDL; multiplatform, but burns a lot of CPU
+        # Use joy_linux::joy_linux_node instead
+        # https://discourse.libsdl.org/t/patch-for-sdl-waitevent-to-avoid-using-cpu-while-waiting-an-event/28555
         Node(
-            package='joy',
-            executable='joy_node',
+            package='joy_linux',
+            executable='joy_linux_node',
             output='screen',
-            name='joy_node',
+            name='joy_linux_node',
             parameters=[configured_orca_params]),
 
         # Subscribe to /joy and publish /cmd_vel
