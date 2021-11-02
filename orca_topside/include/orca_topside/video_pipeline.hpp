@@ -48,7 +48,6 @@ extern "C" {
 //                      +----> queue --> valve [ --> multiplexer --> file sink ]
 //                      |
 //                      +----> queue --> valve [ --> ROS H264 publisher ]
-//
 
 namespace orca_topside
 {
@@ -127,8 +126,6 @@ public:
   // Caller should add the widget to an application
   // VideoPipeline maintains ownership of the widget
   GstWidget *start_display();
-  void stop_display();
-  bool displaying() const { return widget_; }
 
   // Record mp4 files
   void toggle_record();
@@ -136,7 +133,6 @@ public:
 
   // Publish h264 messages
   void start_publishing();
-  void stop_publishing();
   bool publishing() const { return publish_sink_.get(); }
 };
 

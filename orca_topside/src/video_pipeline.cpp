@@ -241,37 +241,6 @@ GstWidget *VideoPipeline::start_display()
   return widget_;
 }
 
-void VideoPipeline::stop_display()
-{
-  if (!initialized_) {
-    g_critical("%s not initialized", topic_.c_str());
-    return;
-  }
-
-  delete widget_;
-  widget_ = nullptr;
-
-  if (gst_element_set_state(pipeline_, GST_STATE_PAUSED) == GST_STATE_CHANGE_FAILURE) {
-    g_critical("%s pause failed", topic_.c_str());
-  }
-
-  g_object_set(display_valve_, "drop", TRUE, nullptr);
-
-  gst_element_unlink(display_bin_, display_sink_);
-  gst_object_unref(display_sink_);
-  display_sink_ = nullptr;
-
-  gst_element_unlink(display_valve_, display_bin_);
-  gst_object_unref(display_bin_);
-  display_bin_ = nullptr;
-
-  if (gst_element_set_state(pipeline_, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) {
-    g_critical("%s play failed", topic_.c_str());
-  }
-
-  RCLCPP_INFO(node_->get_logger(), "%s display stopped", topic_.c_str());
-}
-
 // Public API: call this to turn recording on/off
 void VideoPipeline::toggle_record()
 {
@@ -405,18 +374,6 @@ void VideoPipeline::start_publishing()
 
 #if defined(GST_TOOLS) && defined(RUN_GST_TOOLS)
     graph_writer_->write("graph_publishing_on", 3);
-#endif
-  }
-}
-
-void VideoPipeline::stop_publishing()
-{
-  if (!publishing()) {
-    g_object_set(publish_valve_, "drop", TRUE, nullptr);
-    publish_sink_ = nullptr;
-
-#if defined(GST_TOOLS) && defined(RUN_GST_TOOLS)
-    graph_writer_->write("graph_publishing_off", 3);
 #endif
   }
 }

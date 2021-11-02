@@ -115,7 +115,6 @@ void TeleopNode::start_video()
     fcam_pipeline_ = std::make_shared<VideoPipeline>(cxt_.ftopic_, cxt_.fcam_name_, cxt_.fcam_url_,
       this, cxt_.fcam_gst_source_, cxt_.fcam_gst_display_, cxt_.fcam_gst_record_, cxt_.fcam_sync_);
 
-    // TODO start publishing on pipeline construction
     if (cxt_.publish_h264_) {
       fcam_pipeline_->start_publishing();
     }
