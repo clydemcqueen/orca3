@@ -26,7 +26,7 @@
 Launch two gscam2 nodes to calibrate two Raspberry Pi cameras.
 
 Calibration command must be run by hand in Foxy:
-ros2 run camera_calibration cameracalibrator --approximate 0.1 --size 11x8 --square 0.3 \
+ros2 run camera_calibration cameracalibrator --approximate 0.1 --size 11x8 --square 0.03 \
 right:=/stereo/right/image_raw left:=/stereo/left/image_raw \
 right_camera:=/right left_camera:=/left --no-service-check
 
