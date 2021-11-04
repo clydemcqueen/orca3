@@ -38,7 +38,6 @@ teleop_node:
 
 base_controller:
   ros__parameters:
-    auto_arm: True  # Default for demo
     use_sim_time: False
     stamp_msgs_with_current_time: True
     mdl_mass: 9.9
@@ -46,8 +45,6 @@ base_controller:
     mdl_fluid_density: 997.0
     mdl_thrust_scale: 1.0
     publish_tf: True  # Publish odom->base_link
-    hover_thrust: True  # Add hover thrust
-    pid_enabled: True  # Hold vertical position at odom.z
 
     # vel_?_ should match in teleop_node and base_controller
     x_vel: 1.0

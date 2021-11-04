@@ -120,7 +120,6 @@ def generate_launch_description():
         ExecuteProcess(
             cmd=[
                 'ros2', 'bag', 'record',
-                '/armed',
                 '/barometer',
                 '/camera_tilt',
                 '/cmd_vel',
@@ -146,6 +145,7 @@ def generate_launch_description():
                 '/stereo/left/camera_info',
                 '/stereo/right/image_raw/h264',
                 '/stereo/right/camera_info',
+                '/teleop',
                 '/tf',
                 '/tf_static',
                 '/thrust',

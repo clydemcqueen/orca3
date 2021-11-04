@@ -2,7 +2,6 @@
 
 | Message | Description | Publisher(s) | Subscriber(s) |
 |-----|--------|------|-----|
-| Armed | Arm or disarm the controller | TeleopNode | BaseController |
 | Barometer | Pressure and temperature | OrcaBarometerPlugin, BarometerNode | BaseController |
 | CameraTilt | BlueROV2 camera tilt | TeleopNode | DriverNode |
 | Depth | ENU depth in meters (+ is above the surface, - is below the surface) | BaseController | |
@@ -11,4 +10,5 @@
 | Motion | Output of motion model | BaseController | |
 | Pid | Output of PID controller | BaseController | |
 | Status | Hardware status | OrcaThrusterPlugin, DriverNode | |
+| Teleop | Arm or disarm the controller | TeleopNode | BaseController |
 | Thrust | Thruster pwm values | BaseController | OrcaThrusterPlugin, DriverNode |

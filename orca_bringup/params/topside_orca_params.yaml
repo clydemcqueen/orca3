@@ -41,8 +41,6 @@ teleop_node:
 base_controller:
   ros__parameters:
     stamp_msgs_with_current_time: False  # False: use sub clock.now()
-    hover_thrust: False  # Boot ROV with 0 vertical thrust, enable/disable with joystick
-    pid_enabled: False  # Boot ROV with 0 vertical thrust, enable/disable with joystick
     coast: True  # Experimental 'coast' mode, added after FT11
 
     # FT6 ran with model defaults

@@ -32,7 +32,6 @@ ament_auto_find_build_dependencies()
 # Generate ROS messages
 rosidl_generate_interfaces(
   orca_msgs
-  msg/Armed.msg
   msg/Barometer.msg
   msg/CameraTilt.msg
   msg/Depth.msg
@@ -41,6 +40,7 @@ rosidl_generate_interfaces(
   msg/Motion.msg
   msg/Pid.msg
   msg/Status.msg
+  msg/Teleop.msg
   msg/Thrust.msg
   DEPENDENCIES geometry_msgs std_msgs
 )

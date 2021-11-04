@@ -208,7 +208,7 @@ void TopsideWidget::set_armed(bool armed)
     armed_label_->setText("Armed");
   } else {
     armed_label_->setStyleSheet("background-color: yellow; color: black");
-    armed_label_->setText("Disarmed");
+    armed_label_->setText("Disarmed (press !)");
   }
 
 #if 0
@@ -226,7 +226,7 @@ void TopsideWidget::set_hold(bool enabled)
     hold_label_->setText("Hold");
   } else {
     hold_label_->setStyleSheet("background-color: yellow; color: black");
-    hold_label_->setText("Float");
+    hold_label_->setText("Float (press @)");
   }
 }
 

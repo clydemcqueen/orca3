@@ -25,12 +25,12 @@
 
 #include "geometry_msgs/msg/twist.hpp"
 #include "orb_slam2_ros/msg/status.hpp"
-#include "orca_msgs/msg/armed.hpp"
 #include "orca_msgs/msg/camera_tilt.hpp"
 #include "orca_msgs/msg/depth.hpp"
 #include "orca_msgs/msg/lights.hpp"
 #include "orca_msgs/msg/motion.hpp"
 #include "orca_msgs/msg/status.hpp"
+#include "orca_msgs/msg/teleop.hpp"
 #include "orca_topside/video_pipeline.hpp"
 #include "orca_topside/xbox.hpp"
 #include "rclcpp/parameter_client.hpp"
@@ -41,10 +41,6 @@ namespace orca_topside
 {
 
 class TopsideWidget;
-
-// Param defaults work well for the simulation demo: orca_bringup/launch/sim_launch.py
-// TODO require live source, so I don't need sync -- correct?
-// TODO why repeat h264parse?
 
 #define TOPSIDE_PARAMS \
   CXT_MACRO_MEMBER(stamp_msgs_with_current_time, bool, false) /* Stamp incoming msgs */ \
@@ -174,20 +170,20 @@ class TeleopNode : public rclcpp::Node
   rclcpp::Subscription<orb_slam2_ros::msg::Status>::SharedPtr slam_sub_;
   rclcpp::Subscription<orca_msgs::msg::Status>::SharedPtr status_sub_;
 
-  rclcpp::Publisher<orca_msgs::msg::Armed>::SharedPtr armed_pub_;
   rclcpp::Publisher<orca_msgs::msg::CameraTilt>::SharedPtr camera_tilt_pub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
   rclcpp::Publisher<orca_msgs::msg::Lights>::SharedPtr lights_pub_;
+  rclcpp::Publisher<orca_msgs::msg::Teleop>::SharedPtr teleop_pub_;
 
   std::shared_ptr<rclcpp::AsyncParametersClient> base_controller_client_;
 
   void validate_parameters();
   void init_parameters();
   void start_video();
-  void publish_armed();
   void publish_tilt();
   void publish_cmd_vel();
   void publish_lights();
+  void publish_teleop();
   bool set_base_controller_param(const std::string &param, bool value);
 
  public:

@@ -139,15 +139,6 @@ void TeleopNode::start_video()
   }
 }
 
-void TeleopNode::publish_armed()
-{
-  RCLCPP_INFO(get_logger(), "armed %d", armed_);
-  orca_msgs::msg::Armed msg;
-  msg.header.stamp = now();
-  msg.armed = armed_;
-  armed_pub_->publish(msg);
-}
-
 void TeleopNode::publish_tilt()
 {
   orca_msgs::msg::CameraTilt msg;
@@ -175,6 +166,17 @@ void TeleopNode::publish_lights()
   lights_pub_->publish(msg);
 }
 
+void TeleopNode::publish_teleop()
+{
+  orca_msgs::msg::Teleop msg;
+  msg.header.stamp = now();
+  msg.armed = armed_;
+  msg.hover_thrust = hold_;
+  msg.pid_enabled = hold_;
+  teleop_pub_->publish(msg);
+}
+
+#if 0
 bool TeleopNode::set_base_controller_param(const std::string & param, bool value)
 {
   if (!base_controller_client_) {
@@ -208,6 +210,7 @@ bool TeleopNode::set_base_controller_param(const std::string & param, bool value
     return false;
   }
 }
+#endif
 
 TeleopNode::TeleopNode()
   : Node("topside_controller")
@@ -223,10 +226,10 @@ TeleopNode::TeleopNode()
 
   start_video();
 
-  armed_pub_ = create_publisher<orca_msgs::msg::Armed>("armed", 10);
   camera_tilt_pub_ = create_publisher<orca_msgs::msg::CameraTilt>("camera_tilt", 10);
   cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
   lights_pub_ = create_publisher<orca_msgs::msg::Lights>("lights", 10);
+  teleop_pub_ = create_publisher<orca_msgs::msg::Teleop>("teleop", 10);
 
   depth_sub_ = create_subscription<orca_msgs::msg::Depth>("depth", 10,
     [this](orca_msgs::msg::Depth::ConstSharedPtr msg)
@@ -351,7 +354,7 @@ void TeleopNode::arm()
 {
   if (orca::status_ok(status_msg_.status)) {
     armed_ = true;
-    publish_armed();
+    publish_teleop();
     if (view_) {
       view_->set_armed(armed_);
     }
@@ -365,7 +368,7 @@ void TeleopNode::disarm()
   stop();
   set_hold(false);
   armed_ = false;
-  publish_armed();
+  publish_teleop();
   if (view_) {
     view_->set_armed(armed_);
   }
@@ -387,9 +390,8 @@ void TeleopNode::set_hold(bool enable)
 {
   if (hold_ != enable) {
     hold_ = enable;
-    if (set_base_controller_param("hover_thrust", enable) &&
-      set_base_controller_param("pid_enabled", enable) &&
-      view_) {
+    publish_teleop();
+    if (view_) {
       view_->set_hold(enable);
     }
   }
