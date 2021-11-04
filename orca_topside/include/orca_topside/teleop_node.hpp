@@ -82,7 +82,7 @@ class TopsideWidget;
   CXT_MACRO_MEMBER(lcam_url, std::string, "package://orca_bringup/cfg/${NAME}.ini") \
   CXT_MACRO_MEMBER(rcam_url, std::string, "package://orca_bringup/cfg/${NAME}.ini") \
  \
-  CXT_MACRO_MEMBER(fcam_gst_source, std::string, "v4l2src device=/dev/video0 do-timestamp=true ! video/x-h264,width=1920,height=1080,framerate=30/1 ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au") \
+  CXT_MACRO_MEMBER(fcam_gst_source, std::string, "videotestsrc is-live=true ! capsfilter caps=video/x-raw,width=1920,height=1080,framerate=30/1 ! videoconvert ! queue ! x264enc key-int-max=10 ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au") \
   CXT_MACRO_MEMBER(lcam_gst_source, std::string, "videotestsrc is-live=true ! capsfilter caps=video/x-raw,width=820,height=616,framerate=20/1 ! videoconvert ! queue ! x264enc key-int-max=10 ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au") \
   CXT_MACRO_MEMBER(rcam_gst_source, std::string, "videotestsrc is-live=true ! capsfilter caps=video/x-raw,width=820,height=616,framerate=20/1 ! videoconvert ! queue ! x264enc key-int-max=10 ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au") \
  \
