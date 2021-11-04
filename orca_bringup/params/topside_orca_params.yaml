@@ -6,7 +6,7 @@ baro_filter_node:
   ros__parameters:
     ukf_Q: True
 
-joy_node:
+joy_linux_node:
   ros__parameters:
     dev: "/dev/input/js0"
     autorepeat_rate: 20.  # Set /joy Hz
@@ -22,27 +22,25 @@ teleop_node:
     vel_z: 0.4
     vel_yaw: 0.8  # Increase 0.4 to 0.8 after FT11
 
+    fcam: True
     lcam: True
     rcam: True
+    show_window: True
     publish_h264: True
-    small_widget_size: 500
-    ftopic: "forward_camera"
-    ltopic: "stereo/left"
-    rtopic: "stereo/right"
+    show_slam_status: True
+    show_slam_debug_image: True
 
     # Gstreamer bin parser seems to have trouble with trailing quotes, so don't end with a quote
     # h264parse element is required before and after the tee & valves -- not sure why
     # Be sure to add "stream-format=byte-stream,alignment=au" to the caps string
 
-    gst_source_bin_f: "udpsrc port=5600 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au"
-    gst_source_bin_l: "udpsrc port=5601 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au"
-    gst_source_bin_r: "udpsrc port=5602 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au"
+    fcam_gst_source: "udpsrc port=5600 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au"
+    lcam_gst_source: "udpsrc port=5601 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au"
+    rcam_gst_source: "udpsrc port=5602 do-timestamp=true ! queue ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! capsfilter caps=video/x-h264,stream-format=byte-stream,alignment=au"
 
 base_controller:
   ros__parameters:
     stamp_msgs_with_current_time: False  # False: use sub clock.now()
-    hover_thrust: False  # Boot ROV with 0 vertical thrust, enable/disable with joystick
-    pid_enabled: False  # Boot ROV with 0 vertical thrust, enable/disable with joystick
     coast: True  # Experimental 'coast' mode, added after FT11
 
     # FT6 ran with model defaults
@@ -168,7 +166,7 @@ orb_slam2_stereo:
     # See https://github.com/raulmur/ORB_SLAM2/issues/89 for the author's explanation of these:
     ThDepth: 40.0
     depth_map_factor: 1.0
-    camera_baseline: 3748.73  # Right camera info p[3], flip sign
+    camera_baseline: 179.6980061  # Right camera info p[3], flip sign
 
 orb_slam2_localizer:
   ros__parameters:

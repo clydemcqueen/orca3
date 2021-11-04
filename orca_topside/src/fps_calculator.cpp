@@ -20,54 +20,36 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef ORCA_TOPSIDE__IMAGE_PUBLISHER_HPP_
-#define ORCA_TOPSIDE__IMAGE_PUBLISHER_HPP_
-
-#include <atomic>
-#include <memory>
-#include <thread>
-
-extern "C" {
-#include "gst/gst.h"
-#include "gst/app/gstappsink.h"
-}
-
-#include "camera_info_manager/camera_info_manager.hpp"
-#include "h264_msgs/msg/packet.hpp"
-#include "rclcpp/rclcpp.hpp"
+#include "orca_topside/fps_calculator.hpp"
 
 namespace orca_topside
 {
 
-class TeleopNode;
-
-// Poll a gstreamer appsink element for H264 data, and publish a ROS message
-class ImagePublisher
+// Caller must lock the mutex before calling
+void FPSCalculator::pop_old_impl(const rclcpp::Time & stamp)
 {
-  std::string topic_;
-  TeleopNode *node_;
-  sensor_msgs::msg::CameraInfo cam_info_;
-  rclcpp::Publisher<h264_msgs::msg::Packet>::SharedPtr h264_pub_;
-  rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_pub_;
-  GstElement *pipeline_;
-  GstElement *sink_;
+  while (!stamps_.empty() && stamp - stamps_.front() > rclcpp::Duration(1, 0)) {
+    stamps_.pop();
+  }
+}
 
-  // Poll GStreamer on a separate thread
-  std::thread pipeline_thread_;
-  std::atomic<bool> stop_signal_;
+void FPSCalculator::push_new(const rclcpp::Time & stamp)
+{
+  std::lock_guard<std::mutex> lock(mutex_);
+  stamps_.push(stamp);
+  pop_old_impl(stamp);
+}
 
-  // Sequence number
-  int seq_;
+void FPSCalculator::pop_old(const rclcpp::Time & stamp)
+{
+  std::lock_guard<std::mutex> lock(mutex_);
+  pop_old_impl(stamp);
+}
 
-  void process_sample();
-
-public:
-  ImagePublisher(std::string topic, const std::string & cam_name, const std::string & cam_info_url,
-    TeleopNode *node, bool sync, GstElement *pipeline, GstElement *upstream);
-
-  ~ImagePublisher();
-};
+int FPSCalculator::fps() const
+{
+  std::lock_guard<std::mutex> lock(mutex_);
+  return (int) stamps_.size();
+}
 
 }  // namespace orca_topside
-
-#endif  // ORCA_TOPSIDE__IMAGE_PUBLISHER_HPP_

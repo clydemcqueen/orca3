@@ -31,9 +31,11 @@ pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
 pkg_check_modules(GST_APP REQUIRED gstreamer-app-1.0)
 
 find_package(ament_cmake REQUIRED)
+find_package(camera_info_manager REQUIRED)
 find_package(gst_tools QUIET)
 find_package(h264_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(orb_slam2_ros REQUIRED)
 find_package(orca_msgs REQUIRED)
 find_package(orca_shared REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -45,18 +47,22 @@ include_directories(include)
 # Add the .h files so that MOC finds them
 add_executable(
   teleop_node
+  src/fps_calculator.cpp
   src/gst_util.cpp
   src/gst_widget.cpp
   src/image_publisher.cpp
+  src/image_widget.cpp
   src/node_spinner.cpp
   src/teleop_node.cpp
   src/teleop_main.cpp
   src/topside_layout.cpp
   src/topside_widget.cpp
   src/video_pipeline.cpp
+  include/orca_topside/fps_calculator.hpp
   include/orca_topside/gst_util.hpp
   include/orca_topside/gst_widget.hpp
   include/orca_topside/image_publisher.hpp
+  include/orca_topside/image_widget.hpp
   include/orca_topside/node_spinner.hpp
   include/orca_topside/teleop_node.hpp
   include/orca_topside/topside_layout.hpp
@@ -66,9 +72,11 @@ add_executable(
 
 ament_target_dependencies(
   teleop_node
+  camera_info_manager
   geometry_msgs
   GST_APP
   h264_msgs
+  orb_slam2_ros
   orca_msgs
   orca_shared
   Qt5Widgets

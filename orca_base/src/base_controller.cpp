@@ -26,11 +26,12 @@
 #include "orca_base/underwater_motion.hpp"
 #include "orca_base/pid.hpp"
 #include "orca_base/thrusters.hpp"
-#include "orca_msgs/msg/armed.hpp"
 #include "orca_msgs/msg/barometer.hpp"
 #include "orca_msgs/msg/depth.hpp"
+#include "orca_msgs/msg/teleop.hpp"
 #include "orca_shared/baro.hpp"
 #include "orca_shared/model.hpp"
+#include "orca_shared/util.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "tf2_ros/transform_broadcaster.h"
 
@@ -45,9 +46,7 @@ constexpr int QUEUE_SIZE = 10;
 //
 // BaseController also uses the barometer sensor to hold the sub at the target odom.z position
 //
-// BaseController must be armed to publish thrust. For AUV operation this is typically done
-// by setting auto_arm to True. For ROV or mixed AUV+ROV operation the joystick can be used
-// to arm and disarm BaseController.
+// BaseController must be armed to publish thrust.
 
 class BaseController : public rclcpp::Node
 {
@@ -66,9 +65,9 @@ class BaseController : public rclcpp::Node
   nav_msgs::msg::Odometry odometry_;
   geometry_msgs::msg::TransformStamped transform_;
 
-  rclcpp::Subscription<orca_msgs::msg::Armed>::SharedPtr armed_sub_;
   rclcpp::Subscription<orca_msgs::msg::Barometer>::SharedPtr baro_sub_;
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
+  rclcpp::Subscription<orca_msgs::msg::Teleop>::SharedPtr teleop_sub_;
 
   rclcpp::Publisher<orca_msgs::msg::Depth>::SharedPtr depth_pub_;
   rclcpp::Publisher<orca_msgs::msg::Motion>::SharedPtr motion_pub_;
@@ -80,9 +79,6 @@ class BaseController : public rclcpp::Node
 
   void validate_parameters()
   {
-    if (cxt_.auto_arm_) {
-      arm();
-    }
   }
 
   void init_parameters()
@@ -106,21 +102,6 @@ class BaseController : public rclcpp::Node
 #undef CXT_MACRO_MEMBER
 #define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_CHECK_CMDLINE_PARAMETER(n, t, d)
     CXT_MACRO_CHECK_CMDLINE_PARAMETERS((*this), BASE_ALL_PARAMS)
-  }
-
-  void arm()
-  {
-    RCLCPP_INFO(get_logger(), "armed");
-    armed_ = true;
-  }
-
-  void disarm()
-  {
-    RCLCPP_INFO(get_logger(), "disarmed");
-    armed_ = false;
-
-    // The motion model doesn't track motion while disarmed
-    underwater_motion_ = nullptr;
   }
 
   void publish_depth(const rclcpp::Time & t, double baro_z)
@@ -186,9 +167,9 @@ public:
     : Node("base_controller"), armed_{false}
   {
     // Suppress IDE warnings
-    (void) armed_sub_;
     (void) baro_sub_;
     (void) cmd_vel_sub_;
+    (void) teleop_sub_;
 
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
 
@@ -205,18 +186,6 @@ public:
     odom_pub_ = create_publisher<nav_msgs::msg::Odometry>("odom", QUEUE_SIZE);
     pid_z_pub_ = create_publisher<orca_msgs::msg::Pid>("pid_z", QUEUE_SIZE);
     thrust_pub_ = create_publisher<orca_msgs::msg::Thrust>("thrust", QUEUE_SIZE);
-
-    armed_sub_ = create_subscription<orca_msgs::msg::Armed>(
-      "armed", QUEUE_SIZE,
-      [this](orca_msgs::msg::Armed::ConstSharedPtr msg) // NOLINT
-      {
-        armed_ = msg->armed;
-        if (msg->armed) {
-          arm();
-        } else {
-          disarm();
-        }
-      });
 
     // Barometer messages are continuous and reliable, use them to drive the control loop
     baro_sub_ = create_subscription<orca_msgs::msg::Barometer>(
@@ -269,7 +238,35 @@ public:
       "cmd_vel", QUEUE_SIZE,
       [this](geometry_msgs::msg::Twist::ConstSharedPtr msg) // NOLINT
       {
+        if (!armed_ && !orca::is_zero(cmd_vel_)) {
+          RCLCPP_WARN(get_logger(), "disarmed, cmd_vel will be ignored");
+        }
+
         cmd_vel_ = *msg;
+      });
+
+    teleop_sub_ = create_subscription<orca_msgs::msg::Teleop>(
+      "teleop", QUEUE_SIZE,
+      [this](orca_msgs::msg::Teleop::ConstSharedPtr msg) // NOLINT
+      {
+        if (armed_ != msg->armed) {
+          RCLCPP_INFO(get_logger(), "armed: %s", msg->armed ? "true" : "false");
+        }
+        if (cxt_.hover_thrust_ != msg->hover_thrust) {
+          RCLCPP_INFO(get_logger(), "hover_thrust: %s", msg->hover_thrust ? "true" : "false");
+        }
+        if (cxt_.pid_enabled_ != msg->pid_enabled) {
+          RCLCPP_INFO(get_logger(), "pid_enabled: %s", msg->pid_enabled ? "true" : "false");
+        }
+
+        armed_ = msg->armed;
+        cxt_.hover_thrust_ = msg->hover_thrust;
+        cxt_.pid_enabled_ = msg->pid_enabled;
+
+        if (!armed_) {
+          // The motion model doesn't track motion while disarmed
+          underwater_motion_ = nullptr;
+        }
       });
 
     RCLCPP_INFO(get_logger(), "base_controller ready");

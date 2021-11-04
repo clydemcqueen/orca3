@@ -20,54 +20,44 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef ORCA_TOPSIDE__IMAGE_PUBLISHER_HPP_
-#define ORCA_TOPSIDE__IMAGE_PUBLISHER_HPP_
+#ifndef ORCA_TOPSIDE__IMAGE_WIDGET_HPP_
+#define ORCA_TOPSIDE__IMAGE_WIDGET_HPP_
 
-#include <atomic>
-#include <memory>
 #include <thread>
 
-extern "C" {
-#include "gst/gst.h"
-#include "gst/app/gstappsink.h"
-}
+#include <QWidget>
 
-#include "camera_info_manager/camera_info_manager.hpp"
-#include "h264_msgs/msg/packet.hpp"
+#include "orca_topside/fps_calculator.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/image.hpp"
 
 namespace orca_topside
 {
 
 class TeleopNode;
 
-// Poll a gstreamer appsink element for H264 data, and publish a ROS message
-class ImagePublisher
+// Draw ROS images in a Qt widget
+class ImageWidget : public QWidget
 {
-  std::string topic_;
-  TeleopNode *node_;
-  sensor_msgs::msg::CameraInfo cam_info_;
-  rclcpp::Publisher<h264_msgs::msg::Packet>::SharedPtr h264_pub_;
-  rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_pub_;
-  GstElement *pipeline_;
-  GstElement *sink_;
-
-  // Poll GStreamer on a separate thread
-  std::thread pipeline_thread_;
-  std::atomic<bool> stop_signal_;
-
-  // Sequence number
-  int seq_;
-
-  void process_sample();
+Q_OBJECT
 
 public:
-  ImagePublisher(std::string topic, const std::string & cam_name, const std::string & cam_info_url,
-    TeleopNode *node, bool sync, GstElement *pipeline, GstElement *upstream);
+  ImageWidget(std::shared_ptr<TeleopNode> node, std::string topic, QWidget *parent = nullptr);
+  int fps() const { return fps_calculator_.fps(); }
 
-  ~ImagePublisher();
+protected:
+  void showEvent(QShowEvent *) override;
+  void hideEvent(QHideEvent *) override;
+  void paintEvent(QPaintEvent *) override;
+
+private:
+  std::shared_ptr<TeleopNode> node_;
+  std::string topic_;
+  rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
+  QImage *image_;
+  FPSCalculator fps_calculator_;
 };
 
 }  // namespace orca_topside
 
-#endif  // ORCA_TOPSIDE__IMAGE_PUBLISHER_HPP_
+#endif  // ORCA_TOPSIDE__IMAGE_WIDGET_HPP_

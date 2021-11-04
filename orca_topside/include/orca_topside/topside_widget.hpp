@@ -24,22 +24,35 @@
 #define ORCA_TOPSIDE__TOPSIDE_WIDGET_HPP_
 
 #include <QBoxLayout>
+#include <QLabel>
 #include <QWidget>
 
+#include "orca_topside/gst_widget.hpp"
+#include "orca_topside/image_widget.hpp"
 #include "orca_topside/video_pipeline.hpp"
-
-QT_BEGIN_NAMESPACE
-
-class QLabel;
-
-QT_END_NAMESPACE
+#include "orb_slam2_ros/msg/status.hpp"
 
 namespace orca_topside
 {
 
+// A label that shows framerate and recording status
+class ImageLabel : public QLabel
+{
+Q_OBJECT
+
+public:
+  explicit ImageLabel(std::string prefix);
+  void set_info(int fps, bool recording);
+  void set_info(const std::shared_ptr<VideoPipeline> & pipeline);
+
+private:
+  std::string prefix_;
+};
+
 class TeleopNode;
 class TopsideLayout;
 
+// Main window
 class TopsideWidget : public QWidget
 {
 Q_OBJECT
@@ -55,19 +68,16 @@ public:
   void set_depth(double target, double actual);
   void set_lights(int lights);
   void set_status(uint32_t status, double voltage);
+  void set_slam();
+  void set_slam(const orb_slam2_ros::msg::Status & msg);
   void set_trim_x(double v);
   void set_trim_y(double v);
   void set_trim_z(double v);
   void set_trim_yaw(double v);
 
-  static void update_pipeline(const std::shared_ptr<VideoPipeline> & pipeline, QLabel *label,
-    const char *prefix);
-
-  void update_pipeline_f() { update_pipeline(video_pipeline_f_, pipeline_f_label_, "F"); }
-
-  void update_pipeline_l() { update_pipeline(video_pipeline_l_, pipeline_l_label_, "L"); }
-
-  void update_pipeline_r() { update_pipeline(video_pipeline_r_, pipeline_r_label_, "R"); }
+  void update_fcam_label_();
+  void update_lcam_label_();
+  void update_rcam_label_();
 
 protected:
   void closeEvent(QCloseEvent *event) override;
@@ -77,27 +87,29 @@ private slots:
   void update_fps();
 
 private:
+  void set_main_widget(QWidget *widget);
+
   std::shared_ptr<TeleopNode> node_;
-  std::shared_ptr<VideoPipeline> video_pipeline_f_;
-  std::shared_ptr<VideoPipeline> video_pipeline_l_;
-  std::shared_ptr<VideoPipeline> video_pipeline_r_;
-  GstWidget *gst_widget_f_;
-  GstWidget *gst_widget_l_;
-  GstWidget *gst_widget_r_;
-  TopsideLayout *cam_layout_;
-  QLabel *armed_label_;
-  QLabel *hold_label_;
-  QLabel *depth_label_;
-  QLabel *lights_label_;
-  QLabel *pipeline_f_label_;
-  QLabel *pipeline_l_label_;
-  QLabel *pipeline_r_label_;
-  QLabel *status_label_;
-  QLabel *tilt_label_;
-  QLabel *trim_x_label_;
-  QLabel *trim_y_label_;
-  QLabel *trim_z_label_;
-  QLabel *trim_yaw_label_;
+  GstWidget *fcam_widget_{};
+  GstWidget *lcam_widget_{};
+  GstWidget *rcam_widget_{};
+  ImageWidget *slam_image_widget_{};
+  TopsideLayout *cam_layout_{};
+  QLabel *armed_label_{};
+  QLabel *hold_label_{};
+  QLabel *depth_label_{};
+  QLabel *lights_label_{};
+  ImageLabel *fcam_label_{};
+  ImageLabel *lcam_label_{};
+  ImageLabel *rcam_label_{};
+  ImageLabel *slam_image_label_{};
+  QLabel *status_label_{};
+  QLabel *slam_label_{};
+  QLabel *tilt_label_{};
+  QLabel *trim_x_label_{};
+  QLabel *trim_y_label_{};
+  QLabel *trim_z_label_{};
+  QLabel *trim_yaw_label_{};
 };
 
 }  // namespace orca_topside

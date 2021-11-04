@@ -22,10 +22,6 @@
 
 #include "orca_topside/video_pipeline.hpp"
 
-#include <QTimer>
-#include <iostream>
-#include <utility>
-
 #include "orca_topside/gst_widget.hpp"
 #include "orca_topside/image_publisher.hpp"
 #include "orca_topside/teleop_node.hpp"
@@ -33,38 +29,13 @@
 namespace orca_topside
 {
 
-// Caller must lock the mutex before calling
-void VideoPipeline::FPSCalculator::pop_old_impl(const rclcpp::Time & stamp)
-{
-  while (!stamps_.empty() && stamp - stamps_.front() > rclcpp::Duration(1, 0)) {
-    stamps_.pop();
-  }
-}
-
-void VideoPipeline::FPSCalculator::push_new(const rclcpp::Time & stamp)
-{
-  std::lock_guard<std::mutex> lock(mutex_);
-  stamps_.push(stamp);
-  pop_old_impl(stamp);
-}
-
-void VideoPipeline::FPSCalculator::pop_old(const rclcpp::Time & stamp)
-{
-  std::lock_guard<std::mutex> lock(mutex_);
-  pop_old_impl(stamp);
-}
-
-int VideoPipeline::FPSCalculator::fps() const
-{
-  std::lock_guard<std::mutex> lock(mutex_);
-  return (int) stamps_.size();
-}
-
-VideoPipeline::VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node,
+VideoPipeline::VideoPipeline(std::string topic, std::string camera_name, std::string camera_info_url, TeleopNode *node,
   std::string gst_source_bin, std::string gst_display_bin, std::string gst_record_bin, bool sync):
-  topic_(std::move(name)),
+  topic_(std::move(topic)),
+  camera_name_(std::move(camera_name)),
+  camera_info_url_(std::move(camera_info_url)),
   fix_pts_(false),
-  node_(std::move(node)),
+  node_(node),
   gst_source_bin_(std::move(gst_source_bin)),
   gst_display_bin_(std::move(gst_display_bin)),
   gst_record_bin_(std::move(gst_record_bin)),
@@ -185,10 +156,6 @@ VideoPipeline::VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node,
     return;
   }
 
-  auto timer = new QTimer(this);
-  connect(timer, &QTimer::timeout, this, QOverload<>::of(&VideoPipeline::spin));
-  timer->start(20);
-
 #if defined(GST_TOOLS) && defined(RUN_GST_TOOLS)
   (void) main_loop_thread_;
   (void) message_watcher_;
@@ -272,37 +239,6 @@ GstWidget *VideoPipeline::start_display()
 
   RCLCPP_INFO(node_->get_logger(), "%s display started", topic_.c_str());
   return widget_;
-}
-
-void VideoPipeline::stop_display()
-{
-  if (!initialized_) {
-    g_critical("%s not initialized", topic_.c_str());
-    return;
-  }
-
-  delete widget_;
-  widget_ = nullptr;
-
-  if (gst_element_set_state(pipeline_, GST_STATE_PAUSED) == GST_STATE_CHANGE_FAILURE) {
-    g_critical("%s pause failed", topic_.c_str());
-  }
-
-  g_object_set(display_valve_, "drop", TRUE, nullptr);
-
-  gst_element_unlink(display_bin_, display_sink_);
-  gst_object_unref(display_sink_);
-  display_sink_ = nullptr;
-
-  gst_element_unlink(display_valve_, display_bin_);
-  gst_object_unref(display_bin_);
-  display_bin_ = nullptr;
-
-  if (gst_element_set_state(pipeline_, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) {
-    g_critical("%s play failed", topic_.c_str());
-  }
-
-  RCLCPP_INFO(node_->get_logger(), "%s display stopped", topic_.c_str());
 }
 
 // Public API: call this to turn recording on/off
@@ -432,23 +368,12 @@ void VideoPipeline::unlink_and_send_eos(GstElement *segment)
 void VideoPipeline::start_publishing()
 {
   if (!publishing()) {
-    publish_sink_ = std::make_shared<ImagePublisher>(topic_, node_, sync_, pipeline_, publish_valve_);
+    publish_sink_ = std::make_shared<ImagePublisher>(topic_, camera_name_, camera_info_url_,
+      node_, sync_, pipeline_, publish_valve_);
     g_object_set(publish_valve_, "drop", FALSE, nullptr);
 
 #if defined(GST_TOOLS) && defined(RUN_GST_TOOLS)
     graph_writer_->write("graph_publishing_on", 3);
-#endif
-  }
-}
-
-void VideoPipeline::stop_publishing()
-{
-  if (!publishing()) {
-    g_object_set(publish_valve_, "drop", TRUE, nullptr);
-    publish_sink_ = nullptr;
-
-#if defined(GST_TOOLS) && defined(RUN_GST_TOOLS)
-    graph_writer_->write("graph_publishing_off", 3);
 #endif
   }
 }

@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
   rclcpp::init(argc, argv);
   auto node = std::make_shared<orca_topside::TeleopNode>();
 
-  if (node->show_window()) {
+  if (node->cxt().show_window_) {
     // Display, keyboard and joystick input
     QApplication app(argc, argv);
     QCoreApplication::setApplicationName("Orca Topside Control");

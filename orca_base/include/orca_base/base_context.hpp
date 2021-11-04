@@ -31,7 +31,6 @@ namespace orca_base
 {
 
 #define BASE_PARAMS \
-  CXT_MACRO_MEMBER(auto_arm, bool, false) \
   CXT_MACRO_MEMBER(stamp_msgs_with_current_time, bool, false) \
  \
   CXT_MACRO_MEMBER(x_vel, double, 0.4) \
@@ -54,15 +53,11 @@ namespace orca_base
   /* Limit fwd/strafe motion, leave room for yaw  */ \
   CXT_MACRO_MEMBER(thruster_accel_limit, double, 1.0) \
   /* Limit thruster acceleration, measured in effort units  */ \
-  CXT_MACRO_MEMBER(pid_enabled, bool, true) \
-  /* Turn pid controllers on/off  */ \
   CXT_MACRO_MEMBER(pid_z_kp, double, 0.5) \
   CXT_MACRO_MEMBER(pid_z_ki, double, 0.0) \
   CXT_MACRO_MEMBER(pid_z_kd, double, 0.0) \
   CXT_MACRO_MEMBER(pid_z_i_max, double, 0.1) \
   /* Windup prevention: max acceleration from i term (m/s^2)  */ \
-  CXT_MACRO_MEMBER(hover_thrust, bool, true) \
-  /* Add hover thrust */ \
   CXT_MACRO_MEMBER(coast, bool, false) \
   /* Coast to decelerate (vs powered decel), useful for ROV ops */ \
 /* End of list */
@@ -73,6 +68,10 @@ namespace orca_base
 struct BaseContext : orca::Model
 {
   CXT_MACRO_DEFINE_MEMBERS(BASE_PARAMS)
+
+  // Not parameters -- set from Teleop.msg
+  bool hover_thrust_{};   // Add hover thrust
+  bool pid_enabled_{};    // Enable pid controller(s)
 };
 
 #define BASE_ALL_PARAMS \

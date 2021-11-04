@@ -71,6 +71,17 @@ void TeleopNode::validate_parameters()
       tilt_current_ -= 1;
       publish_tilt();
     }
+
+    // Update fps calculators
+    if (fcam_pipeline_) {
+      fcam_pipeline_->spin();
+    }
+    if (lcam_pipeline_) {
+      lcam_pipeline_->spin();
+    }
+    if (rcam_pipeline_) {
+      rcam_pipeline_->spin();
+    }
   });
 }
 
@@ -98,13 +109,34 @@ void TeleopNode::init_parameters()
   CXT_MACRO_CHECK_CMDLINE_PARAMETERS((*this), TOPSIDE_PARAMS)
 }
 
-void TeleopNode::publish_armed()
+void TeleopNode::start_video()
 {
-  RCLCPP_INFO(get_logger(), "armed %d", armed_);
-  orca_msgs::msg::Armed msg;
-  msg.header.stamp = now();
-  msg.armed = armed_;
-  armed_pub_->publish(msg);
+  if (cxt_.fcam_) {
+    fcam_pipeline_ = std::make_shared<VideoPipeline>(cxt_.ftopic_, cxt_.fcam_name_, cxt_.fcam_url_,
+      this, cxt_.fcam_gst_source_, cxt_.fcam_gst_display_, cxt_.fcam_gst_record_, cxt_.fcam_sync_);
+
+    if (cxt_.publish_h264_) {
+      fcam_pipeline_->start_publishing();
+    }
+  }
+
+  if (cxt_.lcam_) {
+    lcam_pipeline_ = std::make_shared<VideoPipeline>(cxt_.ltopic_, cxt_.lcam_name_, cxt_.lcam_url_,
+      this, cxt_.lcam_gst_source_, cxt_.lcam_gst_display_, cxt_.lcam_gst_record_, cxt_.lcam_sync_);
+
+    if (cxt_.publish_h264_) {
+      lcam_pipeline_->start_publishing();
+    }
+  }
+
+  if (cxt_.rcam_) {
+    rcam_pipeline_ = std::make_shared<VideoPipeline>(cxt_.rtopic_, cxt_.rcam_name_, cxt_.rcam_url_,
+      this, cxt_.rcam_gst_source_, cxt_.rcam_gst_display_, cxt_.rcam_gst_record_, cxt_.rcam_sync_);
+
+    if (cxt_.publish_h264_) {
+      rcam_pipeline_->start_publishing();
+    }
+  }
 }
 
 void TeleopNode::publish_tilt()
@@ -134,19 +166,17 @@ void TeleopNode::publish_lights()
   lights_pub_->publish(msg);
 }
 
-void TeleopNode::publish_packet(std::string topic, const h264_msgs::msg::Packet &packet)
+void TeleopNode::publish_teleop()
 {
-  if (topic == cxt_.ftopic_) {
-    forward_pub_->publish(packet);
-  } else if (topic == cxt_.ltopic_) {
-    left_pub_->publish(packet);
-  } else if (topic == cxt_.rtopic_) {
-    right_pub_->publish(packet);
-  } else {
-    RCLCPP_ERROR(get_logger(), "bad topic name %s", topic.c_str());
-  }
+  orca_msgs::msg::Teleop msg;
+  msg.header.stamp = now();
+  msg.armed = armed_;
+  msg.hover_thrust = hold_;
+  msg.pid_enabled = hold_;
+  teleop_pub_->publish(msg);
 }
 
+#if 0
 bool TeleopNode::set_base_controller_param(const std::string & param, bool value)
 {
   if (!base_controller_client_) {
@@ -180,6 +210,7 @@ bool TeleopNode::set_base_controller_param(const std::string & param, bool value
     return false;
   }
 }
+#endif
 
 TeleopNode::TeleopNode()
   : Node("topside_controller")
@@ -187,19 +218,18 @@ TeleopNode::TeleopNode()
   (void) depth_sub_;
   (void) joy_sub_;
   (void) motion_sub_;
+  (void) slam_sub_;
   (void) status_sub_;
   (void) spin_timer_;
 
   init_parameters();
 
-  armed_pub_ = create_publisher<orca_msgs::msg::Armed>("armed", 10);
+  start_video();
+
   camera_tilt_pub_ = create_publisher<orca_msgs::msg::CameraTilt>("camera_tilt", 10);
   cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
   lights_pub_ = create_publisher<orca_msgs::msg::Lights>("lights", 10);
-
-  forward_pub_ = create_publisher<h264_msgs::msg::Packet>(cxt_.ftopic_ + "/image_raw/h264", 10);
-  left_pub_ = create_publisher<h264_msgs::msg::Packet>(cxt_.ltopic_ + "/image_raw/h264", 10);
-  right_pub_ = create_publisher<h264_msgs::msg::Packet>(cxt_.rtopic_ + "/image_raw/h264", 10);
+  teleop_pub_ = create_publisher<orca_msgs::msg::Teleop>("teleop", 10);
 
   depth_sub_ = create_subscription<orca_msgs::msg::Depth>("depth", 10,
     [this](orca_msgs::msg::Depth::ConstSharedPtr msg)
@@ -286,6 +316,16 @@ TeleopNode::TeleopNode()
       motion_msg_ = *msg;
     });
 
+  if (cxt_.show_slam_status_) {
+    slam_sub_ = create_subscription<orb_slam2_ros::msg::Status>("slam", 10,
+      [this](orb_slam2_ros::msg::Status::ConstSharedPtr msg)
+      {
+        if (view_) {
+          view_->set_slam(*msg);
+        }
+      });
+  }
+
   status_sub_ = create_subscription<orca_msgs::msg::Status>("status", 10,
     [this](orca_msgs::msg::Status::ConstSharedPtr msg)
     {
@@ -314,7 +354,7 @@ void TeleopNode::arm()
 {
   if (orca::status_ok(status_msg_.status)) {
     armed_ = true;
-    publish_armed();
+    publish_teleop();
     if (view_) {
       view_->set_armed(armed_);
     }
@@ -328,7 +368,7 @@ void TeleopNode::disarm()
   stop();
   set_hold(false);
   armed_ = false;
-  publish_armed();
+  publish_teleop();
   if (view_) {
     view_->set_armed(armed_);
   }
@@ -350,9 +390,8 @@ void TeleopNode::set_hold(bool enable)
 {
   if (hold_ != enable) {
     hold_ = enable;
-    if (set_base_controller_param("hover_thrust", enable) &&
-      set_base_controller_param("pid_enabled", enable) &&
-      view_) {
+    publish_teleop();
+    if (view_) {
       view_->set_hold(enable);
     }
   }

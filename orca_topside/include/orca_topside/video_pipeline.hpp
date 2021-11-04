@@ -23,10 +23,6 @@
 #ifndef ORCA_TOPSIDE__VIDEO_PIPELINE_HPP_
 #define ORCA_TOPSIDE__VIDEO_PIPELINE_HPP_
 
-#include <memory>
-#include <mutex>
-#include <queue>
-
 extern "C" {
 #include "gst/gst.h"
 }
@@ -42,8 +38,8 @@ extern "C" {
 
 #endif
 
+#include "orca_topside/fps_calculator.hpp"
 #include "rclcpp/time.hpp"
-#include <QObject>
 
 // Build a video pipeline that can display, record and/or publish ROS messages:
 //
@@ -52,7 +48,6 @@ extern "C" {
 //                      +----> queue --> valve [ --> multiplexer --> file sink ]
 //                      |
 //                      +----> queue --> valve [ --> ROS H264 publisher ]
-//
 
 namespace orca_topside
 {
@@ -63,33 +58,19 @@ class ImagePublisher;
 
 class TeleopNode;
 
-class VideoPipeline : public QObject
+class VideoPipeline
 {
-  Q_OBJECT
-
   enum class RecordStatus
   {
     running, waiting_for_eos, got_eos, stopped
   };
 
-  // Multi-threaded, e.g., gstreamer pad callback calls push, Qt UI thread calls pop
-  class FPSCalculator
-  {
-    std::queue<rclcpp::Time> stamps_;
-    mutable std::mutex mutex_;
-
-    void pop_old_impl(const rclcpp::Time & stamp);
-
-  public:
-    void push_new(const rclcpp::Time & stamp);
-    void pop_old(const rclcpp::Time & stamp);
-    int fps() const;
-  };
-
-  std::string topic_;  // Image topic
+  std::string topic_;
+  std::string camera_name_;
+  std::string camera_info_url_;
   bool fix_pts_;  // True if we're copying dts -> pts
   FPSCalculator fps_calculator_;
-  std::shared_ptr<TeleopNode> node_;
+  TeleopNode *node_;
   std::string gst_source_bin_;
   std::string gst_display_bin_;
   std::string gst_record_bin_;
@@ -132,12 +113,12 @@ class VideoPipeline : public QObject
   static GstPadProbeReturn on_tee_buffer(GstPad *, GstPadProbeInfo *info, gpointer data);
   static void handle_eos(gpointer data);
 
-private slots:
-  void spin();
-
 public:
-  VideoPipeline(std::string name, std::shared_ptr<TeleopNode> node, std::string gst_source_bin,
-    std::string gst_display_bin, std::string gst_record_bin, bool sync);
+  VideoPipeline(std::string topic, std::string camera_name, std::string camera_info_url, TeleopNode *node,
+    std::string gst_source_bin, std::string gst_display_bin, std::string gst_record_bin, bool sync);
+
+  // Periodic cleanup tasks
+  void spin();
 
   int fps() const { return fps_calculator_.fps(); }
 
@@ -145,8 +126,6 @@ public:
   // Caller should add the widget to an application
   // VideoPipeline maintains ownership of the widget
   GstWidget *start_display();
-  void stop_display();
-  bool displaying() const { return widget_; }
 
   // Record mp4 files
   void toggle_record();
@@ -154,7 +133,6 @@ public:
 
   // Publish h264 messages
   void start_publishing();
-  void stop_publishing();
   bool publishing() const { return publish_sink_.get(); }
 };
 

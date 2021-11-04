@@ -46,16 +46,25 @@ GstWidget::GstWidget(GstElement *sink, QWidget *parent):
 void GstWidget::process_sample()
 {
   // Poll for a sample, briefly block (timeout is in nanoseconds)
+  // If polling stops the pipeline will OOM. I'm not entirely sure why; the docs suggest that
+  // queues will start blocking at 1s worth of data, so perhaps it's somewhere else in the
+  // pipeline? For now, poll even when the window is hidden.
+  // TODO set queue.leaky = 2 (downstream) on all queues
   GstSample *sample = gst_app_sink_try_pull_sample(GST_APP_SINK(sink_), 1000);
 
   if (!sample) {
     return;
   }
 
+  if (isHidden()) {
+    gst_sample_unref(sample);
+    return;
+  }
+
   GstBuffer *buffer = gst_sample_get_buffer(sample);
 
   if (!buffer) {
-    g_print("unexpected EOS\n");
+    g_critical("unexpected missing buffer\n");
     gst_sample_unref(sample);
     return;
   }
@@ -67,12 +76,6 @@ void GstWidget::process_sample()
   gst_memory_map(memory, &info, GST_MAP_READ);
   gsize & buffer_size = info.size;
   guint8 *& buf_data = info.data;
-
-  // Sanity check: make sure that the buffer is the expected size.
-  if (buffer_size != expected_size_) {
-    g_print("image buffer over/underflow, expected %ld but got %ld; caps must be video/x-raw format=RGB\n",
-      expected_size_, buffer_size);
-  }
 
   // Bootstrap: create QImage
   if (!image_) {
@@ -86,6 +89,12 @@ void GstWidget::process_sample()
     expected_size_ = width * height * 3;
 
     image_ = new QImage(width, height, QImage::Format_RGB888);
+  }
+
+  // Sanity check: make sure that the buffer is the expected size.
+  if (buffer_size != expected_size_) {
+    g_print("image buffer over/underflow, expected %ld but got %ld; caps must be video/x-raw format=RGB\n",
+      expected_size_, buffer_size);
   }
 
   // Copy data from gstreamer memory segment to Qt image

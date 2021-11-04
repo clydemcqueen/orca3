@@ -20,54 +20,32 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef ORCA_TOPSIDE__IMAGE_PUBLISHER_HPP_
-#define ORCA_TOPSIDE__IMAGE_PUBLISHER_HPP_
+#ifndef ORCA_TOPSIDE__FPS_CALCULATOR_HPP_
+#define ORCA_TOPSIDE__FPS_CALCULATOR_HPP_
 
-#include <atomic>
-#include <memory>
-#include <thread>
+#include <mutex>
+#include <queue>
 
-extern "C" {
-#include "gst/gst.h"
-#include "gst/app/gstappsink.h"
-}
-
-#include "camera_info_manager/camera_info_manager.hpp"
-#include "h264_msgs/msg/packet.hpp"
-#include "rclcpp/rclcpp.hpp"
+#include "rclcpp/time.hpp"
 
 namespace orca_topside
 {
 
-class TeleopNode;
-
-// Poll a gstreamer appsink element for H264 data, and publish a ROS message
-class ImagePublisher
+// Multi-threaded framerate calculator
+// GStreamer pad callback calls push, Qt UI thread (shared with ROS thread) calls pop
+class FPSCalculator
 {
-  std::string topic_;
-  TeleopNode *node_;
-  sensor_msgs::msg::CameraInfo cam_info_;
-  rclcpp::Publisher<h264_msgs::msg::Packet>::SharedPtr h264_pub_;
-  rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_pub_;
-  GstElement *pipeline_;
-  GstElement *sink_;
+  std::queue<rclcpp::Time> stamps_;
+  mutable std::mutex mutex_;
 
-  // Poll GStreamer on a separate thread
-  std::thread pipeline_thread_;
-  std::atomic<bool> stop_signal_;
-
-  // Sequence number
-  int seq_;
-
-  void process_sample();
+  void pop_old_impl(const rclcpp::Time & stamp);
 
 public:
-  ImagePublisher(std::string topic, const std::string & cam_name, const std::string & cam_info_url,
-    TeleopNode *node, bool sync, GstElement *pipeline, GstElement *upstream);
-
-  ~ImagePublisher();
+  void push_new(const rclcpp::Time & stamp);
+  void pop_old(const rclcpp::Time & stamp);
+  int fps() const;
 };
 
 }  // namespace orca_topside
 
-#endif  // ORCA_TOPSIDE__IMAGE_PUBLISHER_HPP_
+#endif  // ORCA_TOPSIDE__FPS_CALCULATOR_HPP_

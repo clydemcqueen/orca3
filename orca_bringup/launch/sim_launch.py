@@ -105,6 +105,50 @@ def generate_launch_description():
             default_value='True',
             description='Launch rviz?'),
 
+        DeclareLaunchArgument(
+            'bag',
+            default_value='False',
+            description='Bag interesting topics?',
+        ),
+
+        # Bag useful topics
+        ExecuteProcess(
+            cmd=[
+                'ros2', 'bag', 'record',
+                '/barometer',
+                '/camera_tilt',
+                '/cmd_vel',
+                '/depth',
+                '/fiducial_markers',
+                '/fiducial_observations',
+                '/filtered_barometer',
+                '/forward_camera/camera_pose',
+                '/forward_camera/image_raw/h264',
+                '/joint_states',
+                '/joy',
+                '/lights',
+                '/motion',
+                '/odom',
+                '/orb_slam2_stereo_node/pose',
+                '/orb_slam2_stereo_node/status',
+                '/parameter_events',
+                '/pid_z',
+                '/robot_description',
+                '/rosout',
+                '/status',
+                '/stereo/left/image_raw/h264',
+                '/stereo/left/camera_info',
+                '/stereo/right/image_raw/h264',
+                '/stereo/right/camera_info',
+                '/teleop',
+                '/tf',
+                '/tf_static',
+                '/thrust',
+            ],
+            output='screen',
+            condition=IfCondition(LaunchConfiguration('bag')),
+        ),
+
         # Launch gzserver
         ExecuteProcess(
             cmd=['gzserver',
