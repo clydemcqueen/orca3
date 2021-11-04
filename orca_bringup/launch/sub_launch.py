@@ -63,5 +63,9 @@ def generate_launch_description():
             output='screen',
             name='driver_node',
             parameters=[driver_node_params],
+            remappings=[
+                # Remap the thrust topic on the bench to avoid accidents
+                # ('thrust', 'no_thrust'),
+            ],
         ),
     ])

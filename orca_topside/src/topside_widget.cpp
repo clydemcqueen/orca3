@@ -121,7 +121,8 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
   if (node_->cxt().show_slam_status_) {
     slam_label_ = new QLabel;
     slam_label_->setAlignment(Qt::AlignCenter);
-    slam_label_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
+    slam_label_->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Maximum);
+    slam_label_->setFixedWidth(500);
     set_slam();
     sensor_bar->addWidget(slam_label_);
   }
