@@ -36,6 +36,8 @@ jobs:
     steps:
       - name: setup directories
         run: mkdir -p ros_ws/src
+      - name: install transformations.py
+        run: pip3 install transformations
       - name: checkout
         uses: actions/checkout@v2
         with:
