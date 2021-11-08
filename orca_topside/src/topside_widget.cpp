@@ -23,7 +23,10 @@
 #include "orca_topside/topside_widget.hpp"
 
 #include <QtWidgets>
+
 #include <iostream>
+#include <memory>
+#include <string>
 #include <utility>
 
 #include "orca_topside/gst_widget.hpp"
@@ -134,7 +137,8 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
     sensor_bar->addWidget(fcam_label_);
 
     fcam_widget_ = node_->fcam_pipeline()->start_display();
-    cam_layout_->addWidget(fcam_widget_, node_->cxt().fcam_w_, node_->cxt().fcam_h_, Qt::AlignRight | Qt::AlignBottom);
+    cam_layout_->addWidget(fcam_widget_, node_->cxt().fcam_w_,
+      node_->cxt().fcam_h_, Qt::AlignRight | Qt::AlignBottom);
   }
 
   if (node_->cxt().lcam_) {
@@ -144,7 +148,8 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
     sensor_bar->addWidget(lcam_label_);
 
     lcam_widget_ = node_->lcam_pipeline()->start_display();
-    cam_layout_->addWidget(lcam_widget_, node_->cxt().lcam_w_, node_->cxt().lcam_h_, Qt::AlignLeft | Qt::AlignTop);
+    cam_layout_->addWidget(lcam_widget_, node_->cxt().lcam_w_,
+      node_->cxt().lcam_h_, Qt::AlignLeft | Qt::AlignTop);
   }
 
   if (node_->cxt().rcam_) {
@@ -154,7 +159,8 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
     sensor_bar->addWidget(rcam_label_);
 
     rcam_widget_ = node_->rcam_pipeline()->start_display();
-    cam_layout_->addWidget(rcam_widget_, node_->cxt().rcam_w_, node_->cxt().rcam_h_, Qt::AlignRight | Qt::AlignTop);
+    cam_layout_->addWidget(rcam_widget_, node_->cxt().rcam_w_,
+      node_->cxt().rcam_h_, Qt::AlignRight | Qt::AlignTop);
   }
 
   if (node_->cxt().show_slam_debug_image_) {
@@ -164,7 +170,8 @@ TopsideWidget::TopsideWidget(std::shared_ptr<orca_topside::TeleopNode> node,
     sensor_bar->addWidget(slam_image_label_);
 
     slam_image_widget_ = new ImageWidget(node_, "debug_image");
-    cam_layout_->addWidget(slam_image_widget_, node_->cxt().slam_debug_image_w_, node_->cxt().slam_debug_image_h_, Qt::AlignLeft | Qt::AlignBottom);
+    cam_layout_->addWidget(slam_image_widget_, node_->cxt().slam_debug_image_w_,
+      node_->cxt().slam_debug_image_h_, Qt::AlignLeft | Qt::AlignBottom);
   }
 
   control_bar->addWidget(armed_label_);
@@ -310,7 +317,10 @@ void TopsideWidget::set_slam(const orb_slam2_ros::msg::Status & msg)
       } else {
         message = "SLAM ";
       }
-      message = message.append("KF %1 MP %2 Match %3").arg(msg.keyframes).arg(msg.map_points).arg(msg.tracked);
+      message = message.append("KF %1 MP %2 Match %3")
+        .arg(msg.keyframes)
+        .arg(msg.map_points)
+        .arg(msg.tracked);
       if (msg.tracked_vo) {
         message = message.append(" VO %s").arg(msg.tracked_vo);
       }

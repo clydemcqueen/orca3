@@ -49,7 +49,7 @@ void FPSCalculator::pop_old(const rclcpp::Time & stamp)
 int FPSCalculator::fps() const
 {
   std::lock_guard<std::mutex> lock(mutex_);
-  return (int) stamps_.size();
+  return static_cast<int>(stamps_.size());
 }
 
 }  // namespace orca_topside

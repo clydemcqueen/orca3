@@ -27,6 +27,9 @@
 #include <QLabel>
 #include <QWidget>
 
+#include <memory>
+#include <string>
+
 #include "orca_topside/gst_widget.hpp"
 #include "orca_topside/image_widget.hpp"
 #include "orca_topside/video_pipeline.hpp"

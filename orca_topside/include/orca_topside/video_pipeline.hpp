@@ -23,6 +23,9 @@
 #ifndef ORCA_TOPSIDE__VIDEO_PIPELINE_HPP_
 #define ORCA_TOPSIDE__VIDEO_PIPELINE_HPP_
 
+#include <memory>
+#include <string>
+
 extern "C" {
 #include "gst/gst.h"
 }
@@ -114,8 +117,9 @@ class VideoPipeline
   static void handle_eos(gpointer data);
 
 public:
-  VideoPipeline(std::string topic, std::string camera_name, std::string camera_info_url, TeleopNode *node,
-    std::string gst_source_bin, std::string gst_display_bin, std::string gst_record_bin, bool sync);
+  VideoPipeline(std::string topic, std::string camera_name, std::string camera_info_url,
+    TeleopNode *node, std::string gst_source_bin, std::string gst_display_bin,
+    std::string gst_record_bin, bool sync);
 
   // Periodic cleanup tasks
   void spin();

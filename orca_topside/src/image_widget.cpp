@@ -23,6 +23,9 @@
 #include "orca_topside/image_widget.hpp"
 
 #include <QtWidgets>
+
+#include <memory>
+#include <string>
 #include <utility>
 
 #include "cv_bridge/cv_bridge.h"
@@ -40,8 +43,10 @@ ImageWidget::ImageWidget(std::shared_ptr<TeleopNode> node, std::string  topic, Q
   (void) image_sub_;
 }
 
-void ImageWidget::showEvent(QShowEvent *)
+void ImageWidget::showEvent(QShowEvent *event)
 {
+  (void) event;
+
   image_sub_ = node_->create_subscription<sensor_msgs::msg::Image>(topic_, 10,
     [this](sensor_msgs::msg::Image::ConstSharedPtr msg) // NOLINT
     {
@@ -54,7 +59,8 @@ void ImageWidget::showEvent(QShowEvent *)
       // green on a mono image, so Format_RGB888 will work just as well.
       if (!image_) {
         RCLCPP_INFO(node_->get_logger(), "%s width %d, height %d", topic_.c_str(), msg->width, msg->height); // NOLINT
-        image_ = new QImage((int)msg->width, (int)msg->height, QImage::Format_RGB888);
+        image_ = new QImage(static_cast<int>(msg->width), static_cast<int>(msg->height),
+          QImage::Format_RGB888);
       }
 
       // Copy data from gstreamer memory segment to Qt image
@@ -67,13 +73,17 @@ void ImageWidget::showEvent(QShowEvent *)
     });
 }
 
-void ImageWidget::hideEvent(QHideEvent *)
+void ImageWidget::hideEvent(QHideEvent *event)
 {
+  (void) event;
+
   image_sub_ = nullptr;
 }
 
-void ImageWidget::paintEvent(QPaintEvent *)
+void ImageWidget::paintEvent(QPaintEvent *event)
 {
+  (void) event;
+
   QRect target(QPoint(0, 0), size());
   QPainter painter(this);
 

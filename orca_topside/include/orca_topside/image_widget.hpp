@@ -23,9 +23,11 @@
 #ifndef ORCA_TOPSIDE__IMAGE_WIDGET_HPP_
 #define ORCA_TOPSIDE__IMAGE_WIDGET_HPP_
 
-#include <thread>
-
 #include <QWidget>
+
+#include <memory>
+#include <string>
+#include <thread>
 
 #include "orca_topside/fps_calculator.hpp"
 #include "rclcpp/rclcpp.hpp"

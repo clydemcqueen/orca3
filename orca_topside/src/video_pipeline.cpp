@@ -22,6 +22,10 @@
 
 #include "orca_topside/video_pipeline.hpp"
 
+#include <memory>
+#include <string>
+#include <utility>
+
 #include "orca_topside/gst_widget.hpp"
 #include "orca_topside/image_publisher.hpp"
 #include "orca_topside/teleop_node.hpp"
@@ -29,8 +33,9 @@
 namespace orca_topside
 {
 
-VideoPipeline::VideoPipeline(std::string topic, std::string camera_name, std::string camera_info_url, TeleopNode *node,
-  std::string gst_source_bin, std::string gst_display_bin, std::string gst_record_bin, bool sync):
+VideoPipeline::VideoPipeline(std::string topic, std::string camera_name,
+  std::string camera_info_url, TeleopNode *node, std::string gst_source_bin,
+  std::string gst_display_bin, std::string gst_record_bin, bool sync):
   topic_(std::move(topic)),
   camera_name_(std::move(camera_name)),
   camera_info_url_(std::move(camera_info_url)),
@@ -180,7 +185,8 @@ VideoPipeline::VideoPipeline(std::string topic, std::string camera_name, std::st
     });
 #endif
 
-  RCLCPP_INFO(node_->get_logger(), "%s pipeline running %s", topic_.c_str(), gst_source_bin_.c_str());
+  RCLCPP_INFO(node_->get_logger(), "%s pipeline running %s",
+    topic_.c_str(), gst_source_bin_.c_str());
   initialized_ = true;
 }
 
@@ -404,7 +410,7 @@ gboolean VideoPipeline::on_bus_message(GstBus *, GstMessage *msg, gpointer data)
       break;
     }
     case GST_MESSAGE_EOS:
-      // Handle EOS in the GST_MESSAGE_ELEMENT case, where we can tell which element generated the EOS
+      // Handle EOS in GST_MESSAGE_ELEMENT case, where we can tell which element generated the EOS
       // handle_eos(data);
       break;
     case GST_MESSAGE_ELEMENT: {
@@ -422,7 +428,7 @@ gboolean VideoPipeline::on_bus_message(GstBus *, GstMessage *msg, gpointer data)
       }
 
       if (GST_MESSAGE_TYPE(forward_msg) == GST_MESSAGE_EOS) {
-        // TODO distinguish between the 3 possible sources of the EOS
+        // TODO(clyde): distinguish between the 3 possible sources of the EOS
         handle_eos(data);
       }
 
@@ -442,7 +448,7 @@ gboolean VideoPipeline::on_bus_message(GstBus *, GstMessage *msg, gpointer data)
 // Also calc fps.
 GstPadProbeReturn VideoPipeline::on_tee_buffer(GstPad *, GstPadProbeInfo *info, gpointer data)
 {
-  auto video_pipeline = (VideoPipeline *) data;
+  auto video_pipeline = reinterpret_cast<VideoPipeline *>(data);
 
   video_pipeline->fps_calculator_.push_new(video_pipeline->node_->now());
 
@@ -477,10 +483,11 @@ GstPadProbeReturn VideoPipeline::on_tee_buffer(GstPad *, GstPadProbeInfo *info, 
 // record: waiting_for_eos -> got_eos
 void VideoPipeline::handle_eos(gpointer data)
 {
-  auto video_pipeline = (VideoPipeline *) data;
+  auto video_pipeline = reinterpret_cast<VideoPipeline *>(data);
   if (video_pipeline->record_status_ == RecordStatus::waiting_for_eos) {
     video_pipeline->record_status_ = RecordStatus::got_eos;
-    RCLCPP_INFO(video_pipeline->node_->get_logger(), "record: %s got eos", video_pipeline->topic_.c_str());
+    RCLCPP_INFO(video_pipeline->node_->get_logger(), "record: %s got eos",
+      video_pipeline->topic_.c_str());
   }
 }
 

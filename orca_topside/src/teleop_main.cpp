@@ -20,16 +20,20 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "orca_topside/node_spinner.hpp"
 #include "orca_topside/teleop_node.hpp"
-#include "orca_topside/topside_widget.hpp"
 
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QDesktopWidget>
 
+#include <memory>
+
+#include "orca_topside/node_spinner.hpp"
+#include "orca_topside/topside_widget.hpp"
+
 #define STYLESHEET \
   "QWidget {background-color : black;}" \
-  "QLabel {background-color : black;color : white;font-family: sans-serif;font-size: 24px;text-align: center;}"
+  "QLabel {background-color : black; color : white; font-family: sans-serif; " \
+  "font-size: 24px;text-align: center;}"
 
 int main(int argc, char *argv[])
 {

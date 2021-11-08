@@ -24,6 +24,8 @@
 
 #include <QtWidgets>
 
+#include <algorithm>
+
 namespace orca_topside
 {
 
@@ -49,7 +51,7 @@ void GstWidget::process_sample()
   // If polling stops the pipeline will OOM. I'm not entirely sure why; the docs suggest that
   // queues will start blocking at 1s worth of data, so perhaps it's somewhere else in the
   // pipeline? For now, poll even when the window is hidden.
-  // TODO set queue.leaky = 2 (downstream) on all queues
+  // TODO(clyde): set queue.leaky = 2 (downstream) on all queues
   GstSample *sample = gst_app_sink_try_pull_sample(GST_APP_SINK(sink_), 1000);
 
   if (!sample) {
@@ -93,7 +95,8 @@ void GstWidget::process_sample()
 
   // Sanity check: make sure that the buffer is the expected size.
   if (buffer_size != expected_size_) {
-    g_print("image buffer over/underflow, expected %ld but got %ld; caps must be video/x-raw format=RGB\n",
+    g_print("image buffer over/underflow, expected %ld but got %ld;" \
+      " caps must be video/x-raw format=RGB\n",
       expected_size_, buffer_size);
   }
 
@@ -109,8 +112,10 @@ void GstWidget::process_sample()
   update();
 }
 
-void GstWidget::paintEvent(QPaintEvent *)
+void GstWidget::paintEvent(QPaintEvent *event)
 {
+  (void) event;
+
   QRect target(QPoint(0, 0), size());
   QPainter painter(this);
 
