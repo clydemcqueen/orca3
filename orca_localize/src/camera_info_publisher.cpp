@@ -20,6 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <memory>
+#include <string>
+
 #include "camera_info_manager/camera_info_manager.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "ros2_shared/context_macros.hpp"
@@ -58,15 +61,15 @@ class CameraInfoPublisher : public rclcpp::Node
       camera_info_manager_->loadCameraInfo(cxt_.camera_info_url_);
       RCLCPP_INFO(get_logger(), "Loaded camera info from %s", cxt_.camera_info_url_.c_str());
     } else {
-      RCLCPP_ERROR(get_logger(), "Camera info url '%s' is not valid, missing 'file://' prefix?",
+      RCLCPP_ERROR(
+        get_logger(), "Camera info url '%s' is not valid, missing 'file://' prefix?",
         cxt_.camera_info_url_.c_str());
     }
   }
 
 public:
-
   CameraInfoPublisher()
-    : Node("camera_info_publisher")
+  : Node("camera_info_publisher")
   {
     (void) camera_info_pub_;
     (void) spin_timer_;
@@ -93,19 +96,20 @@ public:
 
     camera_info_pub_ = create_publisher<sensor_msgs::msg::CameraInfo>("camera_info", 10);
 
-    spin_timer_ = create_wall_timer(std::chrono::milliseconds{cxt_.timer_period_ms_}, [this]()
-    {
-      auto camera_info_msg = camera_info_manager_->getCameraInfo();
-      // camera_info_msg.header.stamp = now();
-      // camera_info_msg.header.frame_id = cxt_.frame_id_;
-      camera_info_pub_->publish(camera_info_msg);
-    });
+    spin_timer_ = create_wall_timer(
+      std::chrono::milliseconds{cxt_.timer_period_ms_}, [this]()
+      {
+        auto camera_info_msg = camera_info_manager_->getCameraInfo();
+        // camera_info_msg.header.stamp = now();
+        // camera_info_msg.header.frame_id = cxt_.frame_id_;
+        camera_info_pub_->publish(camera_info_msg);
+      });
   }
 };
 
-}
+}  // namespace orca_localize
 
-int main(int argc, char **argv)
+int main(int argc, char ** argv)
 {
   setvbuf(stdout, nullptr, _IONBF, BUFSIZ);
   rclcpp::init(argc, argv);

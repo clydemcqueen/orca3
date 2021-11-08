@@ -22,7 +22,7 @@ jobs:
             ros_distribution: foxy
             ros_version: 2
     container:
-      image: ${{ matrix.docker_image }}
+      image: ${{matrix.docker_image}}
     steps:
       - name: setup directories
         run: mkdir -p ros_ws/src
@@ -35,5 +35,5 @@ jobs:
       - name: build and test
         uses: ros-tooling/action-ros-ci@master
         with:
-          target-ros2-distro: ${{ matrix.ros_distribution }}
-          vcs-repo-file-url: "https://raw.githubusercontent.com/clydemcqueen/orca3/clyde_ci/workspace.repos"
+          target-ros2-distro: ${{matrix.ros_distribution}}
+          vcs-repo-file-url: "https://raw.githubusercontent.com/${{github.repository}}/${{github.sha}}/workspace.repos"

@@ -234,7 +234,7 @@ public:
     for (const Thruster & t : thrusters_) {
       // Default thruster force points directly up
       ignition::math::Vector3d force =
-        {0.0, 0.0, t.effort * (t.effort < 0 ? t.neg_force : t.pos_force)};
+      {0.0, 0.0, t.effort * (t.effort < 0 ? t.neg_force : t.pos_force)};
 
       // Rotate force into place on the frame
       ignition::math::Quaternion<double> q{t.rpy};

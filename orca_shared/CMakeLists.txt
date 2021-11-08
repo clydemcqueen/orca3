@@ -34,6 +34,10 @@ ament_auto_add_library(
 
 # Load & run linters listed in package.xml
 if(BUILD_TESTING)
+  # cppcheck is throwing unknownMacro errors
+  # Ideally this would be handled by ament_lint_auto, etc., but here's a workaround:
+  set(ament_cmake_cppcheck_ADDITIONAL_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/../../../install/ros2_shared/include")
+
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 endif()

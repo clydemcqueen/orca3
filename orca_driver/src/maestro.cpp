@@ -35,13 +35,13 @@ namespace maestro
 #define FD_FAKE_PORT -2
 
 // Write bytes to the serial port, return true if successful
-bool Maestro::writeBytes(const uint8_t *bytes, ssize_t size) const
+bool Maestro::writeBytes(const uint8_t * bytes, ssize_t size) const
 {
   return fake_port() || (ready() && write(fd_, bytes, size) == size);
 }
 
 // Read bytes from the serial port, return true if successful
-bool Maestro::readBytes(uint8_t *bytes, ssize_t size) const
+bool Maestro::readBytes(uint8_t * bytes, ssize_t size) const
 {
   return fake_port() || (ready() && read(fd_, bytes, size) == size);
 }
@@ -66,7 +66,7 @@ bool Maestro::getValue(uint8_t channel, uint16_t & value)
 }
 
 Maestro::Maestro()
-  : fd_{FD_NOT_INITIALIZED}
+: fd_{FD_NOT_INITIALIZED}
 {
 }
 
@@ -86,7 +86,7 @@ bool Maestro::connect(const std::string & port)
     if (fd_ == FD_NOT_INITIALIZED) {
       return false;
     }
-    struct termios port_settings{};
+    struct termios port_settings {};
     tcgetattr(fd_, &port_settings);
     port_settings.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
     port_settings.c_oflag &= ~(ONLCR | OCRNL);

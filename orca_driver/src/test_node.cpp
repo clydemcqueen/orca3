@@ -41,14 +41,15 @@ class TestNode : public rclcpp::Node
 
 public:
   TestNode()
-    : Node{"thrust_test"}
+  : Node{"thrust_test"}
   {
     (void) spin_timer_;
 
     thrust_pub_ = create_publisher<orca_msgs::msg::Thrust>("thrust", 1);
 
     using namespace std::chrono_literals;
-    spin_timer_ = create_wall_timer(100ms, [this]()
+    spin_timer_ = create_wall_timer(
+      100ms, [this]()
       {
         orca_msgs::msg::Thrust msg;
         msg.header.stamp = now();
@@ -91,7 +92,7 @@ public:
 // Main
 //=============================================================================
 
-int main(int argc, char **argv)
+int main(int argc, char ** argv)
 {
   setvbuf(stdout, nullptr, _IONBF, BUFSIZ);
   rclcpp::init(argc, argv);

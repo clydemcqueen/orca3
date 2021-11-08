@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <memory>
 #include <string>
 
 #include "orca_base/underwater_motion.hpp"
@@ -41,7 +42,8 @@ namespace orca_base
 // -- recovery controllers (spin, wait) interrupt PurePursuitController3D and may cause rapid
 //    acceleration or deceleration. These will be clamped.
 
-UnderwaterMotion::UnderwaterMotion(const rclcpp::Logger & logger, const BaseContext & cxt,
+UnderwaterMotion::UnderwaterMotion(
+  const rclcpp::Logger & logger, const BaseContext & cxt,
   const rclcpp::Time & t, double z)
 : logger_{logger}, cxt_{cxt}
 {
@@ -142,7 +144,8 @@ nav_msgs::msg::Odometry UnderwaterMotion::odometry() const
   result.child_frame_id = cxt_.base_frame_id_;
   result.pose.pose = motion_.pose;
   result.pose.covariance = covariance;
-  result.twist.twist = orca::robot_to_world_frame(motion_.vel, orca::get_yaw(motion_.pose.orientation));
+  result.twist.twist =
+    orca::robot_to_world_frame(motion_.vel, orca::get_yaw(motion_.pose.orientation));
   result.twist.covariance = covariance;
   return result;
 }
@@ -173,7 +176,9 @@ void coast(const geometry_msgs::msg::Twist & cmd_vel, geometry_msgs::msg::Accel 
   }
 }
 
-void UnderwaterMotion::update(const rclcpp::Time & t, const geometry_msgs::msg::Twist & cmd_vel, double baro_z)
+void UnderwaterMotion::update(
+  const rclcpp::Time & t, const geometry_msgs::msg::Twist & cmd_vel,
+  double baro_z)
 {
   prev_time_ = motion_.header.stamp;
   motion_.header.stamp = t;

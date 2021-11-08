@@ -164,7 +164,7 @@ class BaseController : public rclcpp::Node
 
 public:
   BaseController()
-    : Node("base_controller"), armed_{false}
+  : Node("base_controller"), armed_{false}
   {
     // Suppress IDE warnings
     (void) baro_sub_;
@@ -279,7 +279,7 @@ public:
 // Main
 //=============================================================================
 
-int main(int argc, char **argv)
+int main(int argc, char ** argv)
 {
   setvbuf(stdout, nullptr, _IONBF, BUFSIZ);
   rclcpp::init(argc, argv);
