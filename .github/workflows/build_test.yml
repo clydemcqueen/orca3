@@ -39,7 +39,6 @@ jobs:
             orca_base
             orca_bringup
             orca_description
-            orca_driver
             orca_gazebo
             orca_localize
             orca_msgs
