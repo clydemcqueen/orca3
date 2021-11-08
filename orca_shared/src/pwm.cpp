@@ -30,26 +30,30 @@ namespace orca
 
 uint16_t tilt_to_pwm(const int tilt)
 {
-  return orca::scale(tilt, TILT_MIN, TILT_MAX,
+  return orca::scale(
+    tilt, TILT_MIN, TILT_MAX,
     orca_msgs::msg::CameraTilt::TILT_45_UP, orca_msgs::msg::CameraTilt::TILT_45_DOWN);
 }
 
 int pwm_to_tilt(const uint16_t pwm)
 {
-  return orca::scale(pwm, orca_msgs::msg::CameraTilt::TILT_45_UP,
+  return orca::scale(
+    pwm, orca_msgs::msg::CameraTilt::TILT_45_UP,
     orca_msgs::msg::CameraTilt::TILT_45_DOWN,
     TILT_MIN, TILT_MAX);
 }
 
 uint16_t brightness_to_pwm(const int brightness)
 {
-  return orca::scale(brightness, BRIGHTNESS_MIN, BRIGHTNESS_MAX,
+  return orca::scale(
+    brightness, BRIGHTNESS_MIN, BRIGHTNESS_MAX,
     orca_msgs::msg::Lights::LIGHTS_OFF, orca_msgs::msg::Lights::LIGHTS_FULL);
 }
 
 int pwm_to_brightness(const uint16_t pwm)
 {
-  return orca::scale(pwm, orca_msgs::msg::Lights::LIGHTS_OFF, orca_msgs::msg::Lights::LIGHTS_FULL,
+  return orca::scale(
+    pwm, orca_msgs::msg::Lights::LIGHTS_OFF, orca_msgs::msg::Lights::LIGHTS_FULL,
     BRIGHTNESS_MIN, BRIGHTNESS_MAX);
 }
 

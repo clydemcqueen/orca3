@@ -51,12 +51,12 @@ bool valid(const rclcpp::Time & t)
 bool pwm_valid(uint16_t pwm)
 {
   return pwm <= orca_msgs::msg::Thrust::THRUST_FULL_FWD &&
-    pwm >= orca_msgs::msg::Thrust::THRUST_FULL_REV;
+         pwm >= orca_msgs::msg::Thrust::THRUST_FULL_REV;
 }
 
 bool thrust_msg_ok(const orca_msgs::msg::Thrust & msg)
 {
-  return std::all_of(msg.thrust.begin(), msg.thrust.end(), [](auto pwm) { return pwm_valid(pwm); });
+  return std::all_of(msg.thrust.begin(), msg.thrust.end(), [](auto pwm) {return pwm_valid(pwm);});
 }
 
 struct Thruster
@@ -65,7 +65,7 @@ struct Thruster
   bool reverse_;
 
   Thruster(int channel, bool reverse)
-    : channel_{channel}, reverse_{reverse} {}
+  : channel_{channel}, reverse_{reverse} {}
 };
 
 // DriverNode provides the interface between the hardware and ROS
@@ -127,7 +127,8 @@ class DriverNode : public rclcpp::Node
     // Register parameters
 #undef CXT_MACRO_MEMBER
 #define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_PARAMETER_CHANGED(n, t)
-    CXT_MACRO_REGISTER_PARAMETERS_CHANGED((*this), cxt_, DRIVER_NODE_ALL_PARAMS,
+    CXT_MACRO_REGISTER_PARAMETERS_CHANGED(
+      (*this), cxt_, DRIVER_NODE_ALL_PARAMS,
       validate_parameters)
 
     // Log parameters
@@ -162,7 +163,8 @@ class DriverNode : public rclcpp::Node
 
     thrust_timeout_ = rclcpp::Duration{RCL_MS_TO_NS(cxt_.timeout_thrust_ms_)};
 
-    spin_timer_ = create_wall_timer(std::chrono::milliseconds{cxt_.timer_period_ms_},
+    spin_timer_ = create_wall_timer(
+      std::chrono::milliseconds{cxt_.timer_period_ms_},
       [this]()
       {
         if (!maestro_.ready() || !read_battery() || !read_leak()) {
@@ -191,7 +193,8 @@ class DriverNode : public rclcpp::Node
   {
     maestro_.connect(cxt_.maestro_port_);
     if (!maestro_.ready()) {
-      RCLCPP_ERROR(get_logger(), "could not open port %s, connected? member of dialout?",
+      RCLCPP_ERROR(
+        get_logger(), "could not open port %s, connected? member of dialout?",
         cxt_.maestro_port_.c_str());
       abort(orca_msgs::msg::Status::STATUS_ABORT_HARDWARE);
       return false;
@@ -209,7 +212,8 @@ class DriverNode : public rclcpp::Node
         maestro_.getPWM(static_cast<uint8_t>(thrusters_[i].channel_), value);
         RCLCPP_INFO(get_logger(), "thruster %d is set at %d", i + 1, value);
         if (value != orca_msgs::msg::Thrust::THRUST_STOP) {
-          RCLCPP_ERROR(get_logger(), "thruster %d didn't initialize properly (and possibly others)",
+          RCLCPP_ERROR(
+            get_logger(), "thruster %d didn't initialize properly (and possibly others)",
             i + 1);
           maestro_.disconnect();
           abort(orca_msgs::msg::Status::STATUS_ABORT_HARDWARE);
@@ -268,7 +272,8 @@ class DriverNode : public rclcpp::Node
     if (cxt_.read_battery_ && cxt_.maestro_port_ != FAKE_PORT) {
       double value = 0.0;
       if (!maestro_.ready() ||
-        !maestro_.getAnalog(static_cast<uint8_t>(cxt_.voltage_channel_), value)) {
+        !maestro_.getAnalog(static_cast<uint8_t>(cxt_.voltage_channel_), value))
+      {
         RCLCPP_ERROR(get_logger(), "could not read the battery, correct bus? member of i2c?");
         status_msg_.voltage = 0;
 
@@ -284,7 +289,8 @@ class DriverNode : public rclcpp::Node
 
       status_msg_.voltage = value * cxt_.voltage_multiplier_;
       if (status_msg_.voltage < cxt_.voltage_min_) {
-        RCLCPP_ERROR(get_logger(), "battery voltage %g is below minimum %g", status_msg_.voltage,
+        RCLCPP_ERROR(
+          get_logger(), "battery voltage %g is below minimum %g", status_msg_.voltage,
           cxt_.voltage_min_);
         abort(orca_msgs::msg::Status::STATUS_ABORT_LOW_BATTERY);
         return false;
@@ -300,7 +306,8 @@ class DriverNode : public rclcpp::Node
     if (cxt_.read_leak_ && cxt_.maestro_port_ != FAKE_PORT) {
       bool leak = false;
       if (!maestro_.ready() ||
-        !maestro_.getDigital(static_cast<uint8_t>(cxt_.leak_channel_), leak)) {
+        !maestro_.getDigital(static_cast<uint8_t>(cxt_.leak_channel_), leak))
+      {
         RCLCPP_ERROR(get_logger(), "could not read the leak sensor");
         abort(orca_msgs::msg::Status::STATUS_ABORT_HARDWARE);
         return false;
@@ -322,7 +329,8 @@ class DriverNode : public rclcpp::Node
     RCLCPP_INFO(get_logger(), "all stop");
     if (maestro_.ready()) {
       for (auto & thruster : thrusters_) {
-        maestro_.setPWM(static_cast<uint8_t>(thruster.channel_),
+        maestro_.setPWM(
+          static_cast<uint8_t>(thruster.channel_),
           orca_msgs::msg::Thrust::THRUST_STOP);
       }
     }
@@ -339,7 +347,7 @@ class DriverNode : public rclcpp::Node
 
 public:
   DriverNode()
-    : Node{"driver_node"}
+  : Node{"driver_node"}
   {
     (void) camera_tilt_sub_;
     (void) lights_sub_;
@@ -350,7 +358,8 @@ public:
 
     status_pub_ = create_publisher<orca_msgs::msg::Status>("status", 10);
 
-    thrust_sub_ = create_subscription<orca_msgs::msg::Thrust>("thrust", 10,
+    thrust_sub_ = create_subscription<orca_msgs::msg::Thrust>(
+      "thrust", 10,
       [this](const orca_msgs::msg::Thrust::SharedPtr msg)  // NOLINT
       {
         // Guard against stupid mistakes
@@ -377,7 +386,8 @@ public:
 
     );
 
-    camera_tilt_sub_ = create_subscription<orca_msgs::msg::CameraTilt>("camera_tilt", 10,
+    camera_tilt_sub_ = create_subscription<orca_msgs::msg::CameraTilt>(
+      "camera_tilt", 10,
       [this](const orca_msgs::msg::CameraTilt::SharedPtr msg)  // NOLINT
       {
         if (maestro_.setPWM(static_cast<uint8_t>(cxt_.tilt_channel_), msg->camera_tilt_pwm)) {
@@ -387,7 +397,8 @@ public:
         }
       });
 
-    lights_sub_ = create_subscription<orca_msgs::msg::Lights>("lights", 10,
+    lights_sub_ = create_subscription<orca_msgs::msg::Lights>(
+      "lights", 10,
       [this](const orca_msgs::msg::Lights::SharedPtr msg)  // NOLINT
       {
         if (maestro_.setPWM(static_cast<uint8_t>(cxt_.lights_channel_), msg->brightness_pwm)) {
@@ -418,7 +429,7 @@ public:
 // Main
 //=============================================================================
 
-int main(int argc, char **argv)
+int main(int argc, char ** argv)
 {
   setvbuf(stdout, nullptr, _IONBF, BUFSIZ);
   rclcpp::init(argc, argv);

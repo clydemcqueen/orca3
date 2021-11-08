@@ -92,12 +92,15 @@ cd ~/ros2/orca3_ws/src
 git clone https://github.com/clydemcqueen/BlueRobotics_MS5837_Library.git -b mraa_ros2
 git clone https://github.com/ptrmu/ros2_shared.git
 git clone https://github.com/clydemcqueen/orca3.git
+# Build orca_bringup, orca_driver and orca_msgs
+rm orca3/orca_driver/COLCON_IGNORE
 touch orca3/orca_base/COLCON_IGNORE
 touch orca3/orca_description/COLCON_IGNORE
 touch orca3/orca_gazebo/COLCON_IGNORE
 touch orca3/orca_localize/COLCON_IGNORE
 touch orca3/orca_nav2/COLCON_IGNORE
 touch orca3/orca_shared/COLCON_IGNORE
+touch orca3/orca_topside/COLCON_IGNORE
 cd ~/ros2/orca3_ws
 source /opt/ros/foxy/setup.bash
 rosdep install --from-paths . --ignore-src

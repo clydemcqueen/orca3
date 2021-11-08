@@ -39,7 +39,7 @@ namespace orca
 bool status_ok(uint32_t status)
 {
   return status == orca_msgs::msg::Status::STATUS_READY ||
-    status == orca_msgs::msg::Status::STATUS_RUNNING;
+         status == orca_msgs::msg::Status::STATUS_RUNNING;
 }
 
 //=====================================================================================

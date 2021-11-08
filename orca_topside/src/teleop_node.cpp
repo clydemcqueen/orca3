@@ -20,9 +20,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <memory>
-
 #include "orca_topside/teleop_node.hpp"
+
+#include <memory>
+#include <string>
+#include <vector>
 
 #include "orca_shared/pwm.hpp"
 #include "orca_shared/util.hpp"
@@ -448,7 +450,6 @@ void TeleopNode::dec_lights()
       view_->set_lights(lights_);
     }
   }
-
 }
 
 void TeleopNode::inc_trim_x(bool publish)

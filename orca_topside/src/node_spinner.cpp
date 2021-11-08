@@ -23,6 +23,8 @@
 #include "orca_topside/node_spinner.hpp"
 
 #include <QTimer>
+
+#include <memory>
 #include <utility>
 
 namespace orca_topside

@@ -25,6 +25,7 @@
 
 #include <atomic>
 #include <memory>
+#include <string>
 #include <thread>
 
 extern "C" {

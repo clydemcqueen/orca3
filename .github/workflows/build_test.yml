@@ -1,0 +1,49 @@
+name: ROS2 CI
+
+on:
+  pull_request:
+    branches:
+      - 'main'
+  push:
+    branches:
+      - 'main'
+
+jobs:
+  test_environment:
+    runs-on: [ubuntu-latest]
+    strategy:
+      fail-fast: false
+      matrix:
+        ros_distribution:
+          - foxy
+        include:
+          # Foxy Fitzroy (June 2020 - May 2023)
+          - docker_image: rostooling/setup-ros-docker:ubuntu-focal-ros-foxy-ros-base-latest
+            ros_distribution: foxy
+            ros_version: 2
+    container:
+      image: ${{matrix.docker_image}}
+    steps:
+      - name: setup directories
+        run: mkdir -p ros_ws/src
+      - name: install transformations.py
+        run: pip3 install transformations
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          path: ros_ws/src
+      - name: build and test
+        uses: ros-tooling/action-ros-ci@master
+        with:
+          package-name: |
+            orca_base
+            orca_bringup
+            orca_description
+            orca_gazebo
+            orca_localize
+            orca_msgs
+            orca_nav2
+            orca_shared
+            orca_topside
+          target-ros2-distro: ${{matrix.ros_distribution}}
+          vcs-repo-file-url: "https://raw.githubusercontent.com/${{github.repository}}/${{github.sha}}/workspace.repos"

@@ -23,9 +23,9 @@
 #ifndef ORCA_TOPSIDE__GST_WIDGET_HPP_
 #define ORCA_TOPSIDE__GST_WIDGET_HPP_
 
-#include <thread>
-
 #include <QWidget>
+
+#include <thread>
 
 extern "C" {
 #include "gst/gst.h"

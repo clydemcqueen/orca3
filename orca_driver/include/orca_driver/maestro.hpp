@@ -37,9 +37,9 @@ class Maestro
 private:
   int fd_;
 
-  bool writeBytes(const uint8_t *bytes, ssize_t size) const;
+  bool writeBytes(const uint8_t * bytes, ssize_t size) const;
 
-  bool readBytes(uint8_t *bytes, ssize_t size) const;
+  bool readBytes(uint8_t * bytes, ssize_t size) const;
 
   bool getValue(uint8_t channel, uint16_t & value);
 

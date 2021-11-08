@@ -25,6 +25,8 @@
 
 #include <QApplication>
 
+#include <memory>
+
 #include "rclcpp/rclcpp.hpp"
 
 namespace orca_topside

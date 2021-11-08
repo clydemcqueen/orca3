@@ -1,21 +1,21 @@
 cmake_minimum_required(VERSION 3.5)
 project(orca_topside)
 
-if (NOT CMAKE_CXX_STANDARD)
+if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 14)
-endif ()
+endif()
 
-if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
-endif ()
+endif()
 
 # Emulate colcon in CLion
-if ($ENV{CLION_IDE})
+if($ENV{CLION_IDE})
   set(gst_tools_DIR "${PROJECT_SOURCE_DIR}/../../../install/gst_tools/share/gst_tools/cmake")
   set(orca_msgs_DIR "${PROJECT_SOURCE_DIR}/../../../install/orca_msgs/share/orca_msgs/cmake")
   set(orca_shared_DIR "${PROJECT_SOURCE_DIR}/../../../install/orca_shared/share/orca_shared/cmake")
   set(ros2_shared_DIR "${PROJECT_SOURCE_DIR}/../../../install/ros2_shared/share/ros2_shared/cmake")
-endif ()
+endif()
 
 # A bit tricky to use ament + Qt5 + CMake + CLion, some resources:
 # https://doc.qt.io/qt-5.12/cmake-manual.html
@@ -84,7 +84,7 @@ ament_target_dependencies(
   ros2_shared
 )
 
-if (gst_tools_FOUND)
+if(gst_tools_FOUND)
   ament_target_dependencies(teleop_node gst_tools)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGST_TOOLS")
 endif()
@@ -93,5 +93,11 @@ install(
   TARGETS teleop_node
   DESTINATION lib/${PROJECT_NAME}
 )
+
+# Load & run linters listed in package.xml
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+endif()
 
 ament_package()

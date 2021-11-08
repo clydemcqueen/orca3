@@ -23,6 +23,7 @@
 #ifndef ORCA_BASE__UNDERWATER_MOTION_HPP_
 #define ORCA_BASE__UNDERWATER_MOTION_HPP_
 
+#include <memory>
 #include <string>
 
 #include "geometry_msgs/msg/accel_stamped.hpp"
@@ -64,12 +65,13 @@ class UnderwaterMotion
     const geometry_msgs::msg::Twist & v);
 
 public:
-  UnderwaterMotion(const rclcpp::Logger & logger, const BaseContext & cxt,
+  UnderwaterMotion(
+    const rclcpp::Logger & logger, const BaseContext & cxt,
     const rclcpp::Time & t, double z);
 
-  const orca_msgs::msg::Motion & motion() const { return motion_; }
+  const orca_msgs::msg::Motion & motion() const {return motion_;}
 
-  const orca_msgs::msg::Pid & pid_z() const { return pid_z_->msg(); }
+  const orca_msgs::msg::Pid & pid_z() const {return pid_z_->msg();}
 
   nav_msgs::msg::Odometry odometry() const;
 

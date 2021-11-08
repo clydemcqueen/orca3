@@ -1,0 +1,29 @@
+repositories:
+  ptrmu/fiducial_vlam:
+    type: git
+    url: https://github.com/ptrmu/fiducial_vlam
+    version: master
+  clydemcqueen/h264_image_transport:
+    type: git
+    url: https://github.com/clydemcqueen/h264_image_transport
+    version: master
+  clydemcqueen/orb_slam_2_ros:
+    type: git
+    url: https://github.com/clydemcqueen/orb_slam_2_ros
+    version: clyde_h264_stereo
+  ptrmu/ros2_shared:
+    type: git
+    url: https://github.com/ptrmu/ros2_shared
+    version: master
+  clydemcqueen/sim_fiducial:
+    type: git
+    url: https://github.com/clydemcqueen/sim_fiducial
+    version: master
+  clydemcqueen/stereo_decoder:
+    type: git
+    url: https://github.com/clydemcqueen/stereo_decoder
+    version: main
+  clydemcqueen/ukf:
+    type: git
+    url: https://github.com/clydemcqueen/ukf
+    version: master

@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <string>
 #include <utility>
 
 #include "orca_topside/gst_util.hpp"
@@ -29,8 +30,9 @@
 namespace orca_topside
 {
 
-ImagePublisher::ImagePublisher(std::string topic, const std::string & cam_name, const std::string & cam_info_url,
-  TeleopNode *node, bool sync, GstElement *pipeline, GstElement *upstream):
+ImagePublisher::ImagePublisher(std::string topic, const std::string & cam_name,
+  const std::string & cam_info_url, TeleopNode *node, bool sync, GstElement *pipeline,
+  GstElement *upstream):
   topic_(std::move(topic)),
   node_(node),
   pipeline_(pipeline),
@@ -46,8 +48,7 @@ ImagePublisher::ImagePublisher(std::string topic, const std::string & cam_name, 
 
   // H264 over RTP must be stream-format=byte-stream,alignment=au so that gstreamer will recombine
   // the packets into a single buffer. I don't know why, but the negotiation seems to silently fail.
-  g_print("watch for silent failure: appsink requires stream-format=byte-stream,alignment=au\n");
-  // auto caps = gst_caps_new_simple("video/x-h264,stream-format=byte-stream,alignment=au", nullptr, nullptr);
+  g_print("reminder that appsink requires stream-format=byte-stream,alignment=au\n");
   auto caps = gst_caps_new_simple("video/x-h264", nullptr, nullptr);
   gst_app_sink_set_caps(GST_APP_SINK(sink_), caps);
   gst_caps_unref(caps);
@@ -96,8 +97,10 @@ ImagePublisher::ImagePublisher(std::string topic, const std::string & cam_name, 
   }
   cam_info_ = camera_info_manager.getCameraInfo();
 
-  h264_pub_ = node_->create_publisher<h264_msgs::msg::Packet>(topic_ + "/image_raw/h264", 10);
-  cam_info_pub_ = node_->create_publisher<sensor_msgs::msg::CameraInfo>(topic_ + "/camera_info", 10);
+  h264_pub_ = node_->create_publisher<h264_msgs::msg::Packet>(
+    topic_ + "/image_raw/h264", 10);
+  cam_info_pub_ = node_->create_publisher<sensor_msgs::msg::CameraInfo>(
+    topic_ + "/camera_info", 10);
 }
 
 ImagePublisher::~ImagePublisher()
@@ -108,8 +111,8 @@ ImagePublisher::~ImagePublisher()
   }
 
   if (sink_) {
-    gst_element_set_state(sink_, GST_STATE_NULL); // Free up all resources
-    gst_bin_remove(GST_BIN(pipeline_), sink_); // Unlink, remove from bin, and unref
+    gst_element_set_state(sink_, GST_STATE_NULL);  // Free up all resources
+    gst_bin_remove(GST_BIN(pipeline_), sink_);  // Unlink, remove from bin, and unref
     sink_ = nullptr;
   }
 
