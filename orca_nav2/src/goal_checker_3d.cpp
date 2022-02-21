@@ -41,9 +41,11 @@ class GoalChecker3D : public nav2_core::GoalChecker
 
 public:
   void initialize(
-    const rclcpp_lifecycle::LifecycleNode::SharedPtr & parent,
+    const rclcpp_lifecycle::LifecycleNode::WeakPtr & weak_parent,
     const std::string & plugin_name) override
   {
+    auto parent = weak_parent.lock();
+
     PARAMETER(parent, plugin_name, xy_goal_tolerance, 0.25)
     PARAMETER(parent, plugin_name, z_goal_tolerance, 0.25)
 
@@ -80,6 +82,14 @@ public:
 
     // Check z position
     return abs(dz) <= z_goal_tolerance_;
+  }
+
+  bool getTolerances(
+    geometry_msgs::msg::Pose &,
+    geometry_msgs::msg::Twist &) override
+  {
+    // TODO
+    return false;
   }
 };
 

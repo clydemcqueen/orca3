@@ -51,9 +51,11 @@ class ProgressChecker3D : public nav2_core::ProgressChecker
 
 public:
   void initialize(
-    const rclcpp_lifecycle::LifecycleNode::SharedPtr & parent,
+    const rclcpp_lifecycle::LifecycleNode::WeakPtr & weak_parent,
     const std::string & plugin_name) override
   {
+    auto parent = weak_parent.lock();
+
     clock_ = parent->get_clock();
 
     PARAMETER(parent, plugin_name, radius, 0.5)
