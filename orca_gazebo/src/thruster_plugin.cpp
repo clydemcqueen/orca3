@@ -89,13 +89,15 @@ struct Thruster
   double effort;    // Range -1.0 to 1.0
 };
 
+using namespace std::chrono_literals;
+
 class OrcaThrusterPlugin : public ModelPlugin
 {
   physics::LinkPtr base_link_;
   uint16_t thrust_dz_pwm_{35};
   std::vector<Thruster> thrusters_{};
-  const rclcpp::Duration thrust_timeout_{RCL_S_TO_NS(1)};
-  const rclcpp::Duration status_period_{RCL_MS_TO_NS(100)};
+  const rclcpp::Duration thrust_timeout_{RCL_S_TO_NS(1ns)};
+  const rclcpp::Duration status_period_{RCL_MS_TO_NS(100ns)};
   event::ConnectionPtr update_connection_;
   gazebo_ros::Node::SharedPtr node_;  // Hold shared ptr to avoid early destruction of node
   rclcpp::Logger logger_{rclcpp::get_logger("placeholder")};
