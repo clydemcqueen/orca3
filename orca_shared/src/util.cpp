@@ -221,7 +221,7 @@ bool transform_with_wait(
     out_pose = tf->transform(in_pose, frame, std::chrono::milliseconds(wait_ms));
     return true;
   } catch (const tf2::TransformException & e) {
-    RCLCPP_ERROR(logger, e.what());
+    RCLCPP_ERROR(logger, "%s", e.what());
     return false;
   }
 }
@@ -253,7 +253,7 @@ bool transform_with_tolerance(
         logger, "Transform too old when converting from %s to %s",
         in_pose.header.frame_id.c_str(), frame.c_str());
       RCLCPP_ERROR(
-        logger, "Data: %s, transform: %ds %uns",
+        logger, "Data: %ds %uns, transform: %ds %uns",
         in_pose.header.stamp.sec, in_pose.header.stamp.nanosec,
         transform.header.stamp.sec, transform.header.stamp.nanosec);
       return false;
@@ -262,7 +262,7 @@ bool transform_with_tolerance(
       return true;
     }
   } catch (const tf2::TransformException & e) {
-    RCLCPP_ERROR(logger, e.what());
+    RCLCPP_ERROR(logger, "%s", e.what());
     return false;
   }
 }
