@@ -1,4 +1,4 @@
-# Orca3 ![example branch parameter](https://github.com/clydemcqueen/orca3/actions/workflows/foxy_ci.yml/badge.svg?branch=main)
+# Orca3 ![example branch parameter](https://github.com/clydemcqueen/orca3/actions/workflows/build_test.yml/badge.svg?branch=main)
 
 Orca3 is a set of [ROS2](http://www.ros.org/) packages that provide basic AUV (Autonomous Underwater Vehicle)
 functionality for the [BlueRobotics BlueROV2](https://www.bluerobotics.com).
