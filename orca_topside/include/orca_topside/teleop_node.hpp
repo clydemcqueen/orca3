@@ -180,7 +180,7 @@ class TeleopNode : public rclcpp::Node
 
   rclcpp::TimerBase::SharedPtr spin_timer_;
 
-  rclcpp::Duration status_timeout_{0};  // Set by parameter
+  rclcpp::Duration status_timeout_;
 
   rclcpp::Subscription<orca_msgs::msg::Depth>::SharedPtr depth_sub_;
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
@@ -202,7 +202,7 @@ class TeleopNode : public rclcpp::Node
   void publish_cmd_vel();
   void publish_lights();
   void publish_teleop();
-  bool set_base_controller_param(const std::string &param, bool value);
+  // bool set_base_controller_param(const std::string &param, bool value);
 
  public:
   TeleopNode();

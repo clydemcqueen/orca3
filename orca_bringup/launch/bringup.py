@@ -84,6 +84,8 @@ def generate_launch_description():
         param_rewrites={
             'use_sim_time': use_sim_time,
             'yaml_filename': nav2_map_file,
+            'default_nav_through_poses_bt_xml': 'invalid_file',
+            'default_nav_to_pose_bt_xml': nav2_bt_file,
         },
         convert_types=True)
 
@@ -285,7 +287,6 @@ def generate_launch_description():
                 'autostart': 'True',
                 'params_file': nav2_params_file,
                 'map_subscribe_transient_local': 'true',
-                'default_bt_xml_filename': nav2_bt_file,
             }.items(),
             condition=IfCondition(LaunchConfiguration('nav'))),
     ])

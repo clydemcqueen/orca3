@@ -52,7 +52,7 @@ bool trim_down(
 void TeleopNode::validate_parameters()
 {
   std::chrono::milliseconds spin_period_ = std::chrono::milliseconds{cxt_.timer_period_ms_};
-  status_timeout_ = rclcpp::Duration{RCL_MS_TO_NS(cxt_.status_timeout_ms_)};
+  status_timeout_ = rclcpp::Duration::from_nanoseconds(RCL_MS_TO_NS(cxt_.status_timeout_ms_));
 
   spin_timer_ = create_wall_timer(spin_period_, [this]()
   {
@@ -214,8 +214,10 @@ bool TeleopNode::set_base_controller_param(const std::string & param, bool value
 }
 #endif
 
+using namespace std::chrono_literals;
+
 TeleopNode::TeleopNode()
-  : Node("topside_controller")
+  : Node("topside_controller"), status_timeout_(0ns)
 {
   (void) depth_sub_;
   (void) joy_sub_;

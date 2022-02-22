@@ -1,4 +1,4 @@
-name: ROS2 CI
+name: galactic_ci
 
 on:
   pull_request:
@@ -10,16 +10,15 @@ on:
 
 jobs:
   test_environment:
-    runs-on: [ubuntu-latest]
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         ros_distribution:
-          - foxy
+          - galactic
         include:
-          # Foxy Fitzroy (June 2020 - May 2023)
-          - docker_image: rostooling/setup-ros-docker:ubuntu-focal-ros-foxy-ros-base-latest
-            ros_distribution: foxy
+          - docker_image: rostooling/setup-ros-docker:ubuntu-focal-ros-galactic-ros-base-latest
+            ros_distribution: galactic
             ros_version: 2
     container:
       image: ${{matrix.docker_image}}

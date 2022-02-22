@@ -1,25 +1,14 @@
 # This Dockerfile can be configured via --build-arg
 
 # Example build command:
-# docker build --pull --no-cache -t orca3:foxy --build-arg=TARGET_ROS_DISTRO=foxy .
+# docker build --pull --no-cache -t orca3:galactic .
 
 # Example run command using Rocker (see https://github.com/osrf/rocker):
-# rocker --x11 --nvidia orca3:foxy
+# rocker --x11 --nvidia orca3:galactic
 
-ARG TARGET_ROS_DISTRO=foxy
-ARG ORCA3_BRANCH=main
-ARG FIDUCIAL_VLAM_BRANCH=master
-ARG H264_IMAGE_TRANSPORT_BRANCH=master
-ARG ORB_SLAM2_ROS_BRANCH=clyde_h264_stereo
-ARG ROS2_SHARED_BRANCH=master
-ARG SIM_FIDUCIAL_BRANCH=master
-ARG STEREO_DECODER_BRANCH=main
-ARG UKF_BRANCH=master
+FROM osrf/ros:galactic-desktop
 
-FROM osrf/ros:$TARGET_ROS_DISTRO-desktop
-
-RUN apt-get update
-RUN apt-get upgrade -y
+RUN apt-get update && apt-get upgrade -y
 
 RUN apt-get install -y python3-pip
 RUN yes | pip3 install transformations
@@ -32,18 +21,16 @@ RUN apt-get install -y libgstreamer1.0-0 gstreamer1.0-plugins-base gstreamer1.0-
 
 WORKDIR /work/orca_ws/src
 
-ARG TARGET_ROS_DISTRO
-ARG ORCA3_BRANCH
-ARG FIDUCIAL_VLAM_BRANCH
-ARG H264_IMAGE_TRANSPORT_BRANCH
-ARG ORB_SLAM2_ROS_BRANCH
-ARG ROS2_SHARED_BRANCH
-ARG SIM_FIDUCIAL_BRANCH
-ARG STEREO_DECODER_BRANCH
-ARG UKF_BRANCH
+COPY . orca3
 
-RUN git clone https://github.com/clydemcqueen/orca3.git -b $ORCA3_BRANCH
-RUN touch orca3/orca_driver/COLCON_IGNORE
+ARG FIDUCIAL_VLAM_BRANCH=master
+ARG H264_IMAGE_TRANSPORT_BRANCH=master
+ARG ORB_SLAM2_ROS_BRANCH=clyde_h264_stereo_galactic
+ARG ROS2_SHARED_BRANCH=master
+ARG SIM_FIDUCIAL_BRANCH=master
+ARG STEREO_DECODER_BRANCH=main
+ARG UKF_BRANCH=master
+
 RUN git clone https://github.com/ptrmu/fiducial_vlam.git -b $FIDUCIAL_VLAM_BRANCH
 RUN git clone https://github.com/clydemcqueen/h264_image_transport.git -b $H264_IMAGE_TRANSPORT_BRANCH
 RUN git clone https://github.com/clydemcqueen/orb_slam_2_ros.git -b $ORB_SLAM2_ROS_BRANCH
@@ -56,12 +43,12 @@ WORKDIR /work/orca_ws
 
 RUN rosdep install -y --from-paths . --ignore-src
 
-RUN /bin/bash -c "source /opt/ros/$TARGET_ROS_DISTRO/setup.bash && colcon build"
+RUN /bin/bash -c "source /opt/ros/galactic/setup.bash && colcon build"
 
 # Simulation with fiducial_vlam:
-# source src/orca3/setup.bash
+# source src/orca3/setup.bash       # Required to set up the Gazebo environment correctly
 # ros2 launch orca_bringup sim_launch.py gzclient:=True rviz:=True slam:=vlam world:=ping_pong
 
 # Simulation with orb_slam2_ros:
-# source src/orca3/setup.bash
+# source src/orca3/setup.bash       # Required to set up the Gazebo environment correctly
 # ros2 launch orca_bringup sim_launch.py gzclient:=True rviz:=True slam:=orb world:=empty

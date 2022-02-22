@@ -293,7 +293,7 @@ bool VideoPipeline::start_recording()
   auto t = std::time(nullptr);
   char buffer[200];
   std::strftime(buffer, sizeof(buffer), record_bin, std::localtime(&t));
-  RCLCPP_INFO(node_->get_logger(), buffer);
+  RCLCPP_INFO(node_->get_logger(), "%s", buffer);
 
   GError *error = nullptr;
   if (!(record_bin_ = gst_parse_bin_from_description(buffer, true, &error))) {

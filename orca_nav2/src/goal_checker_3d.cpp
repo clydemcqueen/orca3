@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <limits>
 #include <string>
 
 #include "angles/angles.h"
@@ -41,9 +42,11 @@ class GoalChecker3D : public nav2_core::GoalChecker
 
 public:
   void initialize(
-    const rclcpp_lifecycle::LifecycleNode::SharedPtr & parent,
+    const rclcpp_lifecycle::LifecycleNode::WeakPtr & weak_parent,
     const std::string & plugin_name) override
   {
+    auto parent = weak_parent.lock();
+
     PARAMETER(parent, plugin_name, xy_goal_tolerance, 0.25)
     PARAMETER(parent, plugin_name, z_goal_tolerance, 0.25)
 
@@ -80,6 +83,33 @@ public:
 
     // Check z position
     return abs(dz) <= z_goal_tolerance_;
+  }
+
+  // Return tolerances for use by the controller (added in Galactic)
+  bool getTolerances(
+    geometry_msgs::msg::Pose & pose_tolerance,
+    geometry_msgs::msg::Twist & vel_tolerance) override
+  {
+    double invalid_field = std::numeric_limits<double>::lowest();
+
+    pose_tolerance.position.x = xy_goal_tolerance_;
+    pose_tolerance.position.y = xy_goal_tolerance_;
+    pose_tolerance.position.z = z_goal_tolerance_;
+
+    pose_tolerance.orientation.w = invalid_field;
+    pose_tolerance.orientation.x = invalid_field;
+    pose_tolerance.orientation.y = invalid_field;
+    pose_tolerance.orientation.z = invalid_field;
+
+    vel_tolerance.linear.x = invalid_field;
+    vel_tolerance.linear.y = invalid_field;
+    vel_tolerance.linear.z = invalid_field;
+
+    vel_tolerance.angular.x = invalid_field;
+    vel_tolerance.angular.y = invalid_field;
+    vel_tolerance.angular.z = invalid_field;
+
+    return true;
   }
 };
 

@@ -231,13 +231,12 @@ public:
   ~PurePursuitController3D() override = default;
 
   void configure(
-    const rclcpp_lifecycle::LifecycleNode::SharedPtr & parent,
+    const rclcpp_lifecycle::LifecycleNode::WeakPtr & weak_parent,
     std::string name,
     const std::shared_ptr<tf2_ros::Buffer> & tf,
     const std::shared_ptr<nav2_costmap_2d::Costmap2DROS> & costmap_ros) override
   {
-    // Do not keep a ptr to the parent, this may cause a circular ref
-    // Discussion: https://github.com/ros-planning/navigation2/pull/1900
+    auto parent = weak_parent.lock();
 
     logger_ = parent->get_logger();
     tf_ = tf;
@@ -279,7 +278,8 @@ public:
   // ignore it.
   geometry_msgs::msg::TwistStamped computeVelocityCommands(
     const geometry_msgs::msg::PoseStamped & pose,
-    const geometry_msgs::msg::Twist &) override
+    const geometry_msgs::msg::Twist &,
+    nav2_core::GoalChecker *) override
   {
     geometry_msgs::msg::TwistStamped cmd_vel;
     cmd_vel.header = pose.header;
@@ -305,6 +305,12 @@ public:
       throw nav2_core::PlannerException("Received plan with zero length");
     }
     plan_ = plan;
+  }
+
+  void setSpeedLimit(const double &, const bool &) override
+  {
+    // Not supported
+    std::cout << "ERROR: speed limit is not supported" << std::endl;
   }
 };
 

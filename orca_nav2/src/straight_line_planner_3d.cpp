@@ -52,13 +52,12 @@ public:
   ~StraightLinePlanner3D() override = default;
 
   void configure(
-    rclcpp_lifecycle::LifecycleNode::SharedPtr parent,
+    const rclcpp_lifecycle::LifecycleNode::WeakPtr & weak_parent,
     std::string name,
     std::shared_ptr<tf2_ros::Buffer>,
     std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros) override
   {
-    // Do not keep a ptr to the parent, this may cause a circular ref
-    // Discussion: https://github.com/ros-planning/navigation2/pull/1900
+    auto parent = weak_parent.lock();
 
     clock_ = parent->get_clock();
     logger_ = parent->get_logger();
