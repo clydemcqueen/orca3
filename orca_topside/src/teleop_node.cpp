@@ -214,8 +214,10 @@ bool TeleopNode::set_base_controller_param(const std::string & param, bool value
 }
 #endif
 
+using namespace std::chrono_literals;
+
 TeleopNode::TeleopNode()
-  : Node("topside_controller")
+  : Node("topside_controller"), status_timeout_(0ns)
 {
   (void) depth_sub_;
   (void) joy_sub_;

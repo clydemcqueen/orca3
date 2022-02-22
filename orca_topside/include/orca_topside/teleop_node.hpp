@@ -136,8 +136,6 @@ struct TopsideContext
   CXT_MACRO_DEFINE_MEMBERS(TOPSIDE_PARAMS)
 };
 
-using namespace std::chrono_literals;
-
 class TeleopNode : public rclcpp::Node
 {
   TopsideContext cxt_;
@@ -182,7 +180,7 @@ class TeleopNode : public rclcpp::Node
 
   rclcpp::TimerBase::SharedPtr spin_timer_;
 
-  rclcpp::Duration status_timeout_{0ns};  // Set by parameter
+  rclcpp::Duration status_timeout_;
 
   rclcpp::Subscription<orca_msgs::msg::Depth>::SharedPtr depth_sub_;
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
