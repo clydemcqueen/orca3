@@ -220,7 +220,6 @@ robot_state_publisher:
   ros__parameters:
     use_sim_time: False
 
-# Default settings, not used?
 waypoint_follower:
   ros__parameters:
     loop_rate: 20
@@ -229,4 +228,4 @@ waypoint_follower:
     wait_at_waypoint:
       plugin: "nav2_waypoint_follower::WaitAtWaypoint"
       enabled: True
-      waypoint_pause_duration: 200
+      waypoint_pause_duration: 200   # Sleep for 200ms

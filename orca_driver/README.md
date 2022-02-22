@@ -2,7 +2,8 @@
 
 This package provides an interface between the BlueROV2 hardware and the Orca3 software.
 
-> Status: ROV operation has been lightly tested with a modified BlueROV2. YMMV.
+> Status: ROV operation has been lightly tested with a modified BlueROV2 running Foxy.
+> It has not been tested on Galactic. YMMV.
 
 ## Hardware
 

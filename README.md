@@ -37,7 +37,7 @@ Orca3 includes experimental hardware drivers that run on a modified BlueROV2:
 
 ## Installation
 
-Orca3 has been tested on Ubuntu 20.04 and ROS2 Foxy. See the [Dockerfile](Dockerfile) for installation instructions.
+Orca3 has been tested on ROS2 Foxy and Galactic. See the [Dockerfile](Dockerfile) for installation instructions.
    
 ## Simulation with fiducial_vlam
 
