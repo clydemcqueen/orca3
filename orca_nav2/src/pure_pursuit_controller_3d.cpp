@@ -309,7 +309,8 @@ public:
 
   void setSpeedLimit(const double &, const bool &) override
   {
-    // TODO
+    // Not supported
+    std::cout << "ERROR: speed limit is not supported" << std::endl;
   }
 };
 
