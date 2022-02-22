@@ -3,10 +3,10 @@ name: ROS2 CI
 on:
   pull_request:
     branches:
-      - 'main'
+      - 'foxy'
   push:
     branches:
-      - 'main'
+      - 'foxy'
 
 jobs:
   test_environment:
@@ -32,6 +32,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           path: ros_ws/src
+          ref: foxy
       - name: build and test
         uses: ros-tooling/action-ros-ci@master
         with:
