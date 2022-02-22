@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         ros_distribution:
-          - foxy
+          - galactic
         include:
           # Galactic Geochelone (May 2021 - November 2022)
           - docker_image: rostooling/setup-ros-docker:ubuntu-focal-ros-galactic-ros-base-latest
