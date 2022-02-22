@@ -84,12 +84,31 @@ public:
     return abs(dz) <= z_goal_tolerance_;
   }
 
+  // Return tolerances for use by the controller (added in Galactic)
   bool getTolerances(
-    geometry_msgs::msg::Pose &,
-    geometry_msgs::msg::Twist &) override
+    geometry_msgs::msg::Pose & pose_tolerance,
+    geometry_msgs::msg::Twist & vel_tolerance) override
   {
-    // TODO
-    return false;
+    double invalid_field = std::numeric_limits<double>::lowest();
+
+    pose_tolerance.position.x = xy_goal_tolerance_;
+    pose_tolerance.position.y = xy_goal_tolerance_;
+    pose_tolerance.position.z = z_goal_tolerance_;
+
+    pose_tolerance.orientation.w = invalid_field;
+    pose_tolerance.orientation.x = invalid_field;
+    pose_tolerance.orientation.y = invalid_field;
+    pose_tolerance.orientation.z = invalid_field;
+
+    vel_tolerance.linear.x = invalid_field;
+    vel_tolerance.linear.y = invalid_field;
+    vel_tolerance.linear.z = invalid_field;
+
+    vel_tolerance.angular.x = invalid_field;
+    vel_tolerance.angular.y = invalid_field;
+    vel_tolerance.angular.z = invalid_field;
+
+    return true;
   }
 };
 
