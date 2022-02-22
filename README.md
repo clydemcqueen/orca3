@@ -69,7 +69,7 @@ source src/orca3/setup.bash
 ros2 topic pub --once /teleop orca_msgs/Teleop "{armed: true, hover_thrust: true, pid_enabled: True}"
 
 # Aligns with markers on the ping-pong map
-ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses: [\
+ros2 action send_goal /follow_waypoints nav2_msgs/action/FollowWaypoints "{poses: [\
 {header: {frame_id: 'map'}, pose: {position: {x: 4, z: -2}}},\
 {header: {frame_id: 'map'}, pose: {position: {x: -4, z: -2}}},\
 {header: {frame_id: 'map'}, pose: {position: {x: 4, z: -2}}},\
@@ -112,7 +112,7 @@ source src/orca3/setup.bash
 ros2 topic pub --once /teleop orca_msgs/Teleop "{armed: true, hover_thrust: true, pid_enabled: True}"
 
 # Run a 6m x 6m box 1.5m above the seafloor, will do a loop closure
-ros2 action send_goal /FollowWaypoints nav2_msgs/action/FollowWaypoints "{poses: [\
+ros2 action send_goal /follow_waypoints nav2_msgs/action/FollowWaypoints "{poses: [\
 {header: {frame_id: 'map'}, pose: {position: {x: 3, y: 3, z: -2.5}}},\
 {header: {frame_id: 'map'}, pose: {position: {x: -3, y: 3, z: -2.5}}},\
 {header: {frame_id: 'map'}, pose: {position: {x: -3, y: -3, z: -2.5}}},\
