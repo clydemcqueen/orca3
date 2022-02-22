@@ -1,4 +1,4 @@
-name: ROS2 CI
+name: galactic_ci
 
 on:
   pull_request:
@@ -10,14 +10,13 @@ on:
 
 jobs:
   test_environment:
-    runs-on: [ubuntu-latest]
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         ros_distribution:
           - galactic
         include:
-          # Galactic Geochelone (May 2021 - November 2022)
           - docker_image: rostooling/setup-ros-docker:ubuntu-focal-ros-galactic-ros-base-latest
             ros_distribution: galactic
             ros_version: 2
