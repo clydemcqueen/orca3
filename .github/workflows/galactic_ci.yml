@@ -3,10 +3,10 @@ name: galactic_ci
 on:
   pull_request:
     branches:
-      - 'main'
+      - 'galactic'
   push:
     branches:
-      - 'main'
+      - 'galactic'
 
 jobs:
   test_environment:
@@ -31,6 +31,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           path: ros_ws/src
+          ref: galactic
       - name: build and test
         uses: ros-tooling/action-ros-ci@master
         with:
