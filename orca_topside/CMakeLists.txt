@@ -9,14 +9,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# Emulate colcon in CLion
-#if($ENV{CLION_IDE})
-#  set(gst_tools_DIR "${PROJECT_SOURCE_DIR}/../../../install/gst_tools/share/gst_tools/cmake")
-#  set(orca_msgs_DIR "${PROJECT_SOURCE_DIR}/../../../install/orca_msgs/share/orca_msgs/cmake")
-#  set(orca_shared_DIR "${PROJECT_SOURCE_DIR}/../../../install/orca_shared/share/orca_shared/cmake")
-#  set(ros2_shared_DIR "${PROJECT_SOURCE_DIR}/../../../install/ros2_shared/share/ros2_shared/cmake")
-#endif()
-
 # A bit tricky to use ament + Qt5 + CMake + CLion, some resources:
 # https://doc.qt.io/qt-5.12/cmake-manual.html
 # https://www.jetbrains.com/help/clion/qt-tutorial.html
