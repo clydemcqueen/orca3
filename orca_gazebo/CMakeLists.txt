@@ -24,12 +24,12 @@ ament_auto_find_build_dependencies()
 
 #=============
 # Run build_world.py to generate .yaml (vlam maps) and .world files
-# Use simple.world as the marker file, if this is stale, re-run build_world.py
+# Use empty.world as the marker file, if this is stale, re-run build_world.py
 #=============
 
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/worlds")
 
-set(MARKER_FILE "${CMAKE_CURRENT_BINARY_DIR}/worlds/simple.world")
+set(MARKER_FILE "${CMAKE_CURRENT_BINARY_DIR}/worlds/empty.world")
 
 add_custom_command(
   OUTPUT ${MARKER_FILE}
