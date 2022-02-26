@@ -1,4 +1,4 @@
-# Orca3 ![example branch parameter](https://github.com/clydemcqueen/orca3/actions/workflows/galactic_ci.yml/badge.svg?branch=main)
+# Orca3 ![example branch parameter](https://github.com/clydemcqueen/orca3/actions/workflows/main_ci.yml/badge.svg?branch=main)
 
 Orca3 is a set of [ROS2](http://www.ros.org/) packages that provide basic AUV (Autonomous Underwater Vehicle)
 functionality for the [BlueRobotics BlueROV2](https://www.bluerobotics.com).
@@ -37,7 +37,7 @@ Orca3 includes experimental hardware drivers that run on a modified BlueROV2:
 
 ## Installation
 
-Orca3 has been tested on ROS2 Foxy and Galactic. See the [Dockerfile](Dockerfile) for installation instructions.
+Orca3 has been tested on ROS2 Foxy, Galactic and Rolling. See the [Dockerfile](Dockerfile) for installation instructions.
    
 ## Simulation with fiducial_vlam
 

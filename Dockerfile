@@ -1,12 +1,12 @@
-# This Dockerfile can be configured via --build-arg
+# This Dockerfile depends on workspace.repos
 
 # Example build command:
-# docker build --pull --no-cache -t orca3:galactic .
+# docker build --pull --no-cache -t orca3:rolling .
 
 # Example run command using Rocker (see https://github.com/osrf/rocker):
-# rocker --x11 --nvidia orca3:galactic
+# rocker --x11 --nvidia orca3:rolling
 
-FROM osrf/ros:galactic-desktop
+FROM osrf/ros:rolling-desktop
 
 RUN apt-get update && apt-get upgrade -y
 
@@ -19,31 +19,27 @@ RUN apt-get install -y libgstreamer1.0-0 gstreamer1.0-plugins-base gstreamer1.0-
  gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio \
  libgstreamer-plugins-base1.0-dev
 
-WORKDIR /work/orca_ws/src
-
-COPY . orca3
-
-ARG FIDUCIAL_VLAM_BRANCH=master
-ARG H264_IMAGE_TRANSPORT_BRANCH=master
-ARG ORB_SLAM2_ROS_BRANCH=clyde_h264_stereo_galactic
-ARG ROS2_SHARED_BRANCH=master
-ARG SIM_FIDUCIAL_BRANCH=master
-ARG STEREO_DECODER_BRANCH=main
-ARG UKF_BRANCH=master
-
-RUN git clone https://github.com/ptrmu/fiducial_vlam.git -b $FIDUCIAL_VLAM_BRANCH
-RUN git clone https://github.com/clydemcqueen/h264_image_transport.git -b $H264_IMAGE_TRANSPORT_BRANCH
-RUN git clone https://github.com/clydemcqueen/orb_slam_2_ros.git -b $ORB_SLAM2_ROS_BRANCH
-RUN git clone https://github.com/ptrmu/ros2_shared.git -b $ROS2_SHARED_BRANCH
-RUN git clone https://github.com/clydemcqueen/sim_fiducial.git -b $SIM_FIDUCIAL_BRANCH
-RUN git clone https://github.com/clydemcqueen/stereo_decoder.git -b $STEREO_DECODER_BRANCH
-RUN git clone https://github.com/clydemcqueen/ukf.git -b $UKF_BRANCH
-
 WORKDIR /work/orca_ws
 
-RUN rosdep install -y --from-paths . --ignore-src
+# Build part 1: get & build all dependencies
 
-RUN /bin/bash -c "source /opt/ros/galactic/setup.bash && colcon build"
+COPY workspace.repos src/orca3/workspace.repos
+
+RUN vcs import src < src/orca3/workspace.repos
+
+# Ignore slam_toolbox
+RUN rosdep install -y --from-paths . --ignore-src --skip-keys slam_toolbox
+
+RUN /bin/bash -c "source /opt/ros/rolling/setup.bash && colcon build"
+
+# Build part 2: get & build orca3 source
+
+COPY . src/orca3
+
+RUN rosdep install -y --from-paths . --ignore-src --skip-keys slam_toolbox
+
+RUN /bin/bash -c "source /opt/ros/rolling/setup.bash && colcon build"
+
 
 # Simulation with fiducial_vlam:
 # source src/orca3/setup.bash       # Required to set up the Gazebo environment correctly
