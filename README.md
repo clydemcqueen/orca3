@@ -3,6 +3,8 @@
 Orca3 is a set of [ROS2](http://www.ros.org/) packages that provide basic AUV (Autonomous Underwater Vehicle)
 functionality for the [BlueRobotics BlueROV2](https://www.bluerobotics.com).
 
+> Update 17-June-2022: work has shifted to [Orca4](https://github.com/clydemcqueen/orca4), which uses [ArduSub](http://www.ardusub.com/) as the flight controller.
+
 Orca3 includes a `base_controller` node that responds to 3D 4DoF `/cmd_vel` messages and generates thrust and odometry.
 The BlueROV2 barometer sensor is used to hover at the target depth.
 See [orca_base](orca_base/README.md) for details.
