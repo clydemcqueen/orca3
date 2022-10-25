@@ -1,21 +1,13 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.14)
 project(orca_topside)
 
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
+  set(CMAKE_CXX_STANDARD 17)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
-
-# Emulate colcon in CLion
-#if($ENV{CLION_IDE})
-#  set(gst_tools_DIR "${PROJECT_SOURCE_DIR}/../../../install/gst_tools/share/gst_tools/cmake")
-#  set(orca_msgs_DIR "${PROJECT_SOURCE_DIR}/../../../install/orca_msgs/share/orca_msgs/cmake")
-#  set(orca_shared_DIR "${PROJECT_SOURCE_DIR}/../../../install/orca_shared/share/orca_shared/cmake")
-#  set(ros2_shared_DIR "${PROJECT_SOURCE_DIR}/../../../install/ros2_shared/share/ros2_shared/cmake")
-#endif()
 
 # A bit tricky to use ament + Qt5 + CMake + CLion, some resources:
 # https://doc.qt.io/qt-5.12/cmake-manual.html
@@ -32,6 +24,7 @@ pkg_check_modules(GST_APP REQUIRED gstreamer-app-1.0)
 
 find_package(ament_cmake REQUIRED)
 find_package(camera_info_manager REQUIRED)
+find_package(cv_bridge REQUIRED)
 find_package(gst_tools QUIET)
 find_package(h264_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
@@ -73,6 +66,7 @@ add_executable(
 ament_target_dependencies(
   teleop_node
   camera_info_manager
+  cv_bridge
   geometry_msgs
   GST_APP
   h264_msgs

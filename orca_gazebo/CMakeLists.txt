@@ -1,21 +1,12 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.14)
 project(orca_gazebo)
 
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
+  set(CMAKE_CXX_STANDARD 17)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
-endif()
-
-# Emulate colcon in CLion
-if($ENV{CLION_IDE})
-  find_package(fastrtps_cmake_module REQUIRED)
-  set(FastRTPS_INCLUDE_DIR "/opt/ros/foxy/include")
-  set(FastRTPS_LIBRARY_RELEASE "/opt/ros/foxy/lib/libfastrtps.so")
-  set(orca_msgs_DIR "${PROJECT_SOURCE_DIR}/../../../install/orca_msgs/share/orca_msgs/cmake")
-  set(orca_shared_DIR "${PROJECT_SOURCE_DIR}/../../../install/orca_shared/share/orca_shared/cmake")
 endif()
 
 # Add -Wno-dev to CLion CMake options to suppress warning about gazebo_dev
@@ -24,12 +15,12 @@ ament_auto_find_build_dependencies()
 
 #=============
 # Run build_world.py to generate .yaml (vlam maps) and .world files
-# Use simple.world as the marker file, if this is stale, re-run build_world.py
+# Use empty.world as the marker file, if this is stale, re-run build_world.py
 #=============
 
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/worlds")
 
-set(MARKER_FILE "${CMAKE_CURRENT_BINARY_DIR}/worlds/simple.world")
+set(MARKER_FILE "${CMAKE_CURRENT_BINARY_DIR}/worlds/empty.world")
 
 add_custom_command(
   OUTPUT ${MARKER_FILE}
